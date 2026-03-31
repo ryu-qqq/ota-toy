@@ -1,0 +1,28 @@
+# Build
+build/
+out/
+.gradle/
+
+# IDE
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+.project
+.classpath
+.settings/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+*.env
+
+# Claude
+.claude/
+
+# Test PDF
+test.pdf
