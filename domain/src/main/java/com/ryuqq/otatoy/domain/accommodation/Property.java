@@ -1,5 +1,6 @@
 package com.ryuqq.otatoy.domain.accommodation;
 
+import com.ryuqq.otatoy.domain.brand.BrandId;
 import com.ryuqq.otatoy.domain.partner.PartnerId;
 
 import java.time.Instant;

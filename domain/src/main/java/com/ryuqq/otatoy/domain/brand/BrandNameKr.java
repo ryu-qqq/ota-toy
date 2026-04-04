@@ -1,4 +1,4 @@
-package com.ryuqq.otatoy.domain.accommodation;
+package com.ryuqq.otatoy.domain.brand;
 
 /**
  * 브랜드 한글명 VO. nullable이며, 값이 있을 경우 200자 이하를 보장한다.

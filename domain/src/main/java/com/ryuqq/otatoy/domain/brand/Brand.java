@@ -1,4 +1,4 @@
-package com.ryuqq.otatoy.domain.accommodation;
+package com.ryuqq.otatoy.domain.brand;
 
 import java.time.Instant;
 import java.util.Objects;

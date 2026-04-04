@@ -1,4 +1,4 @@
-package com.ryuqq.otatoy.domain.accommodation;
+package com.ryuqq.otatoy.domain.brand;
 
 public record BrandName(String value) {
 

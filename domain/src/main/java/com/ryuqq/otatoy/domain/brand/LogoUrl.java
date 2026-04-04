@@ -1,4 +1,4 @@
-package com.ryuqq.otatoy.domain.accommodation;
+package com.ryuqq.otatoy.domain.brand;
 
 /**
  * 브랜드 로고 URL VO. nullable이며, 값이 있을 경우 500자 이하를 보장한다.
