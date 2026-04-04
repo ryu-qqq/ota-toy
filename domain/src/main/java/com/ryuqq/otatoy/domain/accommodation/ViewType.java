@@ -6,6 +6,15 @@ public record ViewType(
         String name
 ) {
 
+    public ViewType {
+        if (code == null || code.isBlank()) {
+            throw new IllegalArgumentException("전망 유형 코드는 필수입니다");
+        }
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("전망 유형명은 필수입니다");
+        }
+    }
+
     public static ViewType of(String code, String name) {
         return new ViewType(null, code, name);
     }

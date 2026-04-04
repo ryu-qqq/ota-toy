@@ -1,6 +1,7 @@
 package com.ryuqq.otatoy.domain.pricing;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.Objects;
 
 public class RatePlanAddOn {
@@ -11,31 +12,33 @@ public class RatePlanAddOn {
     private String name;
     private BigDecimal price;
     private boolean included;
+    private final Instant createdAt;
 
     private RatePlanAddOn(Long id, RatePlanId ratePlanId, String addOnType,
-                          String name, BigDecimal price, boolean included) {
+                          String name, BigDecimal price, boolean included, Instant createdAt) {
         this.id = id;
         this.ratePlanId = ratePlanId;
         this.addOnType = addOnType;
         this.name = name;
         this.price = price;
         this.included = included;
+        this.createdAt = createdAt;
     }
 
     public static RatePlanAddOn forNew(RatePlanId ratePlanId, String addOnType,
-                                        String name, BigDecimal price, boolean included) {
+                                        String name, BigDecimal price, boolean included, Instant now) {
         if (addOnType == null || addOnType.isBlank()) {
             throw new IllegalArgumentException("Add-on 유형은 필수입니다");
         }
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("Add-on 이름은 필수입니다");
         }
-        return new RatePlanAddOn(null, ratePlanId, addOnType, name, price, included);
+        return new RatePlanAddOn(null, ratePlanId, addOnType, name, price, included, now);
     }
 
     public static RatePlanAddOn reconstitute(Long id, RatePlanId ratePlanId, String addOnType,
-                                              String name, BigDecimal price, boolean included) {
-        return new RatePlanAddOn(id, ratePlanId, addOnType, name, price, included);
+                                              String name, BigDecimal price, boolean included, Instant createdAt) {
+        return new RatePlanAddOn(id, ratePlanId, addOnType, name, price, included, createdAt);
     }
 
     public boolean isFree() {
@@ -48,6 +51,7 @@ public class RatePlanAddOn {
     public String name() { return name; }
     public BigDecimal price() { return price; }
     public boolean included() { return included; }
+    public Instant createdAt() { return createdAt; }
 
     @Override
     public boolean equals(Object o) {

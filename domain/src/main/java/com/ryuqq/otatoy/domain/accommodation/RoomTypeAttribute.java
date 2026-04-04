@@ -7,6 +7,12 @@ public record RoomTypeAttribute(
         String attributeValue
 ) {
 
+    public RoomTypeAttribute {
+        if (attributeKey == null || attributeKey.isBlank()) {
+            throw new IllegalArgumentException("속성 키는 필수입니다");
+        }
+    }
+
     public static RoomTypeAttribute of(RoomTypeId roomTypeId, String attributeKey, String attributeValue) {
         return new RoomTypeAttribute(null, roomTypeId, attributeKey, attributeValue);
     }

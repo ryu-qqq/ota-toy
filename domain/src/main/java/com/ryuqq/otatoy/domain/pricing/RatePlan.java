@@ -1,6 +1,7 @@
 package com.ryuqq.otatoy.domain.pricing;
 
 import com.ryuqq.otatoy.domain.accommodation.RoomTypeId;
+import com.ryuqq.otatoy.domain.supplier.SupplierId;
 
 import java.time.Instant;
 import java.util.Objects;
@@ -11,17 +12,19 @@ public class RatePlan {
     private final RoomTypeId roomTypeId;
     private String name;
     private SourceType sourceType;
-    private Long supplierId;
+    private SupplierId supplierId;
     private boolean freeCancellation;
     private boolean nonRefundable;
+    private int freeCancellationDeadlineDays;
     private String cancellationPolicyText;
     private PaymentPolicy paymentPolicy;
     private final Instant createdAt;
     private Instant updatedAt;
 
     private RatePlan(RatePlanId id, RoomTypeId roomTypeId, String name,
-                     SourceType sourceType, Long supplierId,
+                     SourceType sourceType, SupplierId supplierId,
                      boolean freeCancellation, boolean nonRefundable,
+                     int freeCancellationDeadlineDays,
                      String cancellationPolicyText, PaymentPolicy paymentPolicy,
                      Instant createdAt, Instant updatedAt) {
         this.id = id;
@@ -31,6 +34,7 @@ public class RatePlan {
         this.supplierId = supplierId;
         this.freeCancellation = freeCancellation;
         this.nonRefundable = nonRefundable;
+        this.freeCancellationDeadlineDays = freeCancellationDeadlineDays;
         this.cancellationPolicyText = cancellationPolicyText;
         this.paymentPolicy = paymentPolicy;
         this.createdAt = createdAt;
@@ -38,8 +42,9 @@ public class RatePlan {
     }
 
     public static RatePlan forNew(RoomTypeId roomTypeId, String name,
-                                   SourceType sourceType, Long supplierId,
+                                   SourceType sourceType, SupplierId supplierId,
                                    boolean freeCancellation, boolean nonRefundable,
+                                   int freeCancellationDeadlineDays,
                                    String cancellationPolicyText, PaymentPolicy paymentPolicy,
                                    Instant now) {
         if (name == null || name.isBlank()) {
@@ -49,27 +54,36 @@ public class RatePlan {
             throw new IllegalArgumentException("결제 방식은 필수입니다");
         }
         if (sourceType == SourceType.SUPPLIER && supplierId == null) {
-            throw new IllegalArgumentException("외부 공급자 요금 정책은 supplierId가 필수입니다");
+            throw new IllegalArgumentException("외부 공급자 요금 정책은 supplierId가 ��수입니다");
+        }
+        if (freeCancellation && nonRefundable) {
+            throw new IllegalArgumentException("무료 취소와 환불 불가는 동시에 설��할 수 없습니다");
         }
         return new RatePlan(null, roomTypeId, name, sourceType, supplierId,
-                freeCancellation, nonRefundable, cancellationPolicyText, paymentPolicy,
-                now, now);
+                freeCancellation, nonRefundable, freeCancellationDeadlineDays,
+                cancellationPolicyText, paymentPolicy, now, now);
     }
 
     public static RatePlan reconstitute(RatePlanId id, RoomTypeId roomTypeId, String name,
-                                         SourceType sourceType, Long supplierId,
+                                         SourceType sourceType, SupplierId supplierId,
                                          boolean freeCancellation, boolean nonRefundable,
+                                         int freeCancellationDeadlineDays,
                                          String cancellationPolicyText, PaymentPolicy paymentPolicy,
                                          Instant createdAt, Instant updatedAt) {
         return new RatePlan(id, roomTypeId, name, sourceType, supplierId,
-                freeCancellation, nonRefundable, cancellationPolicyText, paymentPolicy,
-                createdAt, updatedAt);
+                freeCancellation, nonRefundable, freeCancellationDeadlineDays,
+                cancellationPolicyText, paymentPolicy, createdAt, updatedAt);
     }
 
     public void updatePolicy(boolean freeCancellation, boolean nonRefundable,
+                              int freeCancellationDeadlineDays,
                               String cancellationPolicyText, PaymentPolicy paymentPolicy, Instant now) {
+        if (freeCancellation && nonRefundable) {
+            throw new IllegalArgumentException("무료 취소와 환불 불가는 동시에 설정할 수 없습니다");
+        }
         this.freeCancellation = freeCancellation;
         this.nonRefundable = nonRefundable;
+        this.freeCancellationDeadlineDays = freeCancellationDeadlineDays;
         this.cancellationPolicyText = cancellationPolicyText;
         this.paymentPolicy = paymentPolicy;
         this.updatedAt = now;
@@ -87,9 +101,10 @@ public class RatePlan {
     public RoomTypeId roomTypeId() { return roomTypeId; }
     public String name() { return name; }
     public SourceType sourceType() { return sourceType; }
-    public Long supplierId() { return supplierId; }
+    public SupplierId supplierId() { return supplierId; }
     public boolean freeCancellation() { return freeCancellation; }
     public boolean nonRefundable() { return nonRefundable; }
+    public int freeCancellationDeadlineDays() { return freeCancellationDeadlineDays; }
     public String cancellationPolicyText() { return cancellationPolicyText; }
     public PaymentPolicy paymentPolicy() { return paymentPolicy; }
     public Instant createdAt() { return createdAt; }

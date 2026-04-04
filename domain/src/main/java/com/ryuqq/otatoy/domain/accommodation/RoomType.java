@@ -78,6 +78,9 @@ public class RoomType {
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("객실명은 필수입니다");
         }
+        if (maxOccupancy < baseOccupancy) {
+            throw new IllegalArgumentException("최대 인원은 기본 인원 이상이어야 합니다");
+        }
         this.name = name;
         this.description = description;
         this.areaSqm = areaSqm;
