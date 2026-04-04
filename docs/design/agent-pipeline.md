@@ -46,6 +46,7 @@
     ┌────▼──────────────────┐
     │ Cross-cutting         │
     │ journal-recorder      │
+    │ dependency-guardian    │
     └───────────────────────┘
 ```
 
@@ -109,11 +110,12 @@
 > persistence-mysql에 특화된 리뷰 기준(쿼리 성능, 인덱스)과 범용 Adapter-out 리뷰 기준을
 > 분리해야 하므로, 전체 Adapter-out 유형이 윤곽을 잡힌 후 reviewer를 설계한다.
 
-### Cross-cutting (1개)
+### Cross-cutting (2개)
 
 | 에이전트 | 역할 |
 |---------|------|
 | journal-recorder | 각 팀 작업 완료 시 의사결정/AI활용/진행상황 수집 및 시드 기록 |
+| dependency-guardian | Gradle 빌드 파일/의존성 유일 수정자. DEP-REQUEST 처리, 정적 분석 플러그인 관리 |
 
 ### Meta (1개)
 
@@ -236,6 +238,21 @@ convention-guardian (REJECTED 판정)
 ```
 project-manager → AUDIT-REQUEST → 해당 builder
 ```
+
+### 6. DEP-REQUEST / DEP-RESPONSE (의존성 관리)
+
+구현팀이 새 라이브러리/의존성이 필요할 때 dependency-guardian에게 요청.
+
+```
+구현팀 → DEP-REQUEST → dependency-guardian → DEP-RESPONSE
+```
+
+**검토 기준:**
+1. 필요성 — 기존/transitive 의존성으로 해결 가능한가?
+2. 모듈 적합성 — domain에 Spring 추가 시도 → 즉시 거절
+3. scope 적합성 — implementation/api/runtimeOnly/testImplementation
+4. 버전 충돌 — 기존 의존성과 호환성
+5. 라이선스 — 상용 불가 라이선스 거절
 
 ---
 

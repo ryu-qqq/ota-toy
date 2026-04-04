@@ -1,6 +1,7 @@
 package com.ryuqq.otatoy.domain.accommodation;
 
 import com.ryuqq.otatoy.domain.location.Location;
+import com.ryuqq.otatoy.domain.location.LocationException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -30,39 +31,39 @@ class LocationTest {
         @DisplayName("위도가 -91이면 생성 실패")
         void shouldFailWhenLatitudeIsBelowMinus90() {
             assertThatThrownBy(() -> Location.of("주소", -91, 127.0, "동네", "지역"))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("위도 범위 초과");
+                    .isInstanceOf(LocationException.class)
+                    .hasMessageContaining("위도 범위");
         }
 
         @Test
         @DisplayName("위도가 91이면 생성 실패")
         void shouldFailWhenLatitudeIsAbove90() {
             assertThatThrownBy(() -> Location.of("주소", 91, 127.0, "동네", "지역"))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("위도 범위 초과");
+                    .isInstanceOf(LocationException.class)
+                    .hasMessageContaining("위도 범위");
         }
 
         @Test
         @DisplayName("경도가 181이면 생성 실패")
         void shouldFailWhenLongitudeIsAbove180() {
             assertThatThrownBy(() -> Location.of("주소", 37.5, 181, "동네", "지역"))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("경도 범위 초과");
+                    .isInstanceOf(LocationException.class)
+                    .hasMessageContaining("경도 범위");
         }
 
         @Test
         @DisplayName("경도가 -181이면 생성 실패")
         void shouldFailWhenLongitudeIsBelowMinus180() {
             assertThatThrownBy(() -> Location.of("주소", 37.5, -181, "동네", "지역"))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("경도 범위 초과");
+                    .isInstanceOf(LocationException.class)
+                    .hasMessageContaining("경도 범위");
         }
 
         @Test
         @DisplayName("주소가 빈 값이면 생성 실패")
         void shouldFailWhenAddressIsBlank() {
             assertThatThrownBy(() -> Location.of("", 37.5, 127.0, "동네", "지역"))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(LocationException.class)
                     .hasMessageContaining("주소는 필수");
         }
 

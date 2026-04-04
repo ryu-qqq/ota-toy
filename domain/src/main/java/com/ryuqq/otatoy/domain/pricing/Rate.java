@@ -7,14 +7,14 @@ import java.util.Objects;
 
 public class Rate {
 
-    private final Long id;
+    private final RateId id;
     private final RatePlanId ratePlanId;
     private final LocalDate rateDate;
     private BigDecimal basePrice;
     private final Instant createdAt;
     private Instant updatedAt;
 
-    private Rate(Long id, RatePlanId ratePlanId, LocalDate rateDate,
+    private Rate(RateId id, RatePlanId ratePlanId, LocalDate rateDate,
                  BigDecimal basePrice, Instant createdAt, Instant updatedAt) {
         this.id = id;
         this.ratePlanId = ratePlanId;
@@ -32,10 +32,10 @@ public class Rate {
         if (basePrice == null || basePrice.compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalArgumentException("기본 가격은 0 이상이어야 합니다");
         }
-        return new Rate(null, ratePlanId, rateDate, basePrice, now, now);
+        return new Rate(RateId.of(null), ratePlanId, rateDate, basePrice, now, now);
     }
 
-    public static Rate reconstitute(Long id, RatePlanId ratePlanId, LocalDate rateDate,
+    public static Rate reconstitute(RateId id, RatePlanId ratePlanId, LocalDate rateDate,
                                      BigDecimal basePrice, Instant createdAt, Instant updatedAt) {
         return new Rate(id, ratePlanId, rateDate, basePrice, createdAt, updatedAt);
     }
@@ -48,7 +48,7 @@ public class Rate {
         this.updatedAt = now;
     }
 
-    public Long id() { return id; }
+    public RateId id() { return id; }
     public RatePlanId ratePlanId() { return ratePlanId; }
     public LocalDate rateDate() { return rateDate; }
     public BigDecimal basePrice() { return basePrice; }

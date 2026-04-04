@@ -69,11 +69,10 @@ class VoTest {
     class PartnerIdTest {
 
         @Test
-        @DisplayName("PartnerId null 불허 — 참조 ID")
-        void shouldRejectNullPartnerId() {
-            assertThatThrownBy(() -> PartnerId.of(null))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("파트너 ID는 필수");
+        @DisplayName("PartnerId null 허용 — isNew()로 새 엔티티 판별")
+        void shouldAllowNullPartnerId() {
+            PartnerId partnerId = PartnerId.of(null);
+            assertThat(partnerId.isNew()).isTrue();
         }
 
         @Test

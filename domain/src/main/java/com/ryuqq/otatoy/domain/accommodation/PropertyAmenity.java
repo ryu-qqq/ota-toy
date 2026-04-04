@@ -9,12 +9,12 @@ public class PropertyAmenity {
     private final PropertyAmenityId id;
     private final PropertyId propertyId;
     private final AmenityType amenityType;
-    private final String name;
+    private final AmenityName name;
     private final Money additionalPrice;
     private final int sortOrder;
 
     private PropertyAmenity(PropertyAmenityId id, PropertyId propertyId, AmenityType amenityType,
-                            String name, Money additionalPrice, int sortOrder) {
+                            AmenityName name, Money additionalPrice, int sortOrder) {
         this.id = id;
         this.propertyId = propertyId;
         this.amenityType = amenityType;
@@ -23,19 +23,16 @@ public class PropertyAmenity {
         this.sortOrder = sortOrder;
     }
 
-    public static PropertyAmenity forNew(PropertyId propertyId, AmenityType amenityType, String name,
+    public static PropertyAmenity forNew(PropertyId propertyId, AmenityType amenityType, AmenityName name,
                                           Money additionalPrice, int sortOrder) {
         if (amenityType == null) {
             throw new IllegalArgumentException("편의시설 유형은 필수입니다");
-        }
-        if (name == null || name.isBlank()) {
-            throw new IllegalArgumentException("편의시설명은 필수입니다");
         }
         return new PropertyAmenity(PropertyAmenityId.of(null), propertyId, amenityType, name, additionalPrice, sortOrder);
     }
 
     public static PropertyAmenity reconstitute(PropertyAmenityId id, PropertyId propertyId, AmenityType amenityType,
-                                                String name, Money additionalPrice, int sortOrder) {
+                                                AmenityName name, Money additionalPrice, int sortOrder) {
         return new PropertyAmenity(id, propertyId, amenityType, name, additionalPrice, sortOrder);
     }
 
@@ -46,7 +43,7 @@ public class PropertyAmenity {
     public PropertyAmenityId id() { return id; }
     public PropertyId propertyId() { return propertyId; }
     public AmenityType amenityType() { return amenityType; }
-    public String name() { return name; }
+    public AmenityName name() { return name; }
     public Money additionalPrice() { return additionalPrice; }
     public int sortOrder() { return sortOrder; }
 

@@ -15,10 +15,12 @@ class RoomTypeTest {
 
     private static final Instant NOW = Instant.now();
     private static final PropertyId PROPERTY_ID = PropertyId.of(1L);
+    private static final RoomTypeName NAME = RoomTypeName.of("스탠다드");
+    private static final RoomTypeDescription DESCRIPTION = RoomTypeDescription.of("기본 객실");
 
     private RoomType createActiveRoomType() {
         return RoomType.forNew(
-                PROPERTY_ID, "스탠다드", "기본 객실",
+                PROPERTY_ID, NAME, DESCRIPTION,
                 new BigDecimal("33.5"), "10평",
                 2, 4, 10,
                 LocalTime.of(15, 0), LocalTime.of(11, 0),
@@ -40,7 +42,7 @@ class RoomTypeTest {
             assertThat(roomType).isNotNull();
             assertThat(roomType.id()).isNull();
             assertThat(roomType.propertyId()).isEqualTo(PROPERTY_ID);
-            assertThat(roomType.name()).isEqualTo("스탠다드");
+            assertThat(roomType.name()).isEqualTo(NAME);
             assertThat(roomType.status()).isEqualTo(RoomTypeStatus.ACTIVE);
             assertThat(roomType.baseOccupancy()).isEqualTo(2);
             assertThat(roomType.maxOccupancy()).isEqualTo(4);
@@ -51,7 +53,7 @@ class RoomTypeTest {
         void shouldFailWhenBaseOccupancyExceedsMaxOccupancy() {
             // when & then
             assertThatThrownBy(() -> RoomType.forNew(
-                    PROPERTY_ID, "디럭스", "설명",
+                    PROPERTY_ID, RoomTypeName.of("디럭스"), RoomTypeDescription.of("설명"),
                     new BigDecimal("40"), "12평",
                     5, 3, 10,
                     LocalTime.of(15, 0), LocalTime.of(11, 0),
@@ -63,10 +65,9 @@ class RoomTypeTest {
 
         @Test
         @DisplayName("areaSqm이 0인 RoomType 생성 실패")
-        // TODO: 도메인 수정 필요 — S-4 (R-19): areaSqm이 0일 때도 차단해야 함
         void shouldFailWhenAreaSqmIsZero() {
             assertThatThrownBy(() -> RoomType.forNew(
-                    PROPERTY_ID, "스탠다드", "설명",
+                    PROPERTY_ID, NAME, DESCRIPTION,
                     BigDecimal.ZERO, "0평",
                     2, 4, 10,
                     LocalTime.of(15, 0), LocalTime.of(11, 0),
@@ -80,7 +81,7 @@ class RoomTypeTest {
         @DisplayName("areaSqm이 음수인 RoomType 생성 실패")
         void shouldFailWhenAreaSqmIsNegative() {
             assertThatThrownBy(() -> RoomType.forNew(
-                    PROPERTY_ID, "스탠다드", "설명",
+                    PROPERTY_ID, NAME, DESCRIPTION,
                     new BigDecimal("-10"), "0평",
                     2, 4, 10,
                     LocalTime.of(15, 0), LocalTime.of(11, 0),
@@ -93,36 +94,24 @@ class RoomTypeTest {
         @Test
         @DisplayName("객실명이 빈 값이면 생성 실패")
         void shouldFailWhenNameIsBlank() {
-            assertThatThrownBy(() -> RoomType.forNew(
-                    PROPERTY_ID, "", "설명",
-                    new BigDecimal("33.5"), "10평",
-                    2, 4, 10,
-                    LocalTime.of(15, 0), LocalTime.of(11, 0),
-                    NOW
-            ))
+            assertThatThrownBy(() -> RoomTypeName.of(""))
                     .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("객실명은 필수입니다");
+                    .hasMessageContaining("객실 유형명은 필수입니다");
         }
 
         @Test
         @DisplayName("객실명이 null이면 생성 실패")
         void shouldFailWhenNameIsNull() {
-            assertThatThrownBy(() -> RoomType.forNew(
-                    PROPERTY_ID, null, "설명",
-                    new BigDecimal("33.5"), "10평",
-                    2, 4, 10,
-                    LocalTime.of(15, 0), LocalTime.of(11, 0),
-                    NOW
-            ))
+            assertThatThrownBy(() -> RoomTypeName.of(null))
                     .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("객실명은 필수입니다");
+                    .hasMessageContaining("객실 유형명은 필수입니다");
         }
 
         @Test
         @DisplayName("기본 재고가 음수이면 생성 실패")
         void shouldFailWhenBaseInventoryIsNegative() {
             assertThatThrownBy(() -> RoomType.forNew(
-                    PROPERTY_ID, "스탠다드", "설명",
+                    PROPERTY_ID, NAME, DESCRIPTION,
                     new BigDecimal("33.5"), "10평",
                     2, 4, -1,
                     LocalTime.of(15, 0), LocalTime.of(11, 0),
@@ -137,7 +126,7 @@ class RoomTypeTest {
         void shouldSucceedWhenAreaSqmIsNull() {
             // when
             RoomType roomType = RoomType.forNew(
-                    PROPERTY_ID, "스탠다드", "설명",
+                    PROPERTY_ID, NAME, DESCRIPTION,
                     null, null,
                     2, 4, 10,
                     LocalTime.of(15, 0), LocalTime.of(11, 0),

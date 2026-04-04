@@ -7,47 +7,51 @@ import java.util.Objects;
 
 public class SupplierRoomType {
 
-    private final Long id;
-    private final Long supplierPropertyId;
+    private final SupplierRoomTypeId id;
+    private final SupplierPropertyId supplierPropertyId;
     private final RoomTypeId roomTypeId;
-    private final String supplierRoomId;
+    private final String supplierRoomCode;
     private Instant lastSyncedAt;
     private SupplierPropertyStatus status;
 
-    private SupplierRoomType(Long id, Long supplierPropertyId, RoomTypeId roomTypeId,
-                             String supplierRoomId, Instant lastSyncedAt,
+    private SupplierRoomType(SupplierRoomTypeId id, SupplierPropertyId supplierPropertyId, RoomTypeId roomTypeId,
+                             String supplierRoomCode, Instant lastSyncedAt,
                              SupplierPropertyStatus status) {
         this.id = id;
         this.supplierPropertyId = supplierPropertyId;
         this.roomTypeId = roomTypeId;
-        this.supplierRoomId = supplierRoomId;
+        this.supplierRoomCode = supplierRoomCode;
         this.lastSyncedAt = lastSyncedAt;
         this.status = status;
     }
 
-    public static SupplierRoomType forNew(Long supplierPropertyId, RoomTypeId roomTypeId,
-                                           String supplierRoomId) {
-        if (supplierRoomId == null || supplierRoomId.isBlank()) {
-            throw new IllegalArgumentException("공급자 객실 ID는 필수입니다");
+    public static SupplierRoomType forNew(SupplierPropertyId supplierPropertyId, RoomTypeId roomTypeId,
+                                           String supplierRoomCode) {
+        if (supplierRoomCode == null || supplierRoomCode.isBlank()) {
+            throw new IllegalArgumentException("공급자 객실 코드는 필수입니다");
         }
-        return new SupplierRoomType(null, supplierPropertyId, roomTypeId, supplierRoomId,
+        return new SupplierRoomType(SupplierRoomTypeId.of(null), supplierPropertyId, roomTypeId, supplierRoomCode,
                 null, SupplierPropertyStatus.MAPPED);
     }
 
-    public static SupplierRoomType reconstitute(Long id, Long supplierPropertyId, RoomTypeId roomTypeId,
-                                                 String supplierRoomId, Instant lastSyncedAt,
+    public static SupplierRoomType reconstitute(SupplierRoomTypeId id, SupplierPropertyId supplierPropertyId, RoomTypeId roomTypeId,
+                                                 String supplierRoomCode, Instant lastSyncedAt,
                                                  SupplierPropertyStatus status) {
-        return new SupplierRoomType(id, supplierPropertyId, roomTypeId, supplierRoomId, lastSyncedAt, status);
+        return new SupplierRoomType(id, supplierPropertyId, roomTypeId, supplierRoomCode, lastSyncedAt, status);
     }
 
     public void synced(Instant syncedAt) {
         this.lastSyncedAt = syncedAt;
     }
 
-    public Long id() { return id; }
-    public Long supplierPropertyId() { return supplierPropertyId; }
+    public void unmap() {
+        this.status = SupplierPropertyStatus.UNMAPPED;
+    }
+
+    public SupplierRoomTypeId id() { return id; }
+    public SupplierPropertyId supplierPropertyId() { return supplierPropertyId; }
     public RoomTypeId roomTypeId() { return roomTypeId; }
-    public String supplierRoomId() { return supplierRoomId; }
+    public String supplierRoomCode() { return supplierRoomCode; }
     public Instant lastSyncedAt() { return lastSyncedAt; }
     public SupplierPropertyStatus status() { return status; }
 
@@ -55,11 +59,11 @@ public class SupplierRoomType {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof SupplierRoomType s)) return false;
-        return id != null && id.equals(s.id);
+        return id != null && id.value() != null && id.equals(s.id);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(id);
+        return id != null && id.value() != null ? Objects.hashCode(id) : System.identityHashCode(this);
     }
 }

@@ -4,11 +4,12 @@ import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Objects;
 
 public class RateRule {
 
-    private final Long id;
+    private final RateRuleId id;
     private final RatePlanId ratePlanId;
     private LocalDate startDate;
     private LocalDate endDate;
@@ -20,7 +21,7 @@ public class RateRule {
     private final Instant createdAt;
     private Instant updatedAt;
 
-    private RateRule(Long id, RatePlanId ratePlanId, LocalDate startDate, LocalDate endDate,
+    private RateRule(RateRuleId id, RatePlanId ratePlanId, LocalDate startDate, LocalDate endDate,
                      BigDecimal basePrice, BigDecimal weekdayPrice, BigDecimal fridayPrice,
                      BigDecimal saturdayPrice, BigDecimal sundayPrice,
                      Instant createdAt, Instant updatedAt) {
@@ -50,12 +51,12 @@ public class RateRule {
         if (basePrice == null || basePrice.compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalArgumentException("기본 가격은 0 이상이어야 합니다");
         }
-        return new RateRule(null, ratePlanId, startDate, endDate,
+        return new RateRule(RateRuleId.of(null), ratePlanId, startDate, endDate,
                 basePrice, weekdayPrice, fridayPrice, saturdayPrice, sundayPrice,
                 now, now);
     }
 
-    public static RateRule reconstitute(Long id, RatePlanId ratePlanId, LocalDate startDate, LocalDate endDate,
+    public static RateRule reconstitute(RateRuleId id, RatePlanId ratePlanId, LocalDate startDate, LocalDate endDate,
                                          BigDecimal basePrice, BigDecimal weekdayPrice,
                                          BigDecimal fridayPrice, BigDecimal saturdayPrice,
                                          BigDecimal sundayPrice, Instant createdAt, Instant updatedAt) {
@@ -79,11 +80,32 @@ public class RateRule {
         };
     }
 
+    /**
+     * 해당 날짜의 최종 가격을 결정한다.
+     * RateOverride가 존재하면 오버라이드 가격을, 없으면 요일 기반 기본가를 반환한다.
+     * (캐싱 설계: RateRule 기본가 -> RateOverride 덮어쓰기)
+     */
+    public BigDecimal resolvePrice(LocalDate date, List<RateOverride> overrides) {
+        if (!covers(date)) {
+            throw new IllegalArgumentException("해당 날짜는 이 요금 규칙 범위 밖입니다: " + date);
+        }
+
+        if (overrides != null) {
+            for (RateOverride override : overrides) {
+                if (date.equals(override.overrideDate())) {
+                    return override.price();
+                }
+            }
+        }
+
+        return calculatePrice(date);
+    }
+
     public boolean covers(LocalDate date) {
         return !date.isBefore(startDate) && !date.isAfter(endDate);
     }
 
-    public Long id() { return id; }
+    public RateRuleId id() { return id; }
     public RatePlanId ratePlanId() { return ratePlanId; }
     public LocalDate startDate() { return startDate; }
     public LocalDate endDate() { return endDate; }

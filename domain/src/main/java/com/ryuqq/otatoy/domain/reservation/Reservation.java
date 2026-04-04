@@ -15,7 +15,7 @@ public class Reservation {
 
     private final ReservationId id;
     private final RatePlanId ratePlanId;
-    private final String reservationNo;
+    private final ReservationNo reservationNo;
     private final GuestInfo guestInfo;
     private final DateRange stayPeriod;
     private final int guestCount;
@@ -27,7 +27,7 @@ public class Reservation {
     private Instant cancelledAt;
     private final List<ReservationItem> items;
 
-    private Reservation(ReservationId id, RatePlanId ratePlanId, String reservationNo,
+    private Reservation(ReservationId id, RatePlanId ratePlanId, ReservationNo reservationNo,
                         GuestInfo guestInfo, DateRange stayPeriod, int guestCount,
                         Money totalAmount, ReservationStatus status, String cancelReason,
                         String bookingSnapshot, Instant createdAt, Instant cancelledAt,
@@ -47,16 +47,13 @@ public class Reservation {
         this.items = items;
     }
 
-    public static Reservation forNew(RatePlanId ratePlanId, String reservationNo,
+    public static Reservation forNew(RatePlanId ratePlanId, ReservationNo reservationNo,
                                       GuestInfo guestInfo, DateRange stayPeriod,
                                       int guestCount, Money totalAmount,
                                       String bookingSnapshot, List<ReservationItem> items,
                                       LocalDate today, Instant now) {
         if (ratePlanId == null) {
             throw new IllegalArgumentException("요금 정책 ID는 필수입니다");
-        }
-        if (reservationNo == null || reservationNo.isBlank()) {
-            throw new IllegalArgumentException("예약 번호는 필수입니다");
         }
         if (guestInfo == null) {
             throw new IllegalArgumentException("투숙객 정보는 필수입니다");
@@ -84,7 +81,7 @@ public class Reservation {
                 null, bookingSnapshot, now, null, List.copyOf(items));
     }
 
-    public static Reservation reconstitute(ReservationId id, RatePlanId ratePlanId, String reservationNo,
+    public static Reservation reconstitute(ReservationId id, RatePlanId ratePlanId, ReservationNo reservationNo,
                                             GuestInfo guestInfo, DateRange stayPeriod, int guestCount,
                                             Money totalAmount, ReservationStatus status, String cancelReason,
                                             String bookingSnapshot, Instant createdAt, Instant cancelledAt,
@@ -132,7 +129,7 @@ public class Reservation {
 
     public ReservationId id() { return id; }
     public RatePlanId ratePlanId() { return ratePlanId; }
-    public String reservationNo() { return reservationNo; }
+    public ReservationNo reservationNo() { return reservationNo; }
     public GuestInfo guestInfo() { return guestInfo; }
     public DateRange stayPeriod() { return stayPeriod; }
     public int guestCount() { return guestCount; }

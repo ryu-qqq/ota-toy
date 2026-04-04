@@ -21,7 +21,7 @@ class ReservationTest {
     private static final Instant NOW = Instant.parse("2026-04-04T00:00:00Z");
 
     private static final RatePlanId RATE_PLAN_ID = RatePlanId.of(1L);
-    private static final String RESERVATION_NO = "RSV-20260404-001";
+    private static final ReservationNo RESERVATION_NO = ReservationNo.of("RSV-20260404-001");
     private static final GuestInfo GUEST_INFO = GuestInfo.of("홍길동", "010-1234-5678", "hong@test.com");
     private static final DateRange STAY_PERIOD = new DateRange(LocalDate.of(2026, 4, 10), LocalDate.of(2026, 4, 12));
     private static final int GUEST_COUNT = 2;
@@ -90,11 +90,7 @@ class ReservationTest {
         @Test
         @DisplayName("reservationNo가 null이면 생성 실패")
         void shouldFailWhenReservationNoIsNull() {
-            assertThatThrownBy(() -> Reservation.forNew(
-                    RATE_PLAN_ID, null, GUEST_INFO, STAY_PERIOD,
-                    GUEST_COUNT, TOTAL_AMOUNT, BOOKING_SNAPSHOT, defaultItems(),
-                    TODAY, NOW
-            ))
+            assertThatThrownBy(() -> ReservationNo.of(null))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("예약 번호는 필수");
         }
@@ -102,11 +98,7 @@ class ReservationTest {
         @Test
         @DisplayName("reservationNo가 빈 문자열이면 생성 실패")
         void shouldFailWhenReservationNoIsBlank() {
-            assertThatThrownBy(() -> Reservation.forNew(
-                    RATE_PLAN_ID, "   ", GUEST_INFO, STAY_PERIOD,
-                    GUEST_COUNT, TOTAL_AMOUNT, BOOKING_SNAPSHOT, defaultItems(),
-                    TODAY, NOW
-            ))
+            assertThatThrownBy(() -> ReservationNo.of("   "))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("예약 번호는 필수");
         }

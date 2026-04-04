@@ -1,5 +1,8 @@
 package com.ryuqq.otatoy.domain.accommodation;
 
+import com.ryuqq.otatoy.domain.common.vo.CdnUrl;
+import com.ryuqq.otatoy.domain.common.vo.OriginUrl;
+
 import java.util.Objects;
 
 public class PropertyPhoto {
@@ -7,12 +10,12 @@ public class PropertyPhoto {
     private final PropertyPhotoId id;
     private final PropertyId propertyId;
     private final PhotoType photoType;
-    private final String originUrl;
-    private final String cdnUrl;
+    private final OriginUrl originUrl;
+    private final CdnUrl cdnUrl;
     private final int sortOrder;
 
     private PropertyPhoto(PropertyPhotoId id, PropertyId propertyId, PhotoType photoType,
-                          String originUrl, String cdnUrl, int sortOrder) {
+                          OriginUrl originUrl, CdnUrl cdnUrl, int sortOrder) {
         this.id = id;
         this.propertyId = propertyId;
         this.photoType = photoType;
@@ -22,23 +25,20 @@ public class PropertyPhoto {
     }
 
     public static PropertyPhoto forNew(PropertyId propertyId, PhotoType photoType,
-                                        String originUrl, String cdnUrl, int sortOrder) {
-        if (originUrl == null || originUrl.isBlank()) {
-            throw new IllegalArgumentException("원본 이미지 URL은 필수입니다");
-        }
+                                        OriginUrl originUrl, CdnUrl cdnUrl, int sortOrder) {
         return new PropertyPhoto(PropertyPhotoId.of(null), propertyId, photoType, originUrl, cdnUrl, sortOrder);
     }
 
     public static PropertyPhoto reconstitute(PropertyPhotoId id, PropertyId propertyId, PhotoType photoType,
-                                              String originUrl, String cdnUrl, int sortOrder) {
+                                              OriginUrl originUrl, CdnUrl cdnUrl, int sortOrder) {
         return new PropertyPhoto(id, propertyId, photoType, originUrl, cdnUrl, sortOrder);
     }
 
     public PropertyPhotoId id() { return id; }
     public PropertyId propertyId() { return propertyId; }
     public PhotoType photoType() { return photoType; }
-    public String originUrl() { return originUrl; }
-    public String cdnUrl() { return cdnUrl; }
+    public OriginUrl originUrl() { return originUrl; }
+    public CdnUrl cdnUrl() { return cdnUrl; }
     public int sortOrder() { return sortOrder; }
 
     @Override

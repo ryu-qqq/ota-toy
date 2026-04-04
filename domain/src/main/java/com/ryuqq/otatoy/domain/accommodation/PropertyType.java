@@ -7,12 +7,12 @@ public class PropertyType {
 
     private final PropertyTypeId id;
     private final PropertyTypeCode code;
-    private String name;
-    private String description;
+    private PropertyTypeName name;
+    private PropertyTypeDescription description;
     private final Instant createdAt;
     private Instant updatedAt;
 
-    private PropertyType(PropertyTypeId id, PropertyTypeCode code, String name, String description,
+    private PropertyType(PropertyTypeId id, PropertyTypeCode code, PropertyTypeName name, PropertyTypeDescription description,
                          Instant createdAt, Instant updatedAt) {
         this.id = id;
         this.code = code;
@@ -22,16 +22,16 @@ public class PropertyType {
         this.updatedAt = updatedAt;
     }
 
-    public static PropertyType forNew(PropertyTypeCode code, String name, String description, Instant now) {
+    public static PropertyType forNew(PropertyTypeCode code, PropertyTypeName name, PropertyTypeDescription description, Instant now) {
         return new PropertyType(null, code, name, description, now, now);
     }
 
-    public static PropertyType reconstitute(PropertyTypeId id, PropertyTypeCode code, String name,
-                                             String description, Instant createdAt, Instant updatedAt) {
+    public static PropertyType reconstitute(PropertyTypeId id, PropertyTypeCode code, PropertyTypeName name,
+                                             PropertyTypeDescription description, Instant createdAt, Instant updatedAt) {
         return new PropertyType(id, code, name, description, createdAt, updatedAt);
     }
 
-    public void updateInfo(String name, String description, Instant now) {
+    public void updateInfo(PropertyTypeName name, PropertyTypeDescription description, Instant now) {
         this.name = name;
         this.description = description;
         this.updatedAt = now;
@@ -39,8 +39,8 @@ public class PropertyType {
 
     public PropertyTypeId id() { return id; }
     public PropertyTypeCode code() { return code; }
-    public String name() { return name; }
-    public String description() { return description; }
+    public PropertyTypeName name() { return name; }
+    public PropertyTypeDescription description() { return description; }
     public Instant createdAt() { return createdAt; }
     public Instant updatedAt() { return updatedAt; }
 

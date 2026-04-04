@@ -5,12 +5,12 @@ import java.util.Objects;
 public class Landmark {
 
     private final LandmarkId id;
-    private final String name;
+    private final LandmarkName name;
     private final LandmarkType landmarkType;
     private final double latitude;
     private final double longitude;
 
-    private Landmark(LandmarkId id, String name, LandmarkType landmarkType, double latitude, double longitude) {
+    private Landmark(LandmarkId id, LandmarkName name, LandmarkType landmarkType, double latitude, double longitude) {
         this.id = id;
         this.name = name;
         this.landmarkType = landmarkType;
@@ -18,20 +18,29 @@ public class Landmark {
         this.longitude = longitude;
     }
 
-    public static Landmark forNew(String name, LandmarkType landmarkType, double latitude, double longitude) {
-        if (name == null || name.isBlank()) {
-            throw new IllegalArgumentException("랜드마크명은 필수입니다");
+    public static Landmark forNew(LandmarkName name, LandmarkType landmarkType, double latitude, double longitude) {
+        if (name == null) {
+            throw new LocationException(LocationErrorCode.INVALID_LANDMARK_NAME);
+        }
+        if (landmarkType == null) {
+            throw new LocationException(LocationErrorCode.INVALID_LANDMARK_TYPE);
+        }
+        if (latitude < -90 || latitude > 90) {
+            throw new LocationException(LocationErrorCode.INVALID_LATITUDE);
+        }
+        if (longitude < -180 || longitude > 180) {
+            throw new LocationException(LocationErrorCode.INVALID_LONGITUDE);
         }
         return new Landmark(LandmarkId.of(null), name, landmarkType, latitude, longitude);
     }
 
-    public static Landmark reconstitute(LandmarkId id, String name, LandmarkType landmarkType,
+    public static Landmark reconstitute(LandmarkId id, LandmarkName name, LandmarkType landmarkType,
                                          double latitude, double longitude) {
         return new Landmark(id, name, landmarkType, latitude, longitude);
     }
 
     public LandmarkId id() { return id; }
-    public String name() { return name; }
+    public LandmarkName name() { return name; }
     public LandmarkType landmarkType() { return landmarkType; }
     public double latitude() { return latitude; }
     public double longitude() { return longitude; }

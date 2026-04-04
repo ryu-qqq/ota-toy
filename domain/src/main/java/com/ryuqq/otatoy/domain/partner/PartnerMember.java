@@ -1,21 +1,24 @@
 package com.ryuqq.otatoy.domain.partner;
 
+import com.ryuqq.otatoy.domain.common.vo.Email;
+import com.ryuqq.otatoy.domain.common.vo.PhoneNumber;
+
 import java.time.Instant;
 import java.util.Objects;
 
 public class PartnerMember {
 
-    private final Long id;
+    private final PartnerMemberId id;
     private final PartnerId partnerId;
-    private String name;
-    private String email;
-    private String phone;
+    private MemberName name;
+    private Email email;
+    private PhoneNumber phone;
     private PartnerMemberRole role;
     private PartnerMemberStatus status;
     private final Instant createdAt;
     private Instant updatedAt;
 
-    private PartnerMember(Long id, PartnerId partnerId, String name, String email, String phone,
+    private PartnerMember(PartnerMemberId id, PartnerId partnerId, MemberName name, Email email, PhoneNumber phone,
                           PartnerMemberRole role, PartnerMemberStatus status,
                           Instant createdAt, Instant updatedAt) {
         this.id = id;
@@ -29,32 +32,64 @@ public class PartnerMember {
         this.updatedAt = updatedAt;
     }
 
-    public static PartnerMember forNew(PartnerId partnerId, String name, String email, String phone,
+    public static PartnerMember forNew(PartnerId partnerId, MemberName name, Email email, PhoneNumber phone,
                                         PartnerMemberRole role, Instant now) {
-        if (name == null || name.isBlank()) {
-            throw new IllegalArgumentException("멤버 이름은 필수입니다");
-        }
-        if (email == null || email.isBlank()) {
-            throw new IllegalArgumentException("이메일은 필수입니다");
+        if (partnerId == null) {
+            throw new IllegalArgumentException("파트너 ID는 필수입니다");
         }
         if (role == null) {
             throw new IllegalArgumentException("역할은 필수입니다");
         }
-        return new PartnerMember(null, partnerId, name, email, phone, role,
+        return new PartnerMember(PartnerMemberId.of(null), partnerId, name, email, phone, role,
                 PartnerMemberStatus.ACTIVE, now, now);
     }
 
-    public static PartnerMember reconstitute(Long id, PartnerId partnerId, String name, String email, String phone,
+    public static PartnerMember reconstitute(PartnerMemberId id, PartnerId partnerId, MemberName name, Email email, PhoneNumber phone,
                                               PartnerMemberRole role, PartnerMemberStatus status,
                                               Instant createdAt, Instant updatedAt) {
         return new PartnerMember(id, partnerId, name, email, phone, role, status, createdAt, updatedAt);
     }
 
-    public Long id() { return id; }
+    public void suspend(Instant now) {
+        if (this.status == PartnerMemberStatus.SUSPENDED) {
+            throw new IllegalStateException("이미 정지된 멤버입니다");
+        }
+        this.status = PartnerMemberStatus.SUSPENDED;
+        this.updatedAt = now;
+    }
+
+    public void activate(Instant now) {
+        if (this.status == PartnerMemberStatus.ACTIVE) {
+            throw new IllegalStateException("이미 활성 상태인 멤버입니다");
+        }
+        this.status = PartnerMemberStatus.ACTIVE;
+        this.updatedAt = now;
+    }
+
+    public void changeRole(PartnerMemberRole newRole, Instant now) {
+        if (newRole == null) {
+            throw new IllegalArgumentException("역할은 필수입니다");
+        }
+        this.role = newRole;
+        this.updatedAt = now;
+    }
+
+    public void updateProfile(MemberName name, Email email, PhoneNumber phone, Instant now) {
+        this.name = name;
+        this.email = email;
+        this.phone = phone;
+        this.updatedAt = now;
+    }
+
+    public boolean isActive() {
+        return this.status == PartnerMemberStatus.ACTIVE;
+    }
+
+    public PartnerMemberId id() { return id; }
     public PartnerId partnerId() { return partnerId; }
-    public String name() { return name; }
-    public String email() { return email; }
-    public String phone() { return phone; }
+    public MemberName name() { return name; }
+    public Email email() { return email; }
+    public PhoneNumber phone() { return phone; }
     public PartnerMemberRole role() { return role; }
     public PartnerMemberStatus status() { return status; }
     public Instant createdAt() { return createdAt; }
@@ -64,11 +99,11 @@ public class PartnerMember {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof PartnerMember m)) return false;
-        return id != null && id.equals(m.id);
+        return id != null && !id.isNew() && id.equals(m.id);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(id);
+        return id != null ? Objects.hashCode(id) : System.identityHashCode(this);
     }
 }

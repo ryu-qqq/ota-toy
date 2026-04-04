@@ -5,9 +5,9 @@ import java.util.Objects;
 
 public class SupplierSyncLog {
 
-    private final Long id;
+    private final SupplierSyncLogId id;
     private final SupplierId supplierId;
-    private final String syncType;
+    private final SupplierSyncType syncType;
     private final Instant syncedAt;
     private SupplierSyncStatus status;
     private final int totalCount;
@@ -16,7 +16,7 @@ public class SupplierSyncLog {
     private final int deletedCount;
     private String errorMessage;
 
-    private SupplierSyncLog(Long id, SupplierId supplierId, String syncType, Instant syncedAt,
+    private SupplierSyncLog(SupplierSyncLogId id, SupplierId supplierId, SupplierSyncType syncType, Instant syncedAt,
                             SupplierSyncStatus status, int totalCount, int createdCount,
                             int updatedCount, int deletedCount, String errorMessage) {
         this.id = id;
@@ -31,20 +31,20 @@ public class SupplierSyncLog {
         this.errorMessage = errorMessage;
     }
 
-    public static SupplierSyncLog forNew(SupplierId supplierId, String syncType, Instant syncedAt,
-                                          int totalCount, int createdCount, int updatedCount,
-                                          int deletedCount) {
-        return new SupplierSyncLog(null, supplierId, syncType, syncedAt,
+    public static SupplierSyncLog forSuccess(SupplierId supplierId, SupplierSyncType syncType, Instant syncedAt,
+                                              int totalCount, int createdCount, int updatedCount,
+                                              int deletedCount) {
+        return new SupplierSyncLog(SupplierSyncLogId.of(null), supplierId, syncType, syncedAt,
                 SupplierSyncStatus.SUCCESS, totalCount, createdCount, updatedCount, deletedCount, null);
     }
 
-    public static SupplierSyncLog forFailed(SupplierId supplierId, String syncType, Instant syncedAt,
+    public static SupplierSyncLog forFailed(SupplierId supplierId, SupplierSyncType syncType, Instant syncedAt,
                                              String errorMessage) {
-        return new SupplierSyncLog(null, supplierId, syncType, syncedAt,
+        return new SupplierSyncLog(SupplierSyncLogId.of(null), supplierId, syncType, syncedAt,
                 SupplierSyncStatus.FAILED, 0, 0, 0, 0, errorMessage);
     }
 
-    public static SupplierSyncLog reconstitute(Long id, SupplierId supplierId, String syncType, Instant syncedAt,
+    public static SupplierSyncLog reconstitute(SupplierSyncLogId id, SupplierId supplierId, SupplierSyncType syncType, Instant syncedAt,
                                                 SupplierSyncStatus status, int totalCount, int createdCount,
                                                 int updatedCount, int deletedCount, String errorMessage) {
         return new SupplierSyncLog(id, supplierId, syncType, syncedAt, status,
@@ -56,9 +56,9 @@ public class SupplierSyncLog {
         this.errorMessage = errorMessage;
     }
 
-    public Long id() { return id; }
+    public SupplierSyncLogId id() { return id; }
     public SupplierId supplierId() { return supplierId; }
-    public String syncType() { return syncType; }
+    public SupplierSyncType syncType() { return syncType; }
     public Instant syncedAt() { return syncedAt; }
     public SupplierSyncStatus status() { return status; }
     public int totalCount() { return totalCount; }
@@ -71,11 +71,11 @@ public class SupplierSyncLog {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof SupplierSyncLog s)) return false;
-        return id != null && id.equals(s.id);
+        return id != null && id.value() != null && id.equals(s.id);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(id);
+        return id != null && id.value() != null ? Objects.hashCode(id) : System.identityHashCode(this);
     }
 }

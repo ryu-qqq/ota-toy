@@ -9,8 +9,8 @@ public class RoomType {
 
     private final RoomTypeId id;
     private final PropertyId propertyId;
-    private String name;
-    private String description;
+    private RoomTypeName name;
+    private RoomTypeDescription description;
     private BigDecimal areaSqm;
     private String areaPyeong;
     private int baseOccupancy;
@@ -22,7 +22,7 @@ public class RoomType {
     private final Instant createdAt;
     private Instant updatedAt;
 
-    private RoomType(RoomTypeId id, PropertyId propertyId, String name, String description,
+    private RoomType(RoomTypeId id, PropertyId propertyId, RoomTypeName name, RoomTypeDescription description,
                      BigDecimal areaSqm, String areaPyeong, int baseOccupancy, int maxOccupancy,
                      int baseInventory, LocalTime checkInTime, LocalTime checkOutTime,
                      RoomTypeStatus status, Instant createdAt, Instant updatedAt) {
@@ -42,13 +42,10 @@ public class RoomType {
         this.updatedAt = updatedAt;
     }
 
-    public static RoomType forNew(PropertyId propertyId, String name, String description,
+    public static RoomType forNew(PropertyId propertyId, RoomTypeName name, RoomTypeDescription description,
                                    BigDecimal areaSqm, String areaPyeong,
                                    int baseOccupancy, int maxOccupancy, int baseInventory,
                                    LocalTime checkInTime, LocalTime checkOutTime, Instant now) {
-        if (name == null || name.isBlank()) {
-            throw new IllegalArgumentException("객실명은 필수입니다");
-        }
         if (baseOccupancy <= 0) {
             throw new IllegalArgumentException("기본 인원은 1명 이상이어야 합니다");
         }
@@ -66,7 +63,7 @@ public class RoomType {
                 RoomTypeStatus.ACTIVE, now, now);
     }
 
-    public static RoomType reconstitute(RoomTypeId id, PropertyId propertyId, String name, String description,
+    public static RoomType reconstitute(RoomTypeId id, PropertyId propertyId, RoomTypeName name, RoomTypeDescription description,
                                          BigDecimal areaSqm, String areaPyeong,
                                          int baseOccupancy, int maxOccupancy, int baseInventory,
                                          LocalTime checkInTime, LocalTime checkOutTime,
@@ -76,11 +73,8 @@ public class RoomType {
                 status, createdAt, updatedAt);
     }
 
-    public void updateInfo(String name, String description, BigDecimal areaSqm, String areaPyeong,
+    public void updateInfo(RoomTypeName name, RoomTypeDescription description, BigDecimal areaSqm, String areaPyeong,
                            int baseOccupancy, int maxOccupancy, Instant now) {
-        if (name == null || name.isBlank()) {
-            throw new IllegalArgumentException("객실명은 필수입니다");
-        }
         if (maxOccupancy < baseOccupancy) {
             throw new IllegalArgumentException("최대 인원은 기본 인원 이상이어야 합니다");
         }
@@ -126,8 +120,8 @@ public class RoomType {
 
     public RoomTypeId id() { return id; }
     public PropertyId propertyId() { return propertyId; }
-    public String name() { return name; }
-    public String description() { return description; }
+    public RoomTypeName name() { return name; }
+    public RoomTypeDescription description() { return description; }
     public BigDecimal areaSqm() { return areaSqm; }
     public String areaPyeong() { return areaPyeong; }
     public int baseOccupancy() { return baseOccupancy; }

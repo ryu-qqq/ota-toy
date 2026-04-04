@@ -49,9 +49,13 @@ class PropertyTest {
 
         @Test
         @DisplayName("partnerId가 null인 Property 생성이 실패해야 한다")
-        // TODO: 도메인 수정 필요 — S-4 (R-20): PartnerId VO가 null을 차단
         void shouldFailWhenPartnerIdIsNull() {
-            assertThatThrownBy(() -> PartnerId.of(null))
+            assertThatThrownBy(() -> Property.forNew(
+                    null, BrandId.of(1L), PropertyTypeId.of(1L),
+                    PropertyName.of("테스트"), PropertyDescription.of("설명"),
+                    Location.of("서울시", 37.5, 127.0, "강남", "서울"),
+                    PromotionText.of("프로모션"), NOW
+            ))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("파트너 ID는 필수");
         }

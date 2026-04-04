@@ -1,27 +1,30 @@
 package com.ryuqq.otatoy.domain.supplier;
 
+import com.ryuqq.otatoy.domain.common.vo.Email;
+import com.ryuqq.otatoy.domain.common.vo.PhoneNumber;
+
 import java.time.Instant;
 import java.util.Objects;
 
 public class Supplier {
 
     private final SupplierId id;
-    private String name;
+    private SupplierName name;
     private String nameKr;
     private String companyTitle;
     private String ownerName;
     private String businessNo;
     private String address;
-    private String phone;
-    private String email;
+    private PhoneNumber phone;
+    private Email email;
     private String termsUrl;
     private SupplierStatus status;
     private final Instant createdAt;
     private Instant updatedAt;
 
-    private Supplier(SupplierId id, String name, String nameKr, String companyTitle,
+    private Supplier(SupplierId id, SupplierName name, String nameKr, String companyTitle,
                      String ownerName, String businessNo, String address,
-                     String phone, String email, String termsUrl,
+                     PhoneNumber phone, Email email, String termsUrl,
                      SupplierStatus status, Instant createdAt, Instant updatedAt) {
         this.id = id;
         this.name = name;
@@ -38,35 +41,59 @@ public class Supplier {
         this.updatedAt = updatedAt;
     }
 
-    public static Supplier forNew(String name, String nameKr, String companyTitle,
+    public static Supplier forNew(SupplierName name, String nameKr, String companyTitle,
                                    String ownerName, String businessNo, String address,
-                                   String phone, String email, String termsUrl, Instant now) {
-        if (name == null || name.isBlank()) {
-            throw new IllegalArgumentException("공급자명은 필수입니다");
+                                   PhoneNumber phone, Email email, String termsUrl, Instant now) {
+        if (nameKr == null || nameKr.isBlank()) {
+            throw new IllegalArgumentException("공급자 한글명은 필수입니다");
         }
-        return new Supplier(null, name, nameKr, companyTitle, ownerName, businessNo,
+        if (companyTitle == null || companyTitle.isBlank()) {
+            throw new IllegalArgumentException("회사명은 필수입니다");
+        }
+        if (ownerName == null || ownerName.isBlank()) {
+            throw new IllegalArgumentException("대표자명은 필수입니다");
+        }
+        if (businessNo == null || businessNo.isBlank()) {
+            throw new IllegalArgumentException("사업자번호는 필수입니다");
+        }
+        return new Supplier(SupplierId.of(null), name, nameKr, companyTitle, ownerName, businessNo,
                 address, phone, email, termsUrl, SupplierStatus.ACTIVE, now, now);
     }
 
-    public static Supplier reconstitute(SupplierId id, String name, String nameKr, String companyTitle,
+    public static Supplier reconstitute(SupplierId id, SupplierName name, String nameKr, String companyTitle,
                                          String ownerName, String businessNo, String address,
-                                         String phone, String email, String termsUrl,
+                                         PhoneNumber phone, Email email, String termsUrl,
                                          SupplierStatus status, Instant createdAt, Instant updatedAt) {
         return new Supplier(id, name, nameKr, companyTitle, ownerName, businessNo,
                 address, phone, email, termsUrl, status, createdAt, updatedAt);
     }
 
     public void suspend(Instant now) {
+        if (this.status == SupplierStatus.TERMINATED) {
+            throw new SupplierAlreadyTerminatedException();
+        }
+        if (this.status == SupplierStatus.SUSPENDED) {
+            throw new SupplierAlreadySuspendedException();
+        }
         this.status = SupplierStatus.SUSPENDED;
         this.updatedAt = now;
     }
 
     public void activate(Instant now) {
+        if (this.status == SupplierStatus.TERMINATED) {
+            throw new SupplierAlreadyTerminatedException();
+        }
+        if (this.status == SupplierStatus.ACTIVE) {
+            throw new InvalidSupplierStateTransitionException();
+        }
         this.status = SupplierStatus.ACTIVE;
         this.updatedAt = now;
     }
 
     public void terminate(Instant now) {
+        if (this.status == SupplierStatus.TERMINATED) {
+            throw new SupplierAlreadyTerminatedException();
+        }
         this.status = SupplierStatus.TERMINATED;
         this.updatedAt = now;
     }
@@ -76,14 +103,14 @@ public class Supplier {
     }
 
     public SupplierId id() { return id; }
-    public String name() { return name; }
+    public SupplierName name() { return name; }
     public String nameKr() { return nameKr; }
     public String companyTitle() { return companyTitle; }
     public String ownerName() { return ownerName; }
     public String businessNo() { return businessNo; }
     public String address() { return address; }
-    public String phone() { return phone; }
-    public String email() { return email; }
+    public PhoneNumber phone() { return phone; }
+    public Email email() { return email; }
     public String termsUrl() { return termsUrl; }
     public SupplierStatus status() { return status; }
     public Instant createdAt() { return createdAt; }
@@ -93,11 +120,11 @@ public class Supplier {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof Supplier s)) return false;
-        return id != null && id.equals(s.id);
+        return id != null && id.value() != null && id.equals(s.id);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(id);
+        return id != null ? Objects.hashCode(id) : System.identityHashCode(this);
     }
 }

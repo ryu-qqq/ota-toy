@@ -10,7 +10,7 @@ public class RatePlan {
 
     private final RatePlanId id;
     private final RoomTypeId roomTypeId;
-    private String name;
+    private RatePlanName name;
     private SourceType sourceType;
     private SupplierId supplierId;
     private boolean freeCancellation;
@@ -21,7 +21,7 @@ public class RatePlan {
     private final Instant createdAt;
     private Instant updatedAt;
 
-    private RatePlan(RatePlanId id, RoomTypeId roomTypeId, String name,
+    private RatePlan(RatePlanId id, RoomTypeId roomTypeId, RatePlanName name,
                      SourceType sourceType, SupplierId supplierId,
                      boolean freeCancellation, boolean nonRefundable,
                      int freeCancellationDeadlineDays,
@@ -41,30 +41,33 @@ public class RatePlan {
         this.updatedAt = updatedAt;
     }
 
-    public static RatePlan forNew(RoomTypeId roomTypeId, String name,
+    public static RatePlan forNew(RoomTypeId roomTypeId, RatePlanName name,
                                    SourceType sourceType, SupplierId supplierId,
                                    boolean freeCancellation, boolean nonRefundable,
                                    int freeCancellationDeadlineDays,
                                    String cancellationPolicyText, PaymentPolicy paymentPolicy,
                                    Instant now) {
-        if (name == null || name.isBlank()) {
-            throw new IllegalArgumentException("요금 정책명은 필수입니다");
+        if (roomTypeId == null) {
+            throw new IllegalArgumentException("객실 유형 ID는 필수입니다");
         }
         if (paymentPolicy == null) {
             throw new IllegalArgumentException("결제 방식은 필수입니다");
         }
         if (sourceType == SourceType.SUPPLIER && supplierId == null) {
-            throw new IllegalArgumentException("외부 공급자 요금 정책은 supplierId가 ��수입니다");
+            throw new IllegalArgumentException("외부 공급자 요금 정책은 supplierId가 필수입니다");
         }
         if (freeCancellation && nonRefundable) {
-            throw new IllegalArgumentException("무료 취소와 환불 불가는 동시에 설��할 수 없습니다");
+            throw new IllegalArgumentException("무료 취소와 환불 불가는 동시에 설정할 수 없습니다");
+        }
+        if (freeCancellationDeadlineDays < 0) {
+            throw new IllegalArgumentException("무료 취소 기한은 0 이상이어야 합니다");
         }
         return new RatePlan(null, roomTypeId, name, sourceType, supplierId,
                 freeCancellation, nonRefundable, freeCancellationDeadlineDays,
                 cancellationPolicyText, paymentPolicy, now, now);
     }
 
-    public static RatePlan reconstitute(RatePlanId id, RoomTypeId roomTypeId, String name,
+    public static RatePlan reconstitute(RatePlanId id, RoomTypeId roomTypeId, RatePlanName name,
                                          SourceType sourceType, SupplierId supplierId,
                                          boolean freeCancellation, boolean nonRefundable,
                                          int freeCancellationDeadlineDays,
@@ -80,6 +83,9 @@ public class RatePlan {
                               String cancellationPolicyText, PaymentPolicy paymentPolicy, Instant now) {
         if (freeCancellation && nonRefundable) {
             throw new IllegalArgumentException("무료 취소와 환불 불가는 동시에 설정할 수 없습니다");
+        }
+        if (freeCancellationDeadlineDays < 0) {
+            throw new IllegalArgumentException("무료 취소 기한은 0 이상이어야 합니다");
         }
         this.freeCancellation = freeCancellation;
         this.nonRefundable = nonRefundable;
@@ -99,7 +105,7 @@ public class RatePlan {
 
     public RatePlanId id() { return id; }
     public RoomTypeId roomTypeId() { return roomTypeId; }
-    public String name() { return name; }
+    public RatePlanName name() { return name; }
     public SourceType sourceType() { return sourceType; }
     public SupplierId supplierId() { return supplierId; }
     public boolean freeCancellation() { return freeCancellation; }
