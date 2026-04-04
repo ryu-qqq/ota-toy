@@ -7,6 +7,9 @@ import java.util.Set;
  * 예약 상태.
  * PENDING: 대기, CONFIRMED: 확정, CANCELLED: 취소, COMPLETED: 완료, NO_SHOW: 노쇼.
  * 상태 전이 규칙을 포함한다.
+ *
+ * @author ryu-qqq
+ * @since 2026-04-04
  */
 public enum ReservationStatus {
 

@@ -2,6 +2,9 @@ package com.ryuqq.otatoy.domain.inventory;
 
 /**
  * 판매가 중지된 재고에 접근할 때 발생하는 예외.
+ *
+ * @author ryu-qqq
+ * @since 2026-04-04
  */
 public class InventoryStopSellException extends InventoryException {
 

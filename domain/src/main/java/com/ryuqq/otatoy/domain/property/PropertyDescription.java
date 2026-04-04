@@ -2,6 +2,9 @@ package com.ryuqq.otatoy.domain.property;
 
 /**
  * 숙소 설명. nullable이며, 값이 있을 경우 최대 2000자.
+ *
+ * @author ryu-qqq
+ * @since 2026-04-04
  */
 public record PropertyDescription(String value) {
 

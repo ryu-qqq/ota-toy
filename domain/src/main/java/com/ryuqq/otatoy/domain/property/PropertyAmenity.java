@@ -10,6 +10,9 @@ import java.util.Objects;
 /**
  * 숙소에 연결된 개별 편의시설을 나타내는 엔티티.
  * 편의시설 유형, 이름, 추가 요금, 정렬 순서를 관리한다.
+ *
+ * @author ryu-qqq
+ * @since 2026-04-04
  */
 public class PropertyAmenity {
 

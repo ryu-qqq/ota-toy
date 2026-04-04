@@ -6,6 +6,9 @@ import java.util.Objects;
 
 /**
  * 객실과 전망 유형의 매핑을 나타내는 엔티티.
+ *
+ * @author ryu-qqq
+ * @since 2026-04-04
  */
 public class RoomTypeView {
 

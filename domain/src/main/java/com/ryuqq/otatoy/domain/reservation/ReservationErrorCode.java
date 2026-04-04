@@ -4,6 +4,9 @@ import com.ryuqq.otatoy.domain.common.ErrorCode;
 
 /**
  * 예약(Reservation) 도메인의 에러 코드.
+ *
+ * @author ryu-qqq
+ * @since 2026-04-04
  */
 public enum ReservationErrorCode implements ErrorCode {
 

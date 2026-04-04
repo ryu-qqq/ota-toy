@@ -5,6 +5,9 @@ import java.util.List;
 /**
  * 객실 침대 구성 일급 컬렉션.
  * 침대 유형 중복 검증을 수행한다.
+ *
+ * @author ryu-qqq
+ * @since 2026-04-04
  */
 public class RoomTypeBeds {
 

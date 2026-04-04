@@ -5,6 +5,9 @@ import java.util.List;
 /**
  * 숙소 편의시설 일급 컬렉션.
  * 정렬 순서 중복 검증을 수행한다.
+ *
+ * @author ryu-qqq
+ * @since 2026-04-04
  */
 public class PropertyAmenities {
 

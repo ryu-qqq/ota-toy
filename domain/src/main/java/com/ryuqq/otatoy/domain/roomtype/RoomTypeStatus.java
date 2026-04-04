@@ -3,6 +3,9 @@ package com.ryuqq.otatoy.domain.roomtype;
 /**
  * 객실 유형 상태.
  * ACTIVE: 운영 중, INACTIVE: 비활성.
+ *
+ * @author ryu-qqq
+ * @since 2026-04-04
  */
 public enum RoomTypeStatus {
 

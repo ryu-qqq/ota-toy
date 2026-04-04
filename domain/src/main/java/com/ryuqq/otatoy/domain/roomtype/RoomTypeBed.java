@@ -7,6 +7,9 @@ import java.util.Objects;
 /**
  * 객실의 침대 구성을 나타내는 엔티티.
  * 침대 유형과 수량을 관리한다.
+ *
+ * @author ryu-qqq
+ * @since 2026-04-04
  */
 public class RoomTypeBed {
 

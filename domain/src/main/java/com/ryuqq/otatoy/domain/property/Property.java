@@ -12,6 +12,8 @@ import java.util.Objects;
  * 숙소(Property)를 나타내는 Aggregate Root.
  * 파트너가 등록한 숙박 시설의 기본 정보, 상태, 위치를 관리한다.
  *
+ * @author ryu-qqq
+ * @since 2026-04-04
  * @see PropertyAmenity 숙소 편의시설
  * @see PropertyPhoto 숙소 사진
  * @see PropertyAttributeValue 숙소 속성값

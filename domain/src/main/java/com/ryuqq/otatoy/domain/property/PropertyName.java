@@ -2,6 +2,9 @@ package com.ryuqq.otatoy.domain.property;
 
 /**
  * 숙소명. null/blank 불가, 최대 100자.
+ *
+ * @author ryu-qqq
+ * @since 2026-04-04
  */
 public record PropertyName(String value) {
 

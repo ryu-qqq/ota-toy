@@ -3,6 +3,9 @@ package com.ryuqq.otatoy.domain.supplier;
 /**
  * 공급자 동기화 유형.
  * PROPERTY: 숙소, ROOM_TYPE: 객실, RATE: 요금, INVENTORY: 재고, FULL: 전체.
+ *
+ * @author ryu-qqq
+ * @since 2026-04-04
  */
 public enum SupplierSyncType {
 

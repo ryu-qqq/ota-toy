@@ -3,6 +3,9 @@ package com.ryuqq.otatoy.domain.common.vo;
 /**
  * 위도/경도 좌표를 나타내는 VO.
  * 위도: -90 ~ 90, 경도: -180 ~ 180 범위를 보장한다.
+ *
+ * @author ryu-qqq
+ * @since 2026-04-04
  */
 public record Coordinate(double latitude, double longitude) {
 

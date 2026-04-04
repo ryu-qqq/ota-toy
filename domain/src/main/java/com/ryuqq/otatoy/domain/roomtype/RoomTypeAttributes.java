@@ -5,6 +5,9 @@ import java.util.List;
 /**
  * 객실 유형 속성 일급 컬렉션.
  * 속성 키 중복 검증을 수행한다.
+ *
+ * @author ryu-qqq
+ * @since 2026-04-04
  */
 public class RoomTypeAttributes {
 

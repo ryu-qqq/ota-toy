@@ -11,6 +11,8 @@ import java.util.Objects;
  * 객실 유형(Room Type)을 나타내는 Aggregate Root.
  * 숙소에 속한 객실의 이름, 면적, 수용 인원, 체크인/아웃 시간 등을 관리한다.
  *
+ * @author ryu-qqq
+ * @since 2026-04-04
  * @see RoomAmenity 객실 편의시설
  * @see RoomPhoto 객실 사진
  * @see RoomTypeBed 객실 침대 구성

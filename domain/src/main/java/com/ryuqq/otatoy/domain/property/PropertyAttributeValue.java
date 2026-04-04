@@ -7,6 +7,9 @@ import java.util.Objects;
 /**
  * 숙소의 EAV(Entity-Attribute-Value) 패턴 속성값을 나타내는 엔티티.
  * PropertyType에 정의된 속성에 대한 실제 값을 저장한다.
+ *
+ * @author ryu-qqq
+ * @since 2026-04-04
  */
 public class PropertyAttributeValue {
 

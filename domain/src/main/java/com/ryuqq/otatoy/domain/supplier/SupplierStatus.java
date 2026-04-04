@@ -7,6 +7,9 @@ import java.util.Set;
  * 공급자 상태.
  * ACTIVE: 활성, SUSPENDED: 정지, TERMINATED: 해지.
  * 상태 전이 규칙을 포함한다.
+ *
+ * @author ryu-qqq
+ * @since 2026-04-04
  */
 public enum SupplierStatus {
 

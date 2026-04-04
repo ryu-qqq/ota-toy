@@ -7,6 +7,9 @@ import java.util.stream.Stream;
 /**
  * 시작일-종료일 범위를 나타내는 VO.
  * 시작일과 종료일은 필수이며, 종료일은 시작일보다 뒤여야 한다.
+ *
+ * @author ryu-qqq
+ * @since 2026-04-04
  */
 public record DateRange(LocalDate startDate, LocalDate endDate) {
 

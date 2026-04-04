@@ -2,6 +2,9 @@ package com.ryuqq.otatoy.domain.supplier;
 
 /**
  * 사업자번호 VO. NOT NULL이며, 50자 이하를 보장한다.
+ *
+ * @author ryu-qqq
+ * @since 2026-04-04
  */
 public record BusinessNo(String value) {
 

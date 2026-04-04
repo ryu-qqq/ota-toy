@@ -8,6 +8,9 @@ import java.util.Objects;
 /**
  * 특정 날짜의 최종 요금을 나타내는 엔티티.
  * RateRule에서 계산된 요금이 Rate로 확정되어 저장된다.
+ *
+ * @author ryu-qqq
+ * @since 2026-04-04
  */
 public class Rate {
 

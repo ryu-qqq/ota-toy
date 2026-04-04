@@ -4,6 +4,9 @@ import com.ryuqq.otatoy.domain.common.ErrorCode;
 
 /**
  * 공급자(Supplier) 도메인의 에러 코드.
+ *
+ * @author ryu-qqq
+ * @since 2026-04-04
  */
 public enum SupplierErrorCode implements ErrorCode {
 

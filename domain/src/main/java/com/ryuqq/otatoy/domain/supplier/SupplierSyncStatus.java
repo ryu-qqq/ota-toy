@@ -3,6 +3,9 @@ package com.ryuqq.otatoy.domain.supplier;
 /**
  * 공급자 동기화 상태.
  * SUCCESS: 성공, FAILED: 실패, IN_PROGRESS: 진행 중.
+ *
+ * @author ryu-qqq
+ * @since 2026-04-04
  */
 public enum SupplierSyncStatus {
 

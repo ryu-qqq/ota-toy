@@ -13,6 +13,8 @@ import java.util.stream.Collectors;
  * 기간별 요금 규칙을 나타내는 엔티티.
  * 기본가, 요일별 가격(평일/금/토/일)을 정의하고, 날짜별 최종 요금을 계산한다.
  *
+ * @author ryu-qqq
+ * @since 2026-04-04
  * @see RateOverride 특정 날짜 요금 덮어쓰기
  */
 public class RateRule {

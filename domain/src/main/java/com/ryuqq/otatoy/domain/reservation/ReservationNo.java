@@ -2,6 +2,9 @@ package com.ryuqq.otatoy.domain.reservation;
 
 /**
  * 예약 번호. null/blank 불가, 최대 50자.
+ *
+ * @author ryu-qqq
+ * @since 2026-04-04
  */
 public record ReservationNo(String value) {
 

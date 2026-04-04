@@ -2,6 +2,9 @@ package com.ryuqq.otatoy.domain.common.vo;
 
 /**
  * CDN URL. nullable이며, 값이 있을 경우 blank 불가.
+ *
+ * @author ryu-qqq
+ * @since 2026-04-04
  */
 public record CdnUrl(String value) {
 

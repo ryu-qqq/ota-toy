@@ -3,6 +3,9 @@ package com.ryuqq.otatoy.domain.common.sort;
 /**
  * 정렬 방향.
  * ASC: 오름차순, DESC: 내림차순.
+ *
+ * @author ryu-qqq
+ * @since 2026-04-04
  */
 public enum SortDirection {
 

@@ -2,6 +2,9 @@ package com.ryuqq.otatoy.domain.reservation;
 
 /**
  * 투숙객 정보 VO. 이름(필수), 전화번호, 이메일을 포함한다.
+ *
+ * @author ryu-qqq
+ * @since 2026-04-04
  */
 public record GuestInfo(
         String name,

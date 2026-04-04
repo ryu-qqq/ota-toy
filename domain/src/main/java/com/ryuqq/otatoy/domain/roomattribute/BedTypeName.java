@@ -2,6 +2,9 @@ package com.ryuqq.otatoy.domain.roomattribute;
 
 /**
  * 침대 유형명. null/blank 불가, 최대 200자.
+ *
+ * @author ryu-qqq
+ * @since 2026-04-04
  */
 public record BedTypeName(String value) {
 

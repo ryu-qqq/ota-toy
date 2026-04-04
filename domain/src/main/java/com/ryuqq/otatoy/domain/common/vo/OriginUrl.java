@@ -2,6 +2,9 @@ package com.ryuqq.otatoy.domain.common.vo;
 
 /**
  * 원본 URL. null/blank 불가, 최대 500자.
+ *
+ * @author ryu-qqq
+ * @since 2026-04-04
  */
 public record OriginUrl(String value) {
 

@@ -5,6 +5,9 @@ import java.util.List;
 /**
  * 숙소 속성값 일급 컬렉션.
  * 동일 속성 중복 검증을 수행한다.
+ *
+ * @author ryu-qqq
+ * @since 2026-04-04
  */
 public class PropertyAttributeValues {
 

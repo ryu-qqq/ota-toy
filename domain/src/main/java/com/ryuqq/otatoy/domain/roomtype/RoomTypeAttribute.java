@@ -5,6 +5,9 @@ import java.util.Objects;
 /**
  * 객실 유형의 추가 속성을 나타내는 엔티티.
  * 키-값 쌍으로 다양한 객실 부가 정보를 저장한다.
+ *
+ * @author ryu-qqq
+ * @since 2026-04-04
  */
 public class RoomTypeAttribute {
 

@@ -2,6 +2,9 @@ package com.ryuqq.otatoy.domain.brand;
 
 /**
  * 브랜드 영문명. null/blank 불가, 최대 100자.
+ *
+ * @author ryu-qqq
+ * @since 2026-04-04
  */
 public record BrandName(String value) {
 

@@ -3,6 +3,9 @@ package com.ryuqq.otatoy.domain.accommodation;
 /**
  * 편의시설 유형.
  * 숙소 편의시설(PARKING, POOL 등)과 객실 편의시설(AIR_CONDITIONING, TV 등)을 구분한다.
+ *
+ * @author ryu-qqq
+ * @since 2026-04-04
  */
 public enum AmenityType {
 

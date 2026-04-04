@@ -6,6 +6,9 @@ import java.util.Set;
 /**
  * 파트너 상태.
  * ACTIVE: 활성, SUSPENDED: 정지. 상태 전이 규칙을 포함한다.
+ *
+ * @author ryu-qqq
+ * @since 2026-04-04
  */
 public enum PartnerStatus {
 

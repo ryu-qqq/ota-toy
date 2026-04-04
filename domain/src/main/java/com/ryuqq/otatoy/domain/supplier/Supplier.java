@@ -10,6 +10,8 @@ import java.util.Objects;
  * 외부 공급자(Supplier)를 나타내는 Aggregate Root.
  * 공급자의 사업자 정보, 연락처, 상태를 관리한다.
  *
+ * @author ryu-qqq
+ * @since 2026-04-04
  * @see SupplierProperty 공급자-숙소 매핑
  * @see SupplierRoomType 공급자-객실 매핑
  * @see SupplierSyncLog 동기화 로그

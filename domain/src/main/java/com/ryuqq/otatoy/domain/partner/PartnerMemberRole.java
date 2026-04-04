@@ -3,6 +3,9 @@ package com.ryuqq.otatoy.domain.partner;
 /**
  * 파트너 멤버 역할.
  * OWNER: 소유자, MANAGER: 관리자, STAFF: 직원.
+ *
+ * @author ryu-qqq
+ * @since 2026-04-04
  */
 public enum PartnerMemberRole {
 

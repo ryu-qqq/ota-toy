@@ -2,6 +2,9 @@ package com.ryuqq.otatoy.domain.propertytype;
 
 /**
  * 숙소 유형 코드. null/blank 불가, 최대 50자.
+ *
+ * @author ryu-qqq
+ * @since 2026-04-04
  */
 public record PropertyTypeCode(String value) {
 

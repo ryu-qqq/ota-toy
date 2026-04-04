@@ -5,6 +5,9 @@ import java.util.List;
 /**
  * 객실 전망 매핑 일급 컬렉션.
  * 전망 유형 중복 검증을 수행한다.
+ *
+ * @author ryu-qqq
+ * @since 2026-04-04
  */
 public class RoomTypeViews {
 

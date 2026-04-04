@@ -3,6 +3,9 @@ package com.ryuqq.otatoy.domain.supplier;
 /**
  * 공급자 매핑 상태.
  * MAPPED: 매핑됨, UNMAPPED: 매핑 해제.
+ *
+ * @author ryu-qqq
+ * @since 2026-04-04
  */
 public enum SupplierMappingStatus {
 

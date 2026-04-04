@@ -5,6 +5,9 @@ import java.util.Objects;
 /**
  * 숙소 유형별 속성 정의를 나타내는 엔티티.
  * 속성 키, 이름, 값 유형, 필수 여부를 정의한다.
+ *
+ * @author ryu-qqq
+ * @since 2026-04-04
  */
 public class PropertyTypeAttribute {
 

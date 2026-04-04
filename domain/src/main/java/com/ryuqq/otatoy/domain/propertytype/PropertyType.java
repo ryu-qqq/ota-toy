@@ -7,6 +7,8 @@ import java.util.Objects;
  * 숙소 유형을 나타내는 엔티티.
  * 호텔, 모텔, 리조트 등 숙소 분류를 정의하며, 유형별 속성 템플릿을 관리한다.
  *
+ * @author ryu-qqq
+ * @since 2026-04-04
  * @see PropertyTypeAttribute 유형별 속성 정의
  */
 public class PropertyType {

@@ -2,6 +2,9 @@ package com.ryuqq.otatoy.domain.pricing;
 
 /**
  * 부가 서비스(Add-on) 유형. null/blank 불가, 최대 50자.
+ *
+ * @author ryu-qqq
+ * @since 2026-04-04
  */
 public record AddOnType(String value) {
 

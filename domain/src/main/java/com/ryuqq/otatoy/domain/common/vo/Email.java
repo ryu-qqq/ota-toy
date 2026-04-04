@@ -2,6 +2,9 @@ package com.ryuqq.otatoy.domain.common.vo;
 
 /**
  * 이메일 주소. null/blank 불가, 최대 200자, '@' 포함 필수.
+ *
+ * @author ryu-qqq
+ * @since 2026-04-04
  */
 public record Email(String value) {
 
