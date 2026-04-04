@@ -24,5 +24,11 @@ Thumbs.db
 # Claude
 .claude/
 
+# Playwright MCP
+.playwright-mcp/
+
 # Test PDF
 test.pdf
+
+# Sample data
+sample.json
