@@ -53,44 +53,28 @@
 
 ## P2: VO 검증 강화
 
-- [ ] **String VO 길이 검증 추가** (#1) — 컨벤션 DOM-VO-003 추가 완료
-  - PartnerName(200), MemberName(100), RatePlanName(200), AddOnName(200)
-  - SupplierName(200), RoomTypeName(?), PropertyTypeName(?), AmenityName(?)
-  - BedTypeName(?), ViewTypeName(?), LandmarkName(200)
-  - RoomTypeDescription(?), Email(200)
-- [ ] **PhoneNumber/CdnUrl/OriginUrl/Email 검증 강화** (#11, #1)
-  - PhoneNumber: null/blank + 길이(30) + 형식
-  - CdnUrl: nullable 처리, URL 형식
-  - OriginUrl: URL 형식 추가
-  - Email: RFC 준수 강화
-- [ ] **ID VO에 `forNew()` 팩토리 도입** (#1) — 컨벤션 DOM-VO-004 추가 완료
-  - 31개 ID VO에 forNew() 추가
-- [ ] **Money에 Currency 추가 + 비교 메서드** (#11)
-  - Currency 필드 추가 여부 결정 (국내 전용이면 불필요)
-  - isGreaterThan, isLessThan 메서드 추가
-  - multiply() scale 보존
-- [ ] **DateRange.dates() → Stream 반환** (#11)
-  - 장기 범위 메모리 방지
-- [ ] **Coordinate VO** (#2)
-  - latitude, longitude를 하나의 VO로 (Location, Landmark 중복 제거)
-- [ ] **Supplier raw String VO화** (#9)
-  - nameKr, companyTitle, ownerName, businessNo, address, termsUrl
-- [ ] **Brand raw String VO화** (#8)
-  - nameKr, logoUrl
+- [x] **String VO 길이 검증 추가** (#1) — 17개 VO에 MAX_LENGTH 적용
+- [x] **PhoneNumber/CdnUrl/OriginUrl/Email 검증 강화** (#11, #1)
+- [x] **ID VO에 `forNew()` 팩토리 도입** (#1) — 31개 ID VO
+- [x] **Money 비교 메서드 추가** (#11) — isGreaterThan, isLessThan, multiply scale 보존. Currency는 미추가 (국내 전용)
+- [x] **DateRange.dates() → Stream 반환** (#11)
+- [x] **Coordinate VO 도입** (#2) — Location, Landmark에서 위도/경도 중복 제거
+- [x] **Supplier raw String VO화** (#9) — SupplierNameKr, CompanyTitle, OwnerName, BusinessNo
+- [x] **Brand raw String VO화** (#8) — BrandNameKr, LogoUrl
 
 ---
 
 ## P3: 비즈니스 로직 보강
 
-- [ ] **RatePlan.rename()** (#6)
-- [ ] **RateRule 가격 업데이트 메서드** (#6)
-- [ ] **resolvePrice() Map 기반 성능 개선** (#6)
-- [ ] **Inventory restore() 상한 정책 결정** (#10)
-- [ ] **InventoryNotFoundException 생성** (#10)
-- [ ] **version 낙관적 락 전략 문서화** (#10)
-- [ ] **SupplierMappingStatus 공통 Enum 분리** (#9)
-- [ ] **synced/unmap 상태 검증 + 코드 중복 해소** (#9)
-- [ ] **RoomType.updateInfo() baseOccupancy 검증 추가** (#8)
+- [x] **RatePlan.rename()** (#6) — 이미 적용됨
+- [x] **RateRule 가격 업데이트 메서드** (#6) — updatePrices() 추가
+- [x] **resolvePrice() Map 기반 성능 개선** (#6) — O(n) → O(1)
+- [x] **Inventory restore() 상한 정책** (#10) — 상한 없음 문서화 (호텔 운영 특성)
+- [x] **InventoryNotFoundException 생성** (#10)
+- [x] **version 낙관적 락 전략 문서화** (#10)
+- [x] **SupplierMappingStatus 공통 Enum 분리** (#9) — SupplierPropertyStatus 삭제
+- [x] **synced/unmap 상태 검증** (#9) — UNMAPPED에서 synced 차단, unmap 멱등
+- [x] **RoomType.updateInfo() baseOccupancy 검증** (#8) — 이미 적용됨
 
 ---
 
