@@ -18,10 +18,10 @@ public final class SupplierFixture {
     // === 기본 상수 ===
     public static final Instant DEFAULT_NOW = Instant.parse("2026-04-04T00:00:00Z");
     public static final SupplierName DEFAULT_NAME = SupplierName.of("TestSupplier");
-    public static final String DEFAULT_NAME_KR = "테스트공급자";
-    public static final String DEFAULT_COMPANY_TITLE = "테스트컴퍼니";
-    public static final String DEFAULT_OWNER_NAME = "홍길동";
-    public static final String DEFAULT_BUSINESS_NO = "123-45-67890";
+    public static final SupplierNameKr DEFAULT_NAME_KR = SupplierNameKr.of("테스트공급자");
+    public static final CompanyTitle DEFAULT_COMPANY_TITLE = CompanyTitle.of("테스트컴퍼니");
+    public static final OwnerName DEFAULT_OWNER_NAME = OwnerName.of("홍길동");
+    public static final BusinessNo DEFAULT_BUSINESS_NO = BusinessNo.of("123-45-67890");
     public static final String DEFAULT_ADDRESS = "서울시 강남구 테헤란로 123";
     public static final PhoneNumber DEFAULT_PHONE = PhoneNumber.of("02-1234-5678");
     public static final Email DEFAULT_EMAIL = Email.of("supplier@test.com");
@@ -87,7 +87,7 @@ public final class SupplierFixture {
     /**
      * DB 복원된 공급자 숙소 매핑
      */
-    public static SupplierProperty reconstitutedProperty(SupplierPropertyStatus status) {
+    public static SupplierProperty reconstitutedProperty(SupplierMappingStatus status) {
         return SupplierProperty.reconstitute(
                 SupplierPropertyId.of(1L), SupplierId.of(1L), PropertyId.of(100L),
                 "EXT-PROP-001", DEFAULT_NOW, status
@@ -98,7 +98,7 @@ public final class SupplierFixture {
      * UNMAPPED 상태 공급자 숙소
      */
     public static SupplierProperty unmappedProperty() {
-        return reconstitutedProperty(SupplierPropertyStatus.UNMAPPED);
+        return reconstitutedProperty(SupplierMappingStatus.UNMAPPED);
     }
 
     // === SupplierRoomType Fixture ===
@@ -115,11 +115,18 @@ public final class SupplierFixture {
     /**
      * DB 복원된 공급자 객실 매핑
      */
-    public static SupplierRoomType reconstitutedRoomType(SupplierPropertyStatus status) {
+    public static SupplierRoomType reconstitutedRoomType(SupplierMappingStatus status) {
         return SupplierRoomType.reconstitute(
                 SupplierRoomTypeId.of(1L), SupplierPropertyId.of(1L), RoomTypeId.of(200L),
                 "EXT-ROOM-001", DEFAULT_NOW, status
         );
+    }
+
+    /**
+     * UNMAPPED 상태 공급자 객실
+     */
+    public static SupplierRoomType unmappedRoomType() {
+        return reconstitutedRoomType(SupplierMappingStatus.UNMAPPED);
     }
 
     // === SupplierSyncLog Fixture ===

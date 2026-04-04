@@ -1,6 +1,7 @@
 package com.ryuqq.otatoy.domain.common.vo;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 public record Money(BigDecimal amount) {
 
@@ -23,10 +24,19 @@ public record Money(BigDecimal amount) {
     }
 
     public Money multiply(int factor) {
-        return new Money(this.amount.multiply(BigDecimal.valueOf(factor)));
+        return new Money(this.amount.multiply(BigDecimal.valueOf(factor))
+                .setScale(2, RoundingMode.HALF_UP));
     }
 
     public boolean isZero() {
         return amount.compareTo(BigDecimal.ZERO) == 0;
+    }
+
+    public boolean isGreaterThan(Money other) {
+        return this.amount.compareTo(other.amount) > 0;
+    }
+
+    public boolean isLessThan(Money other) {
+        return this.amount.compareTo(other.amount) < 0;
     }
 }

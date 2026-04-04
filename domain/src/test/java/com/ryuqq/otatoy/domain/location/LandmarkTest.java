@@ -58,7 +58,7 @@ class LandmarkTest {
             assertThatThrownBy(() -> Landmark.forNew(
                     LandmarkName.of("테스트"), LandmarkType.TOURIST, -91, 127.0
             ))
-                    .isInstanceOf(LocationException.class)
+                    .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("위도");
         }
 
@@ -68,7 +68,7 @@ class LandmarkTest {
             assertThatThrownBy(() -> Landmark.forNew(
                     LandmarkName.of("테스트"), LandmarkType.TOURIST, 91, 127.0
             ))
-                    .isInstanceOf(LocationException.class)
+                    .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("위도");
         }
 
@@ -78,7 +78,7 @@ class LandmarkTest {
             assertThatThrownBy(() -> Landmark.forNew(
                     LandmarkName.of("테스트"), LandmarkType.TOURIST, 37.5, -181
             ))
-                    .isInstanceOf(LocationException.class)
+                    .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("경도");
         }
 
@@ -88,7 +88,7 @@ class LandmarkTest {
             assertThatThrownBy(() -> Landmark.forNew(
                     LandmarkName.of("테스트"), LandmarkType.TOURIST, 37.5, 181
             ))
-                    .isInstanceOf(LocationException.class)
+                    .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("경도");
         }
 

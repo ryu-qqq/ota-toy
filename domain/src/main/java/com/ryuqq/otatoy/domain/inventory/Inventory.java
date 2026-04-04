@@ -12,6 +12,8 @@ public class Inventory {
     private final LocalDate inventoryDate;
     private int availableCount;
     private boolean stopSell;
+    // 낙관적 락 버전. JPA @Version으로 매핑되어 동시 수정 시 OptimisticLockException 발생.
+    // 도메인 레이어에서는 버전 비교 로직 없음 — Persistence 레이어에서 자동 처리.
     private int version;
 
     private Inventory(InventoryId id, RoomTypeId roomTypeId, LocalDate inventoryDate,
@@ -70,6 +72,7 @@ public class Inventory {
 
     /**
      * 재고 N개 복구. 다박 예약 취소 시 사용.
+     * 상한 없음: 호텔 운영 특성상 초기 수량 초과 복원이 가능 (예: 엑스트라 베드 추가)
      * @param count 복구 수량 (1 이상)
      */
     public void restore(int count) {

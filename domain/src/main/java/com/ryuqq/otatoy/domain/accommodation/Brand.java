@@ -7,12 +7,12 @@ public class Brand {
 
     private final BrandId id;
     private BrandName name;
-    private String nameKr;
-    private String logoUrl;
+    private BrandNameKr nameKr;
+    private LogoUrl logoUrl;
     private final Instant createdAt;
     private Instant updatedAt;
 
-    private Brand(BrandId id, BrandName name, String nameKr, String logoUrl,
+    private Brand(BrandId id, BrandName name, BrandNameKr nameKr, LogoUrl logoUrl,
                   Instant createdAt, Instant updatedAt) {
         this.id = id;
         this.name = name;
@@ -22,11 +22,11 @@ public class Brand {
         this.updatedAt = updatedAt;
     }
 
-    public static Brand forNew(BrandName name, String nameKr, String logoUrl, Instant now) {
+    public static Brand forNew(BrandName name, BrandNameKr nameKr, LogoUrl logoUrl, Instant now) {
         return new Brand(null, name, nameKr, logoUrl, now, now);
     }
 
-    public static Brand reconstitute(BrandId id, BrandName name, String nameKr, String logoUrl,
+    public static Brand reconstitute(BrandId id, BrandName name, BrandNameKr nameKr, LogoUrl logoUrl,
                                       Instant createdAt, Instant updatedAt) {
         return new Brand(id, name, nameKr, logoUrl, createdAt, updatedAt);
     }
@@ -36,15 +36,15 @@ public class Brand {
         this.updatedAt = now;
     }
 
-    public void updateLogoUrl(String newLogoUrl, Instant now) {
+    public void updateLogoUrl(LogoUrl newLogoUrl, Instant now) {
         this.logoUrl = newLogoUrl;
         this.updatedAt = now;
     }
 
     public BrandId id() { return id; }
     public BrandName name() { return name; }
-    public String nameKr() { return nameKr; }
-    public String logoUrl() { return logoUrl; }
+    public BrandNameKr nameKr() { return nameKr; }
+    public LogoUrl logoUrl() { return logoUrl; }
     public Instant createdAt() { return createdAt; }
     public Instant updatedAt() { return updatedAt; }
 

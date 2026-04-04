@@ -1,13 +1,10 @@
 package com.ryuqq.otatoy.domain.supplier;
 
-import com.ryuqq.otatoy.domain.common.vo.Email;
-import com.ryuqq.otatoy.domain.common.vo.PhoneNumber;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
-import java.util.Objects;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -40,57 +37,34 @@ class SupplierTest {
         }
 
         @Test
-        @DisplayName("nameKr이 null이면 생성 실패")
-        void shouldFailWhenNameKrIsNull() {
-            assertThatThrownBy(() -> Supplier.forNew(
-                    SupplierFixture.DEFAULT_NAME, null, "회사",
-                    "대표", "123-45-67890", "주소",
-                    PhoneNumber.of("02-1234-5678"), Email.of("a@b.com"), "url", NOW
-            )).isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("공급자 한글명");
-        }
-
-        @Test
-        @DisplayName("nameKr이 blank이면 생성 실패")
-        void shouldFailWhenNameKrIsBlank() {
-            assertThatThrownBy(() -> Supplier.forNew(
-                    SupplierFixture.DEFAULT_NAME, "  ", "회사",
-                    "대표", "123-45-67890", "주소",
-                    PhoneNumber.of("02-1234-5678"), Email.of("a@b.com"), "url", NOW
-            )).isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("공급자 한글명");
-        }
-
-        @Test
         @DisplayName("companyTitle이 null이면 생성 실패")
         void shouldFailWhenCompanyTitleIsNull() {
-            assertThatThrownBy(() -> Supplier.forNew(
-                    SupplierFixture.DEFAULT_NAME, "한글명", null,
-                    "대표", "123-45-67890", "주소",
-                    PhoneNumber.of("02-1234-5678"), Email.of("a@b.com"), "url", NOW
-            )).isInstanceOf(IllegalArgumentException.class)
+            assertThatThrownBy(() -> CompanyTitle.of(null))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("회사명");
+        }
+
+        @Test
+        @DisplayName("companyTitle이 blank이면 생성 실패")
+        void shouldFailWhenCompanyTitleIsBlank() {
+            assertThatThrownBy(() -> CompanyTitle.of("  "))
+                    .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("회사명");
         }
 
         @Test
         @DisplayName("ownerName이 null이면 생성 실패")
         void shouldFailWhenOwnerNameIsNull() {
-            assertThatThrownBy(() -> Supplier.forNew(
-                    SupplierFixture.DEFAULT_NAME, "한글명", "회사",
-                    null, "123-45-67890", "주소",
-                    PhoneNumber.of("02-1234-5678"), Email.of("a@b.com"), "url", NOW
-            )).isInstanceOf(IllegalArgumentException.class)
+            assertThatThrownBy(() -> OwnerName.of(null))
+                    .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("대표자명");
         }
 
         @Test
         @DisplayName("businessNo가 null이면 생성 실패")
         void shouldFailWhenBusinessNoIsNull() {
-            assertThatThrownBy(() -> Supplier.forNew(
-                    SupplierFixture.DEFAULT_NAME, "한글명", "회사",
-                    "대표", null, "주소",
-                    PhoneNumber.of("02-1234-5678"), Email.of("a@b.com"), "url", NOW
-            )).isInstanceOf(IllegalArgumentException.class)
+            assertThatThrownBy(() -> BusinessNo.of(null))
+                    .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("사업자번호");
         }
     }

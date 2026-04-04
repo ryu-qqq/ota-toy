@@ -5,7 +5,9 @@ import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class RateRule {
 
@@ -94,15 +96,34 @@ public class RateRule {
             throw new IllegalArgumentException("해당 날짜는 이 요금 규칙 범위 밖입니다: " + date);
         }
 
-        if (overrides != null) {
-            for (RateOverride override : overrides) {
-                if (date.equals(override.overrideDate())) {
-                    return override.price();
-                }
+        if (overrides != null && !overrides.isEmpty()) {
+            Map<LocalDate, BigDecimal> overrideMap = overrides.stream()
+                    .collect(Collectors.toMap(RateOverride::overrideDate, RateOverride::price, (a, b) -> b));
+            BigDecimal overridePrice = overrideMap.get(date);
+            if (overridePrice != null) {
+                return overridePrice;
             }
         }
 
         return calculatePrice(date);
+    }
+
+    /**
+     * 가격 정보를 일괄 업데이트한다.
+     * basePrice는 필수이며 0 이상이어야 한다. 요일별 가격은 null 허용 (null이면 basePrice 적용).
+     */
+    public void updatePrices(BigDecimal basePrice, BigDecimal weekdayPrice,
+                              BigDecimal fridayPrice, BigDecimal saturdayPrice,
+                              BigDecimal sundayPrice, Instant now) {
+        if (basePrice == null || basePrice.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("기본 가격은 0 이상이어야 합니다");
+        }
+        this.basePrice = basePrice;
+        this.weekdayPrice = weekdayPrice;
+        this.fridayPrice = fridayPrice;
+        this.saturdayPrice = saturdayPrice;
+        this.sundayPrice = sundayPrice;
+        this.updatedAt = now;
     }
 
     public boolean covers(LocalDate date) {

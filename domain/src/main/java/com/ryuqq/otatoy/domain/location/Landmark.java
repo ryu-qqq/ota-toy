@@ -1,5 +1,7 @@
 package com.ryuqq.otatoy.domain.location;
 
+import com.ryuqq.otatoy.domain.common.vo.Coordinate;
+
 import java.util.Objects;
 
 public class Landmark {
@@ -7,21 +9,18 @@ public class Landmark {
     private final LandmarkId id;
     private final LandmarkName name;
     private final LandmarkType landmarkType;
-    private final double latitude;
-    private final double longitude;
+    private final Coordinate coordinate;
 
-    private Landmark(LandmarkId id, LandmarkName name, LandmarkType landmarkType, double latitude, double longitude) {
+    private Landmark(LandmarkId id, LandmarkName name, LandmarkType landmarkType, Coordinate coordinate) {
         this.id = id;
         this.name = name;
         this.landmarkType = landmarkType;
-        this.latitude = latitude;
-        this.longitude = longitude;
+        this.coordinate = coordinate;
     }
 
     public static Landmark forNew(LandmarkName name, LandmarkType landmarkType, double latitude, double longitude) {
         validateRequired(name, landmarkType);
-        validateCoordinates(latitude, longitude);
-        return new Landmark(LandmarkId.of(null), name, landmarkType, latitude, longitude);
+        return new Landmark(LandmarkId.of(null), name, landmarkType, Coordinate.of(latitude, longitude));
     }
 
     private static void validateRequired(LandmarkName name, LandmarkType landmarkType) {
@@ -33,25 +32,17 @@ public class Landmark {
         }
     }
 
-    private static void validateCoordinates(double latitude, double longitude) {
-        if (latitude < -90 || latitude > 90) {
-            throw new LocationException(LocationErrorCode.INVALID_LATITUDE);
-        }
-        if (longitude < -180 || longitude > 180) {
-            throw new LocationException(LocationErrorCode.INVALID_LONGITUDE);
-        }
-    }
-
     public static Landmark reconstitute(LandmarkId id, LandmarkName name, LandmarkType landmarkType,
                                          double latitude, double longitude) {
-        return new Landmark(id, name, landmarkType, latitude, longitude);
+        return new Landmark(id, name, landmarkType, Coordinate.of(latitude, longitude));
     }
 
     public LandmarkId id() { return id; }
     public LandmarkName name() { return name; }
     public LandmarkType landmarkType() { return landmarkType; }
-    public double latitude() { return latitude; }
-    public double longitude() { return longitude; }
+    public Coordinate coordinate() { return coordinate; }
+    public double latitude() { return coordinate.latitude(); }
+    public double longitude() { return coordinate.longitude(); }
 
     @Override
     public boolean equals(Object o) {

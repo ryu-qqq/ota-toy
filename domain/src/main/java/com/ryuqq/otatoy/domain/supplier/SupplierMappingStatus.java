@@ -1,13 +1,13 @@
 package com.ryuqq.otatoy.domain.supplier;
 
-public enum SupplierPropertyStatus {
+public enum SupplierMappingStatus {
 
     MAPPED("매핑됨"),
-    UNMAPPED("매핑 해제");
+    UNMAPPED("매핑해제");
 
     private final String displayName;
 
-    SupplierPropertyStatus(String displayName) {
+    SupplierMappingStatus(String displayName) {
         this.displayName = displayName;
     }
 

@@ -12,11 +12,11 @@ public class SupplierRoomType {
     private final RoomTypeId roomTypeId;
     private final String supplierRoomCode;
     private Instant lastSyncedAt;
-    private SupplierPropertyStatus status;
+    private SupplierMappingStatus status;
 
     private SupplierRoomType(SupplierRoomTypeId id, SupplierPropertyId supplierPropertyId, RoomTypeId roomTypeId,
                              String supplierRoomCode, Instant lastSyncedAt,
-                             SupplierPropertyStatus status) {
+                             SupplierMappingStatus status) {
         this.id = id;
         this.supplierPropertyId = supplierPropertyId;
         this.roomTypeId = roomTypeId;
@@ -29,7 +29,7 @@ public class SupplierRoomType {
                                            String supplierRoomCode) {
         validate(supplierRoomCode);
         return new SupplierRoomType(SupplierRoomTypeId.of(null), supplierPropertyId, roomTypeId, supplierRoomCode,
-                null, SupplierPropertyStatus.MAPPED);
+                null, SupplierMappingStatus.MAPPED);
     }
 
     private static void validate(String supplierRoomCode) {
@@ -40,16 +40,19 @@ public class SupplierRoomType {
 
     public static SupplierRoomType reconstitute(SupplierRoomTypeId id, SupplierPropertyId supplierPropertyId, RoomTypeId roomTypeId,
                                                  String supplierRoomCode, Instant lastSyncedAt,
-                                                 SupplierPropertyStatus status) {
+                                                 SupplierMappingStatus status) {
         return new SupplierRoomType(id, supplierPropertyId, roomTypeId, supplierRoomCode, lastSyncedAt, status);
     }
 
     public void synced(Instant syncedAt) {
+        if (this.status == SupplierMappingStatus.UNMAPPED) {
+            throw new IllegalStateException("매핑 해제된 상태에서는 동기화할 수 없습니다");
+        }
         this.lastSyncedAt = syncedAt;
     }
 
     public void unmap() {
-        this.status = SupplierPropertyStatus.UNMAPPED;
+        this.status = SupplierMappingStatus.UNMAPPED;
     }
 
     public SupplierRoomTypeId id() { return id; }
@@ -57,7 +60,7 @@ public class SupplierRoomType {
     public RoomTypeId roomTypeId() { return roomTypeId; }
     public String supplierRoomCode() { return supplierRoomCode; }
     public Instant lastSyncedAt() { return lastSyncedAt; }
-    public SupplierPropertyStatus status() { return status; }
+    public SupplierMappingStatus status() { return status; }
 
     @Override
     public boolean equals(Object o) {

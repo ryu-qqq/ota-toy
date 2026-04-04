@@ -1,9 +1,10 @@
 package com.ryuqq.otatoy.domain.accommodation;
 
+import com.ryuqq.otatoy.domain.common.vo.Coordinate;
+
 public record Location(
         String address,
-        double latitude,
-        double longitude,
+        Coordinate coordinate,
         String neighborhood,
         String region
 ) {
@@ -12,16 +13,27 @@ public record Location(
         if (address == null || address.isBlank()) {
             throw new IllegalArgumentException("주소는 필수입니다");
         }
-        if (latitude < -90 || latitude > 90) {
-            throw new IllegalArgumentException("위도 범위가 올바르지 않습니다: " + latitude);
-        }
-        if (longitude < -180 || longitude > 180) {
-            throw new IllegalArgumentException("경도 범위가 올바르지 않습니다: " + longitude);
+        if (coordinate == null) {
+            throw new IllegalArgumentException("좌표는 필수입니다");
         }
     }
 
     public static Location of(String address, double latitude, double longitude,
                                String neighborhood, String region) {
-        return new Location(address, latitude, longitude, neighborhood, region);
+        return new Location(address, Coordinate.of(latitude, longitude), neighborhood, region);
+    }
+
+    /**
+     * 위도 접근 편의 메서드
+     */
+    public double latitude() {
+        return coordinate.latitude();
+    }
+
+    /**
+     * 경도 접근 편의 메서드
+     */
+    public double longitude() {
+        return coordinate.longitude();
     }
 }

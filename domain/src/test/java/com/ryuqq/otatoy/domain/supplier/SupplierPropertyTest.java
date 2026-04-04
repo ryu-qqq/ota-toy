@@ -24,7 +24,7 @@ class SupplierPropertyTest {
             SupplierProperty sp = SupplierFixture.mappedProperty();
 
             assertThat(sp.id().value()).isNull();
-            assertThat(sp.status()).isEqualTo(SupplierPropertyStatus.MAPPED);
+            assertThat(sp.status()).isEqualTo(SupplierMappingStatus.MAPPED);
             assertThat(sp.supplierId()).isEqualTo(SupplierId.of(1L));
             assertThat(sp.propertyId()).isEqualTo(PropertyId.of(100L));
             assertThat(sp.supplierPropertyCode()).isEqualTo("EXT-PROP-001");
@@ -57,10 +57,10 @@ class SupplierPropertyTest {
         @Test
         @DisplayName("reconstitute는 모든 필드를 그대로 복원한다")
         void shouldReconstituteAllFields() {
-            SupplierProperty sp = SupplierFixture.reconstitutedProperty(SupplierPropertyStatus.MAPPED);
+            SupplierProperty sp = SupplierFixture.reconstitutedProperty(SupplierMappingStatus.MAPPED);
 
             assertThat(sp.id()).isEqualTo(SupplierPropertyId.of(1L));
-            assertThat(sp.status()).isEqualTo(SupplierPropertyStatus.MAPPED);
+            assertThat(sp.status()).isEqualTo(SupplierMappingStatus.MAPPED);
             assertThat(sp.lastSyncedAt()).isEqualTo(NOW);
         }
     }
@@ -79,6 +79,16 @@ class SupplierPropertyTest {
 
             assertThat(sp.lastSyncedAt()).isEqualTo(syncedAt);
         }
+
+        @Test
+        @DisplayName("UNMAPPED 상태에서 synced 호출 시 예외가 발생한다")
+        void shouldFailWhenSyncedOnUnmapped() {
+            SupplierProperty sp = SupplierFixture.unmappedProperty();
+
+            assertThatThrownBy(() -> sp.synced(Instant.now()))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("매핑 해제된 상태에서는 동기화할 수 없습니다");
+        }
     }
 
     @Nested
@@ -92,7 +102,17 @@ class SupplierPropertyTest {
 
             sp.unmap();
 
-            assertThat(sp.status()).isEqualTo(SupplierPropertyStatus.UNMAPPED);
+            assertThat(sp.status()).isEqualTo(SupplierMappingStatus.UNMAPPED);
+        }
+
+        @Test
+        @DisplayName("이미 UNMAPPED 상태에서 unmap 재호출은 멱등하게 통과한다")
+        void shouldBeIdempotentWhenAlreadyUnmapped() {
+            SupplierProperty sp = SupplierFixture.unmappedProperty();
+
+            sp.unmap();
+
+            assertThat(sp.status()).isEqualTo(SupplierMappingStatus.UNMAPPED);
         }
     }
 
@@ -103,8 +123,8 @@ class SupplierPropertyTest {
         @Test
         @DisplayName("같은 id의 SupplierProperty는 동등하다")
         void shouldBeEqualWithSameId() {
-            SupplierProperty sp1 = SupplierFixture.reconstitutedProperty(SupplierPropertyStatus.MAPPED);
-            SupplierProperty sp2 = SupplierFixture.reconstitutedProperty(SupplierPropertyStatus.UNMAPPED);
+            SupplierProperty sp1 = SupplierFixture.reconstitutedProperty(SupplierMappingStatus.MAPPED);
+            SupplierProperty sp2 = SupplierFixture.reconstitutedProperty(SupplierMappingStatus.UNMAPPED);
 
             assertThat(sp1).isEqualTo(sp2);
             assertThat(sp1.hashCode()).isEqualTo(sp2.hashCode());

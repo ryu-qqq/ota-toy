@@ -22,7 +22,7 @@ class SupplierRoomTypeTest {
             SupplierRoomType srt = SupplierFixture.mappedRoomType();
 
             assertThat(srt.id().value()).isNull();
-            assertThat(srt.status()).isEqualTo(SupplierPropertyStatus.MAPPED);
+            assertThat(srt.status()).isEqualTo(SupplierMappingStatus.MAPPED);
             assertThat(srt.supplierPropertyId()).isEqualTo(SupplierPropertyId.of(1L));
             assertThat(srt.roomTypeId()).isEqualTo(RoomTypeId.of(200L));
             assertThat(srt.supplierRoomCode()).isEqualTo("EXT-ROOM-001");
@@ -55,10 +55,10 @@ class SupplierRoomTypeTest {
         @Test
         @DisplayName("reconstitute는 모든 필드를 그대로 복원한다")
         void shouldReconstituteAllFields() {
-            SupplierRoomType srt = SupplierFixture.reconstitutedRoomType(SupplierPropertyStatus.MAPPED);
+            SupplierRoomType srt = SupplierFixture.reconstitutedRoomType(SupplierMappingStatus.MAPPED);
 
             assertThat(srt.id()).isEqualTo(SupplierRoomTypeId.of(1L));
-            assertThat(srt.status()).isEqualTo(SupplierPropertyStatus.MAPPED);
+            assertThat(srt.status()).isEqualTo(SupplierMappingStatus.MAPPED);
             assertThat(srt.lastSyncedAt()).isEqualTo(SupplierFixture.DEFAULT_NOW);
         }
     }
@@ -77,6 +77,16 @@ class SupplierRoomTypeTest {
 
             assertThat(srt.lastSyncedAt()).isEqualTo(syncedAt);
         }
+
+        @Test
+        @DisplayName("UNMAPPED 상태에서 synced 호출 시 예외가 발생한다")
+        void shouldFailWhenSyncedOnUnmapped() {
+            SupplierRoomType srt = SupplierFixture.unmappedRoomType();
+
+            assertThatThrownBy(() -> srt.synced(Instant.now()))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("매핑 해제된 상태에서는 동기화할 수 없습니다");
+        }
     }
 
     @Nested
@@ -90,7 +100,17 @@ class SupplierRoomTypeTest {
 
             srt.unmap();
 
-            assertThat(srt.status()).isEqualTo(SupplierPropertyStatus.UNMAPPED);
+            assertThat(srt.status()).isEqualTo(SupplierMappingStatus.UNMAPPED);
+        }
+
+        @Test
+        @DisplayName("이미 UNMAPPED 상태에서 unmap 재호출은 멱등하게 통과한다")
+        void shouldBeIdempotentWhenAlreadyUnmapped() {
+            SupplierRoomType srt = SupplierFixture.unmappedRoomType();
+
+            srt.unmap();
+
+            assertThat(srt.status()).isEqualTo(SupplierMappingStatus.UNMAPPED);
         }
     }
 
@@ -101,8 +121,8 @@ class SupplierRoomTypeTest {
         @Test
         @DisplayName("같은 id의 SupplierRoomType은 동등하다")
         void shouldBeEqualWithSameId() {
-            SupplierRoomType srt1 = SupplierFixture.reconstitutedRoomType(SupplierPropertyStatus.MAPPED);
-            SupplierRoomType srt2 = SupplierFixture.reconstitutedRoomType(SupplierPropertyStatus.UNMAPPED);
+            SupplierRoomType srt1 = SupplierFixture.reconstitutedRoomType(SupplierMappingStatus.MAPPED);
+            SupplierRoomType srt2 = SupplierFixture.reconstitutedRoomType(SupplierMappingStatus.UNMAPPED);
 
             assertThat(srt1).isEqualTo(srt2);
             assertThat(srt1.hashCode()).isEqualTo(srt2.hashCode());
