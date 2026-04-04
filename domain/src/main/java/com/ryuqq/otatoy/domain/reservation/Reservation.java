@@ -106,10 +106,7 @@ public class Reservation {
     }
 
     public void confirm() {
-        if (status != ReservationStatus.PENDING) {
-            throw new InvalidReservationStateException();
-        }
-        this.status = ReservationStatus.CONFIRMED;
+        this.status = status.transitTo(ReservationStatus.CONFIRMED);
     }
 
     public void cancel(String reason, Instant now) {
@@ -119,26 +116,17 @@ public class Reservation {
         if (status == ReservationStatus.COMPLETED) {
             throw new ReservationAlreadyCompletedException();
         }
-        if (status != ReservationStatus.PENDING && status != ReservationStatus.CONFIRMED) {
-            throw new InvalidReservationStateException();
-        }
-        this.status = ReservationStatus.CANCELLED;
+        this.status = status.transitTo(ReservationStatus.CANCELLED);
         this.cancelReason = reason;
         this.cancelledAt = now;
     }
 
     public void complete() {
-        if (status != ReservationStatus.CONFIRMED) {
-            throw new InvalidReservationStateException();
-        }
-        this.status = ReservationStatus.COMPLETED;
+        this.status = status.transitTo(ReservationStatus.COMPLETED);
     }
 
     public void noShow() {
-        if (status != ReservationStatus.CONFIRMED) {
-            throw new InvalidReservationStateException();
-        }
-        this.status = ReservationStatus.NO_SHOW;
+        this.status = status.transitTo(ReservationStatus.NO_SHOW);
     }
 
     public ReservationId id() { return id; }

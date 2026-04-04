@@ -24,18 +24,23 @@ public class RateOverride {
         this.createdAt = createdAt;
     }
 
-    public static RateOverride forNew(RateRuleId rateRuleId, LocalDate overrideDate,
-                                       BigDecimal price, String reason, Instant now) {
-        validate(overrideDate, price);
+    public static RateOverride forNew(RateRuleId rateRuleId, LocalDate ruleStartDate, LocalDate ruleEndDate,
+                                       LocalDate overrideDate, BigDecimal price, String reason, Instant now) {
+        validate(overrideDate, price, ruleStartDate, ruleEndDate);
         return new RateOverride(RateOverrideId.of(null), rateRuleId, overrideDate, price, reason, now);
     }
 
-    private static void validate(LocalDate overrideDate, BigDecimal price) {
+    private static void validate(LocalDate overrideDate, BigDecimal price,
+                                  LocalDate ruleStartDate, LocalDate ruleEndDate) {
         if (overrideDate == null) {
             throw new IllegalArgumentException("오버라이드 날짜는 필수입니다");
         }
         if (price == null || price.compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalArgumentException("가격은 0 이상이어야 합니다");
+        }
+        if (overrideDate.isBefore(ruleStartDate) || overrideDate.isAfter(ruleEndDate)) {
+            throw new IllegalArgumentException("오버라이드 날짜는 요금 규칙 범위 내여야 합니다: "
+                    + ruleStartDate + " ~ " + ruleEndDate);
         }
     }
 

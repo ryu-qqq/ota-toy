@@ -74,32 +74,17 @@ public class Supplier {
     }
 
     public void suspend(Instant now) {
-        if (this.status == SupplierStatus.TERMINATED) {
-            throw new SupplierAlreadyTerminatedException();
-        }
-        if (this.status == SupplierStatus.SUSPENDED) {
-            throw new SupplierAlreadySuspendedException();
-        }
-        this.status = SupplierStatus.SUSPENDED;
+        this.status = status.transitTo(SupplierStatus.SUSPENDED);
         this.updatedAt = now;
     }
 
     public void activate(Instant now) {
-        if (this.status == SupplierStatus.TERMINATED) {
-            throw new SupplierAlreadyTerminatedException();
-        }
-        if (this.status == SupplierStatus.ACTIVE) {
-            throw new InvalidSupplierStateTransitionException();
-        }
-        this.status = SupplierStatus.ACTIVE;
+        this.status = status.transitTo(SupplierStatus.ACTIVE);
         this.updatedAt = now;
     }
 
     public void terminate(Instant now) {
-        if (this.status == SupplierStatus.TERMINATED) {
-            throw new SupplierAlreadyTerminatedException();
-        }
-        this.status = SupplierStatus.TERMINATED;
+        this.status = status.transitTo(SupplierStatus.TERMINATED);
         this.updatedAt = now;
     }
 

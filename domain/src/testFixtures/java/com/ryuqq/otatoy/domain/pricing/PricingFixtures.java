@@ -27,12 +27,14 @@ public final class PricingFixtures {
 
     // --- RatePlan ---
 
+    public static final CancellationPolicy FREE_CANCELLATION = CancellationPolicy.of(true, false, 3, "체크인 3일 전까지 무료 취소");
+    public static final CancellationPolicy NON_REFUNDABLE = CancellationPolicy.of(false, true, 0, "환불 불가");
+
     /** DIRECT 소스의 기본 RatePlan (무료 취소, 선결제) */
     public static RatePlan directRatePlan() {
         return RatePlan.forNew(
                 ROOM_TYPE_ID, DEFAULT_NAME, SourceType.DIRECT, null,
-                true, false, 3, "체크인 3일 전까지 무료 취소",
-                PaymentPolicy.PREPAY, NOW
+                FREE_CANCELLATION, PaymentPolicy.PREPAY, NOW
         );
     }
 
@@ -40,8 +42,7 @@ public final class PricingFixtures {
     public static RatePlan supplierRatePlan() {
         return RatePlan.forNew(
                 ROOM_TYPE_ID, DEFAULT_NAME, SourceType.SUPPLIER, SUPPLIER_ID,
-                false, true, 0, "환불 불가",
-                PaymentPolicy.PREPAY, NOW
+                NON_REFUNDABLE, PaymentPolicy.PREPAY, NOW
         );
     }
 
@@ -49,8 +50,8 @@ public final class PricingFixtures {
     public static RatePlan reconstitutedRatePlan(long id) {
         return RatePlan.reconstitute(
                 RatePlanId.of(id), ROOM_TYPE_ID, DEFAULT_NAME,
-                SourceType.DIRECT, null, true, false, 3,
-                "체크인 3일 전까지 무료 취소", PaymentPolicy.PREPAY, NOW, NOW
+                SourceType.DIRECT, null, FREE_CANCELLATION,
+                PaymentPolicy.PREPAY, NOW, NOW
         );
     }
 
@@ -89,10 +90,15 @@ public final class PricingFixtures {
 
     // --- RateOverride ---
 
+    // RateRule 기본 날짜 범위 (defaultRateRule과 동일)
+    public static final LocalDate RULE_START_DATE = LocalDate.of(2026, 4, 1);
+    public static final LocalDate RULE_END_DATE = LocalDate.of(2026, 4, 30);
+
     /** 4/5(토) 공휴일 오버라이드 (17만원) */
     public static RateOverride defaultOverride() {
         return RateOverride.forNew(
-                RATE_RULE_ID, LocalDate.of(2026, 4, 5),
+                RATE_RULE_ID, RULE_START_DATE, RULE_END_DATE,
+                LocalDate.of(2026, 4, 5),
                 BigDecimal.valueOf(170_000), "공휴일 특가", NOW
         );
     }
@@ -154,9 +160,11 @@ public final class PricingFixtures {
     /** resolvePrice 테스트용: 4/5 오버라이드가 포함된 리스트 */
     public static List<RateOverride> overrideListWithApril5() {
         return List.of(
-                RateOverride.forNew(RATE_RULE_ID, LocalDate.of(2026, 4, 5),
+                RateOverride.forNew(RATE_RULE_ID, RULE_START_DATE, RULE_END_DATE,
+                        LocalDate.of(2026, 4, 5),
                         BigDecimal.valueOf(170_000), "공휴일", NOW),
-                RateOverride.forNew(RATE_RULE_ID, LocalDate.of(2026, 4, 15),
+                RateOverride.forNew(RATE_RULE_ID, RULE_START_DATE, RULE_END_DATE,
+                        LocalDate.of(2026, 4, 15),
                         BigDecimal.valueOf(90_000), "비수기 할인", NOW)
         );
     }

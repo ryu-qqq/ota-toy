@@ -27,13 +27,19 @@ public class RatePlanAddOn {
 
     public static RatePlanAddOn forNew(RatePlanId ratePlanId, AddOnType addOnType,
                                         AddOnName name, BigDecimal price, boolean included, Instant now) {
-        validatePrice(price);
+        validatePriceAndInclusion(price, included);
         return new RatePlanAddOn(RatePlanAddOnId.of(null), ratePlanId, addOnType, name, price, included, now);
     }
 
-    private static void validatePrice(BigDecimal price) {
+    private static void validatePriceAndInclusion(BigDecimal price, boolean included) {
         if (price != null && price.compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalArgumentException("Add-on 가격은 0 이상이어야 합니다");
+        }
+        if (included && price != null && price.compareTo(BigDecimal.ZERO) > 0) {
+            throw new IllegalArgumentException("포함된 Add-on은 별도 가격을 가질 수 없습니다");
+        }
+        if (!included && (price == null || price.compareTo(BigDecimal.ZERO) == 0)) {
+            throw new IllegalArgumentException("별도 구매 Add-on은 가격이 필수입니다");
         }
     }
 

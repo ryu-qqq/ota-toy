@@ -34,7 +34,8 @@ class RateOverrideTest {
         @DisplayName("overrideDate가 null이면 예외를 던진다")
         void shouldFailWhenOverrideDateIsNull() {
             assertThatThrownBy(() -> RateOverride.forNew(
-                    RATE_RULE_ID, null, BigDecimal.valueOf(100_000), "테스트", NOW
+                    RATE_RULE_ID, RULE_START_DATE, RULE_END_DATE,
+                    null, BigDecimal.valueOf(100_000), "테스트", NOW
             ))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("오버라이드 날짜는 필수");
@@ -44,7 +45,8 @@ class RateOverrideTest {
         @DisplayName("price가 null이면 예외를 던진다")
         void shouldFailWhenPriceIsNull() {
             assertThatThrownBy(() -> RateOverride.forNew(
-                    RATE_RULE_ID, LocalDate.of(2026, 4, 5), null, "테스트", NOW
+                    RATE_RULE_ID, RULE_START_DATE, RULE_END_DATE,
+                    LocalDate.of(2026, 4, 5), null, "테스트", NOW
             ))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("가격은 0 이상");
@@ -54,7 +56,8 @@ class RateOverrideTest {
         @DisplayName("price가 음수이면 예외를 던진다")
         void shouldFailWhenPriceIsNegative() {
             assertThatThrownBy(() -> RateOverride.forNew(
-                    RATE_RULE_ID, LocalDate.of(2026, 4, 5), BigDecimal.valueOf(-1), "테스트", NOW
+                    RATE_RULE_ID, RULE_START_DATE, RULE_END_DATE,
+                    LocalDate.of(2026, 4, 5), BigDecimal.valueOf(-1), "테스트", NOW
             ))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("가격은 0 이상");
@@ -64,7 +67,8 @@ class RateOverrideTest {
         @DisplayName("price가 0이면 허용된다 (무료 프로모션)")
         void shouldAllowZeroPrice() {
             RateOverride override = RateOverride.forNew(
-                    RATE_RULE_ID, LocalDate.of(2026, 4, 5),
+                    RATE_RULE_ID, RULE_START_DATE, RULE_END_DATE,
+                    LocalDate.of(2026, 4, 5),
                     BigDecimal.ZERO, "무료 프로모션", NOW
             );
 
@@ -75,11 +79,50 @@ class RateOverrideTest {
         @DisplayName("reason이 null이어도 허용된다")
         void shouldAllowNullReason() {
             RateOverride override = RateOverride.forNew(
-                    RATE_RULE_ID, LocalDate.of(2026, 4, 5),
+                    RATE_RULE_ID, RULE_START_DATE, RULE_END_DATE,
+                    LocalDate.of(2026, 4, 5),
                     BigDecimal.valueOf(100_000), null, NOW
             );
 
             assertThat(override.reason()).isNull();
+        }
+
+        @Test
+        @DisplayName("overrideDate가 요금 규칙 시작일 이전이면 예외를 던진다")
+        void shouldFailWhenOverrideDateBeforeRuleStart() {
+            assertThatThrownBy(() -> RateOverride.forNew(
+                    RATE_RULE_ID, RULE_START_DATE, RULE_END_DATE,
+                    LocalDate.of(2026, 3, 31), BigDecimal.valueOf(100_000), "범위 밖", NOW
+            ))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("요금 규칙 범위 내여야 합니다");
+        }
+
+        @Test
+        @DisplayName("overrideDate가 요금 규칙 종료일 이후이면 예외를 던진다")
+        void shouldFailWhenOverrideDateAfterRuleEnd() {
+            assertThatThrownBy(() -> RateOverride.forNew(
+                    RATE_RULE_ID, RULE_START_DATE, RULE_END_DATE,
+                    LocalDate.of(2026, 5, 1), BigDecimal.valueOf(100_000), "범위 밖", NOW
+            ))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("요금 규칙 범위 내여야 합니다");
+        }
+
+        @Test
+        @DisplayName("overrideDate가 요금 규칙 경계값(시작일, 종료일)이면 허용된다")
+        void shouldAllowOverrideDateOnBoundary() {
+            RateOverride startOverride = RateOverride.forNew(
+                    RATE_RULE_ID, RULE_START_DATE, RULE_END_DATE,
+                    RULE_START_DATE, BigDecimal.valueOf(100_000), "시작일", NOW
+            );
+            RateOverride endOverride = RateOverride.forNew(
+                    RATE_RULE_ID, RULE_START_DATE, RULE_END_DATE,
+                    RULE_END_DATE, BigDecimal.valueOf(100_000), "종료일", NOW
+            );
+
+            assertThat(startOverride.overrideDate()).isEqualTo(RULE_START_DATE);
+            assertThat(endOverride.overrideDate()).isEqualTo(RULE_END_DATE);
         }
     }
 

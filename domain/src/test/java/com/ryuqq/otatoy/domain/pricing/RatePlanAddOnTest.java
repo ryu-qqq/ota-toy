@@ -51,14 +51,47 @@ class RatePlanAddOnTest {
         }
 
         @Test
-        @DisplayName("price가 null이면 허용된다 (가격 미정)")
-        void shouldAllowNullPrice() {
+        @DisplayName("price가 null이고 included=true이면 허용된다")
+        void shouldAllowNullPriceWhenIncluded() {
             RatePlanAddOn addOn = RatePlanAddOn.forNew(
                     RATE_PLAN_ID, AddOnType.of("PARKING"),
                     AddOnName.of("주차"), null, true, NOW
             );
 
             assertThat(addOn.price()).isNull();
+        }
+
+        @Test
+        @DisplayName("included=true이고 price > 0이면 예외를 던진다")
+        void shouldFailWhenIncludedWithPositivePrice() {
+            assertThatThrownBy(() -> RatePlanAddOn.forNew(
+                    RATE_PLAN_ID, AddOnType.of("BREAKFAST"),
+                    AddOnName.of("조식"), BigDecimal.valueOf(10_000), true, NOW
+            ))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("포함된 Add-on은 별도 가격을 가질 수 없습니다");
+        }
+
+        @Test
+        @DisplayName("included=false이고 price가 null이면 예외를 던진다")
+        void shouldFailWhenNotIncludedWithNullPrice() {
+            assertThatThrownBy(() -> RatePlanAddOn.forNew(
+                    RATE_PLAN_ID, AddOnType.of("BREAKFAST"),
+                    AddOnName.of("조식"), null, false, NOW
+            ))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("별도 구매 Add-on은 가격이 필수입니다");
+        }
+
+        @Test
+        @DisplayName("included=false이고 price가 0이면 예외를 던진다")
+        void shouldFailWhenNotIncludedWithZeroPrice() {
+            assertThatThrownBy(() -> RatePlanAddOn.forNew(
+                    RATE_PLAN_ID, AddOnType.of("BREAKFAST"),
+                    AddOnName.of("조식"), BigDecimal.ZERO, false, NOW
+            ))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("별도 구매 Add-on은 가격이 필수입니다");
         }
     }
 

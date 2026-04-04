@@ -30,18 +30,12 @@ public class Partner {
     }
 
     public void suspend(Instant now) {
-        if (this.status == PartnerStatus.SUSPENDED) {
-            throw new PartnerAlreadySuspendedException();
-        }
-        this.status = PartnerStatus.SUSPENDED;
+        this.status = status.transitTo(PartnerStatus.SUSPENDED);
         this.updatedAt = now;
     }
 
     public void activate(Instant now) {
-        if (this.status == PartnerStatus.ACTIVE) {
-            throw new PartnerAlreadyActiveException();
-        }
-        this.status = PartnerStatus.ACTIVE;
+        this.status = status.transitTo(PartnerStatus.ACTIVE);
         this.updatedAt = now;
     }
 
