@@ -66,6 +66,52 @@ domain/src/test/java/com/ryuqq/otatoy/domain/DomainLayerArchTest.java
   4. 기존에 없는 시나리오만 추가 작성
   5. 기존 테스트 스타일(네이밍, 구조, assert 방식)에 맞춰 작성
 
+### Step 0.5: testFixtures 패턴 도입
+
+현재 모든 테스트에서 도메인 객체를 직접 생성하고 있음. testFixtures로 전환 필요.
+
+**구조:**
+```
+domain/src/testFixtures/java/com/ryuqq/otatoy/domain/
+├── accommodation/
+│   ├── PropertyFixture.java      — aProperty(), aPropertyWith(name)
+│   ├── RoomTypeFixture.java
+│   └── ...
+├── pricing/
+│   ├── RatePlanFixture.java
+│   └── ...
+├── inventory/
+│   └── InventoryFixture.java
+└── reservation/
+    └── ReservationFixture.java
+```
+
+**Fixture 패턴:**
+```java
+public class PropertyFixture {
+    public static Property aProperty() {
+        return Property.forNew(
+            PartnerId.of(1L), BrandId.of(2L), PropertyTypeId.of(3L),
+            PropertyName.of("테스트 호텔"), PropertyDescription.of("설명"),
+            Location.of("서울시", 37.5, 127.0, "강남", "서울"),
+            PromotionText.of("홍보 문구"), Instant.now()
+        );
+    }
+    
+    public static Property aPropertyWith(PropertyName name) { ... }
+}
+```
+
+**의존 방향:**
+- domain testFixtures → domain main (당연)
+- application test → domain testFixtures (Fixture 재사용)
+- persistence test → domain testFixtures (Fixture 재사용)
+- api test → domain testFixtures + application testFixtures (재사용)
+
+**Gradle:** `java-test-fixtures` 플러그인이 이미 domain/build.gradle.kts에 있음. 다른 모듈에서 `testImplementation(testFixtures(project(":domain")))` 추가.
+
+**작업:** 기존 테스트 코드에서 직접 생성하는 부분을 Fixture로 추출. test-designer 에이전트도 Fixture 사용하도록 수정.
+
 ### Step 1: 래핑 객체 도입 (PropertyAmenities 등)
 
 사용자가 결정한 설계:
