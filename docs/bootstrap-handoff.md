@@ -110,6 +110,30 @@ public class PropertyFixture {
 
 **Gradle:** `java-test-fixtures` 플러그인이 이미 domain/build.gradle.kts에 있음. 다른 모듈에서 `testImplementation(testFixtures(project(":domain")))` 추가.
 
+**Fixture 카탈로그 문서** (`docs/review/fixture-catalog.md`):
+test-designer가 Fixture를 만들 때마다 이 문서를 갱신한다. "어떤 Fixture가 어떤 상태의 객체를 만드는지" 한눈에 볼 수 있어야 한다.
+
+```markdown
+## accommodation
+
+| Fixture 클래스 | 메서드 | 반환 객체 상태 | 용도 |
+|---------------|--------|-------------|------|
+| PropertyFixture | aProperty() | ACTIVE, 브랜드 있음, 서울 강남 | 기본 테스트용 |
+| PropertyFixture | aPropertyWithoutBrand() | ACTIVE, 브랜드 없음 | 모텔/펜션 테스트 |
+| PropertyFixture | anInactiveProperty() | INACTIVE | 비활성 숙소 테스트 |
+| RoomTypeFixture | aRoomType() | ACTIVE, 2인, 더블베드 | 기본 객실 |
+```
+
+**test-designer 에이전트 수정사항:**
+- Fixture 관리 책임을 test-designer에 통합 (별도 에이전트 만들지 않음)
+- 작업 절차:
+  1. 기존 테스트 파일 확인
+  2. 기존 Fixture 확인 (`testFixtures/`)
+  3. Fixture 카탈로그 확인 (`docs/review/fixture-catalog.md`)
+  4. 필요한 Fixture가 없으면 생성 + 카탈로그 갱신
+  5. Fixture 사용하여 테스트 작성
+  6. 기존 스타일에 맞춤
+
 **작업:** 기존 테스트 코드에서 직접 생성하는 부분을 Fixture로 추출. test-designer 에이전트도 Fixture 사용하도록 수정.
 
 ### Step 1: 래핑 객체 도입 (PropertyAmenities 등)
