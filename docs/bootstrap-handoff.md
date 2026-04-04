@@ -48,14 +48,23 @@ domain/src/test/java/com/ryuqq/otatoy/domain/DomainLayerArchTest.java
 
 ## 지금 해야 할 것
 
-### Step 0: 하네스 오케스트레이터 보강
+### Step 0: 하네스 + 에이전트 보강
 
-domain-harness-orchestrator.md에 **Phase 결과 문서화** 규칙 추가:
+**domain-harness-orchestrator.md** — Phase 결과 문서화 규칙 추가:
 - Phase 2 결과 → `docs/review/{BC}-code-review.md`, `docs/review/{BC}-spec-review.md`
 - Phase 4 결과 → `docs/review/{BC}-test-scenarios.md` (어떤 비즈니스 규칙을 어떤 테스트가 검증하는지)
 - Phase 6 결과 → `docs/review/{BC}-harness-result.md` (전체 요약)
+- 이 문서들이 있어야 "이 도메인이 어떤 시나리오를 커버하는지" 사람이 볼 수 있다.
 
-이 문서들이 있어야 "이 도메인이 어떤 시나리오를 커버하는지" 사람이 볼 수 있다.
+**domain-test-designer.md** — 기존 테스트 확인 단계 추가:
+- 현재: spec-reviewer 시나리오만 보고 새로 작성 → 기존 테스트와 중복/스타일 불일치 가능
+- 수정: 작업 전에 기존 테스트 파일을 먼저 확인하여 이미 커버된 시나리오 파악 → 없는 것만 추가 → 기존 스타일에 맞춰 작성
+- 작업 절차를 아래로 변경:
+  1. 대상 BC의 기존 테스트 파일 확인 (`domain/src/test/java/.../`)
+  2. 어떤 시나리오가 이미 커버되는지 파악
+  3. spec-reviewer 보고서 읽기
+  4. 기존에 없는 시나리오만 추가 작성
+  5. 기존 테스트 스타일(네이밍, 구조, assert 방식)에 맞춰 작성
 
 ### Step 1: 래핑 객체 도입 (PropertyAmenities 등)
 
