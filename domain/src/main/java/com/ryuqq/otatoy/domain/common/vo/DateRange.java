@@ -2,7 +2,7 @@ package com.ryuqq.otatoy.domain.common.vo;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
+import java.util.stream.Stream;
 
 public record DateRange(LocalDate startDate, LocalDate endDate) {
 
@@ -19,7 +19,7 @@ public record DateRange(LocalDate startDate, LocalDate endDate) {
         return ChronoUnit.DAYS.between(startDate, endDate);
     }
 
-    public List<LocalDate> dates() {
-        return startDate.datesUntil(endDate).toList();
+    public Stream<LocalDate> dates() {
+        return startDate.datesUntil(endDate);
     }
 }

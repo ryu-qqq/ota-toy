@@ -6,6 +6,8 @@ public record PartnerMemberId(Long value) {
         return new PartnerMemberId(value);
     }
 
+    public static PartnerMemberId forNew() { return new PartnerMemberId(null); }
+
     public boolean isNew() {
         return value == null;
     }

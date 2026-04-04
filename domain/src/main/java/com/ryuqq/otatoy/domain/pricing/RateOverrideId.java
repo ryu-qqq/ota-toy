@@ -6,6 +6,8 @@ public record RateOverrideId(Long value) {
         return new RateOverrideId(value);
     }
 
+    public static RateOverrideId forNew() { return new RateOverrideId(null); }
+
     public boolean isNew() {
         return value == null;
     }

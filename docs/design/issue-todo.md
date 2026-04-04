@@ -23,29 +23,31 @@
 
 ## P1: 도메인 모델 구조 개선
 
-- [ ] **상태 머신 Enum 분리** (#7, #9)
+- [x] **상태 머신 Enum 분리** (#7, #9)
   - ReservationStatus에 전이 테이블 + transitTo() 구현
   - SupplierStatus에 전이 테이블 구현
   - PartnerStatus에 전이 테이블 구현 (선택)
   - 컨벤션 DOM-ENUM-001 추가 완료
-- [ ] **CancellationPolicy VO 추출** (#3)
+- [x] **CancellationPolicy VO 추출** (#3)
   - RatePlan의 freeCancellation, nonRefundable, deadlineDays, policyText → 1 VO
   - CancellationPolicyText String VO (길이 검증)
   - RatePlan.forNew(), updatePolicy() 시그니처 단순화
 - [ ] **Rate 역할 정의** (#4)
   - 캐시 vs 소스 결정 → ADR 작성
   - 결정에 따라 동기화 전략 설계
-- [ ] **RateOverride 날짜 범위 검증** (#5)
+- [x] **RateOverride 날짜 범위 검증** (#5)
   - forNew()에 RateRule 날짜 범위 전달 또는 RateRule 내부 팩토리
-- [ ] **RatePlanAddOn included/price 모순 방지** (#5)
+- [x] **RatePlanAddOn included/price 모순 방지** (#5)
   - included=true이면 price는 null/0만 허용
   - included=false이면 price 필수
 - [ ] **Location BC 경계 재설계** (#2)
   - Location → accommodation으로 이동 (Property의 VO)
   - Coordinate VO 도입 (위도/경도 중복 검증 제거)
   - neighborhood/region 역할 정의
-- [ ] **Collection VO Aggregate 포함 여부 결정** (#8)
-  - PropertyPhotos, RoomTypeBeds 등 8개 래핑 객체를 Aggregate 필드로 포함할지 결정
+- [x] **Collection VO Aggregate 포함 여부 결정** (#8) — **포함하지 않음 (결정 완료)**
+  - 실제 OTA 조사 결과 사진/편의시설/객실이 별도 생명주기로 독립 관리됨 (`docs/research/ota-extranet-registration-flow.md`)
+  - 현재 설계(ID 참조, 별도 Aggregate) 유지
+  - 조회용 조립은 Application 레이어에서 PropertyDetail record로 처리
 
 ---
 

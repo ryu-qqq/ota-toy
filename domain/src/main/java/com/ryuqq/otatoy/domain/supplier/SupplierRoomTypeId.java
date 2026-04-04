@@ -6,6 +6,8 @@ public record SupplierRoomTypeId(Long value) {
         return new SupplierRoomTypeId(value);
     }
 
+    public static SupplierRoomTypeId forNew() { return new SupplierRoomTypeId(null); }
+
     public boolean isNew() {
         return value == null;
     }

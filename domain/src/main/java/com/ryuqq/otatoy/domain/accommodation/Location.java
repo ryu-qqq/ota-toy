@@ -1,4 +1,4 @@
-package com.ryuqq.otatoy.domain.location;
+package com.ryuqq.otatoy.domain.accommodation;
 
 public record Location(
         String address,
@@ -10,13 +10,13 @@ public record Location(
 
     public Location {
         if (address == null || address.isBlank()) {
-            throw new LocationException(LocationErrorCode.INVALID_ADDRESS);
+            throw new IllegalArgumentException("주소는 필수입니다");
         }
         if (latitude < -90 || latitude > 90) {
-            throw new LocationException(LocationErrorCode.INVALID_LATITUDE);
+            throw new IllegalArgumentException("위도 범위가 올바르지 않습니다: " + latitude);
         }
         if (longitude < -180 || longitude > 180) {
-            throw new LocationException(LocationErrorCode.INVALID_LONGITUDE);
+            throw new IllegalArgumentException("경도 범위가 올바르지 않습니다: " + longitude);
         }
     }
 

@@ -6,6 +6,8 @@ public record RoomPhotoId(Long value) {
         return new RoomPhotoId(value);
     }
 
+    public static RoomPhotoId forNew() { return new RoomPhotoId(null); }
+
     public boolean isNew() {
         return value == null;
     }

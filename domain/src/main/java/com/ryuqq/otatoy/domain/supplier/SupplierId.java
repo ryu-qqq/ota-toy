@@ -6,6 +6,8 @@ public record SupplierId(Long value) {
         return new SupplierId(value);
     }
 
+    public static SupplierId forNew() { return new SupplierId(null); }
+
     public boolean isNew() {
         return value == null;
     }

@@ -6,6 +6,8 @@ public record PropertyId(Long value) {
         return new PropertyId(value);
     }
 
+    public static PropertyId forNew() { return new PropertyId(null); }
+
     public boolean isNew() {
         return value == null;
     }

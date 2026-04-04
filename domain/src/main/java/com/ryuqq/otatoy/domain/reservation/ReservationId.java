@@ -6,6 +6,8 @@ public record ReservationId(Long value) {
         return new ReservationId(value);
     }
 
+    public static ReservationId forNew() { return new ReservationId(null); }
+
     public boolean isNew() {
         return value == null;
     }

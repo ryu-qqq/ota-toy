@@ -2,9 +2,14 @@ package com.ryuqq.otatoy.domain.partner;
 
 public record MemberName(String value) {
 
+    private static final int MAX_LENGTH = 100;
+
     public MemberName {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException("멤버 이름은 필수입니다");
+        }
+        if (value.length() > MAX_LENGTH) {
+            throw new IllegalArgumentException("멤버 이름은 " + MAX_LENGTH + "자 이하여야 합니다");
         }
     }
 

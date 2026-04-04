@@ -6,6 +6,8 @@ public record RatePlanId(Long value) {
         return new RatePlanId(value);
     }
 
+    public static RatePlanId forNew() { return new RatePlanId(null); }
+
     public boolean isNew() {
         return value == null;
     }

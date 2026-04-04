@@ -6,6 +6,8 @@ public record LandmarkId(Long value) {
         return new LandmarkId(value);
     }
 
+    public static LandmarkId forNew() { return new LandmarkId(null); }
+
     public boolean isNew() {
         return value == null;
     }

@@ -6,6 +6,8 @@ public record RateId(Long value) {
         return new RateId(value);
     }
 
+    public static RateId forNew() { return new RateId(null); }
+
     public boolean isNew() {
         return value == null;
     }

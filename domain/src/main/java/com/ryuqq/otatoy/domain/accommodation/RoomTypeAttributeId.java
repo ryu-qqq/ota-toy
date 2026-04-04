@@ -6,6 +6,8 @@ public record RoomTypeAttributeId(Long value) {
         return new RoomTypeAttributeId(value);
     }
 
+    public static RoomTypeAttributeId forNew() { return new RoomTypeAttributeId(null); }
+
     public boolean isNew() {
         return value == null;
     }

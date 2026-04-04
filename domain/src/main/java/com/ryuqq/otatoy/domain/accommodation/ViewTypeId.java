@@ -6,6 +6,8 @@ public record ViewTypeId(Long value) {
         return new ViewTypeId(value);
     }
 
+    public static ViewTypeId forNew() { return new ViewTypeId(null); }
+
     public boolean isNew() {
         return value == null;
     }

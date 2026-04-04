@@ -85,7 +85,7 @@ class LocationVoTest {
         @DisplayName("null이면 생성 실패")
         void shouldFailWhenNull() {
             assertThatThrownBy(() -> LandmarkName.of(null))
-                    .isInstanceOf(LocationException.class)
+                    .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("랜드마크명");
         }
 
@@ -93,7 +93,7 @@ class LocationVoTest {
         @DisplayName("빈 문자열이면 생성 실패")
         void shouldFailWhenEmpty() {
             assertThatThrownBy(() -> LandmarkName.of(""))
-                    .isInstanceOf(LocationException.class)
+                    .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("랜드마크명");
         }
 
@@ -101,7 +101,7 @@ class LocationVoTest {
         @DisplayName("공백만 있으면 생성 실패")
         void shouldFailWhenBlank() {
             assertThatThrownBy(() -> LandmarkName.of("   "))
-                    .isInstanceOf(LocationException.class)
+                    .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("랜드마크명");
         }
 

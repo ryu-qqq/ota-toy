@@ -6,6 +6,8 @@ public record RoomTypeBedId(Long value) {
         return new RoomTypeBedId(value);
     }
 
+    public static RoomTypeBedId forNew() { return new RoomTypeBedId(null); }
+
     public boolean isNew() {
         return value == null;
     }

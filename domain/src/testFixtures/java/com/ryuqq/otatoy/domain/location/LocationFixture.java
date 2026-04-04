@@ -1,5 +1,7 @@
 package com.ryuqq.otatoy.domain.location;
 
+import com.ryuqq.otatoy.domain.accommodation.Location;
+
 /**
  * Location BC 테스트용 Fixture.
  * 다양한 상태의 Location, Landmark, PropertyLandmark 객체를 생성한다.

@@ -6,6 +6,8 @@ public record PropertyLandmarkId(Long value) {
         return new PropertyLandmarkId(value);
     }
 
+    public static PropertyLandmarkId forNew() { return new PropertyLandmarkId(null); }
+
     public boolean isNew() {
         return value == null;
     }

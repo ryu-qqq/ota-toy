@@ -1,6 +1,5 @@
 package com.ryuqq.otatoy.domain.accommodation;
 
-import com.ryuqq.otatoy.domain.location.Location;
 import com.ryuqq.otatoy.domain.partner.PartnerId;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
