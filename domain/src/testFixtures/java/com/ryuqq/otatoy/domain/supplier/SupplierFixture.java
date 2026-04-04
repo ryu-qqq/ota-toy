@@ -1,7 +1,7 @@
 package com.ryuqq.otatoy.domain.supplier;
 
-import com.ryuqq.otatoy.domain.accommodation.PropertyId;
-import com.ryuqq.otatoy.domain.accommodation.RoomTypeId;
+import com.ryuqq.otatoy.domain.property.PropertyId;
+import com.ryuqq.otatoy.domain.roomtype.RoomTypeId;
 import com.ryuqq.otatoy.domain.common.vo.Email;
 import com.ryuqq.otatoy.domain.common.vo.PhoneNumber;
 

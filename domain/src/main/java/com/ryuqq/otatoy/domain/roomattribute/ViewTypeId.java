@@ -1,0 +1,14 @@
+package com.ryuqq.otatoy.domain.roomattribute;
+
+public record ViewTypeId(Long value) {
+
+    public static ViewTypeId of(Long value) {
+        return new ViewTypeId(value);
+    }
+
+    public static ViewTypeId forNew() { return new ViewTypeId(null); }
+
+    public boolean isNew() {
+        return value == null;
+    }
+}

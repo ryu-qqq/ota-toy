@@ -1,6 +1,6 @@
 package com.ryuqq.otatoy.domain.pricing;
 
-import com.ryuqq.otatoy.domain.accommodation.RoomTypeId;
+import com.ryuqq.otatoy.domain.roomtype.RoomTypeId;
 import com.ryuqq.otatoy.domain.supplier.SupplierId;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

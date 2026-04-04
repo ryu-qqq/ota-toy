@@ -1,6 +1,6 @@
 package com.ryuqq.otatoy.domain.supplier;
 
-import com.ryuqq.otatoy.domain.accommodation.RoomTypeId;
+import com.ryuqq.otatoy.domain.roomtype.RoomTypeId;
 
 import java.time.Instant;
 import java.util.Objects;

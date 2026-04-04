@@ -1,6 +1,6 @@
 package com.ryuqq.otatoy.domain.location;
 
-import com.ryuqq.otatoy.domain.accommodation.Location;
+import com.ryuqq.otatoy.domain.property.Location;
 
 /**
  * Location BC 테스트용 Fixture.
