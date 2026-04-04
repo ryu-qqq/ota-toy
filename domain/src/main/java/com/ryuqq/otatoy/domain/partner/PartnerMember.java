@@ -34,14 +34,18 @@ public class PartnerMember {
 
     public static PartnerMember forNew(PartnerId partnerId, MemberName name, Email email, PhoneNumber phone,
                                         PartnerMemberRole role, Instant now) {
+        validate(partnerId, role);
+        return new PartnerMember(PartnerMemberId.of(null), partnerId, name, email, phone, role,
+                PartnerMemberStatus.ACTIVE, now, now);
+    }
+
+    private static void validate(PartnerId partnerId, PartnerMemberRole role) {
         if (partnerId == null) {
             throw new IllegalArgumentException("파트너 ID는 필수입니다");
         }
         if (role == null) {
             throw new IllegalArgumentException("역할은 필수입니다");
         }
-        return new PartnerMember(PartnerMemberId.of(null), partnerId, name, email, phone, role,
-                PartnerMemberStatus.ACTIVE, now, now);
     }
 
     public static PartnerMember reconstitute(PartnerMemberId id, PartnerId partnerId, MemberName name, Email email, PhoneNumber phone,

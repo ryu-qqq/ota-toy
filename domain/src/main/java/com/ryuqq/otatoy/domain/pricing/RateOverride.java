@@ -26,13 +26,17 @@ public class RateOverride {
 
     public static RateOverride forNew(RateRuleId rateRuleId, LocalDate overrideDate,
                                        BigDecimal price, String reason, Instant now) {
+        validate(overrideDate, price);
+        return new RateOverride(RateOverrideId.of(null), rateRuleId, overrideDate, price, reason, now);
+    }
+
+    private static void validate(LocalDate overrideDate, BigDecimal price) {
         if (overrideDate == null) {
             throw new IllegalArgumentException("오버라이드 날짜는 필수입니다");
         }
         if (price == null || price.compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalArgumentException("가격은 0 이상이어야 합니다");
         }
-        return new RateOverride(RateOverrideId.of(null), rateRuleId, overrideDate, price, reason, now);
     }
 
     public static RateOverride reconstitute(RateOverrideId id, RateRuleId rateRuleId, LocalDate overrideDate,

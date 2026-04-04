@@ -19,19 +19,27 @@ public class Landmark {
     }
 
     public static Landmark forNew(LandmarkName name, LandmarkType landmarkType, double latitude, double longitude) {
+        validateRequired(name, landmarkType);
+        validateCoordinates(latitude, longitude);
+        return new Landmark(LandmarkId.of(null), name, landmarkType, latitude, longitude);
+    }
+
+    private static void validateRequired(LandmarkName name, LandmarkType landmarkType) {
         if (name == null) {
             throw new LocationException(LocationErrorCode.INVALID_LANDMARK_NAME);
         }
         if (landmarkType == null) {
             throw new LocationException(LocationErrorCode.INVALID_LANDMARK_TYPE);
         }
+    }
+
+    private static void validateCoordinates(double latitude, double longitude) {
         if (latitude < -90 || latitude > 90) {
             throw new LocationException(LocationErrorCode.INVALID_LATITUDE);
         }
         if (longitude < -180 || longitude > 180) {
             throw new LocationException(LocationErrorCode.INVALID_LONGITUDE);
         }
-        return new Landmark(LandmarkId.of(null), name, landmarkType, latitude, longitude);
     }
 
     public static Landmark reconstitute(LandmarkId id, LandmarkName name, LandmarkType landmarkType,

@@ -25,10 +25,14 @@ public class PropertyAmenity {
 
     public static PropertyAmenity forNew(PropertyId propertyId, AmenityType amenityType, AmenityName name,
                                           Money additionalPrice, int sortOrder) {
+        validate(amenityType);
+        return new PropertyAmenity(PropertyAmenityId.of(null), propertyId, amenityType, name, additionalPrice, sortOrder);
+    }
+
+    private static void validate(AmenityType amenityType) {
         if (amenityType == null) {
             throw new IllegalArgumentException("편의시설 유형은 필수입니다");
         }
-        return new PropertyAmenity(PropertyAmenityId.of(null), propertyId, amenityType, name, additionalPrice, sortOrder);
     }
 
     public static PropertyAmenity reconstitute(PropertyAmenityId id, PropertyId propertyId, AmenityType amenityType,

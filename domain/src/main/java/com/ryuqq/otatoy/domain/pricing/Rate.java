@@ -26,12 +26,8 @@ public class Rate {
 
     public static Rate forNew(RatePlanId ratePlanId, LocalDate rateDate,
                                BigDecimal basePrice, Instant now) {
-        if (rateDate == null) {
-            throw new IllegalArgumentException("요금 날짜는 필수입니다");
-        }
-        if (basePrice == null || basePrice.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException("기본 가격은 0 이상이어야 합니다");
-        }
+        validateRateDate(rateDate);
+        validatePrice(basePrice, "기본 가격은 0 이상이어야 합니다");
         return new Rate(RateId.of(null), ratePlanId, rateDate, basePrice, now, now);
     }
 
@@ -41,11 +37,21 @@ public class Rate {
     }
 
     public void updatePrice(BigDecimal newPrice, Instant now) {
-        if (newPrice == null || newPrice.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException("가격은 0 이상이어야 합니다");
-        }
+        validatePrice(newPrice, "가격은 0 이상이어야 합니다");
         this.basePrice = newPrice;
         this.updatedAt = now;
+    }
+
+    private static void validateRateDate(LocalDate rateDate) {
+        if (rateDate == null) {
+            throw new IllegalArgumentException("요금 날짜는 필수입니다");
+        }
+    }
+
+    private static void validatePrice(BigDecimal price, String message) {
+        if (price == null || price.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException(message);
+        }
     }
 
     public RateId id() { return id; }

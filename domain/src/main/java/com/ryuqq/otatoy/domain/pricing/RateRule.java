@@ -42,6 +42,13 @@ public class RateRule {
                                    BigDecimal basePrice, BigDecimal weekdayPrice,
                                    BigDecimal fridayPrice, BigDecimal saturdayPrice,
                                    BigDecimal sundayPrice, Instant now) {
+        validate(startDate, endDate, basePrice);
+        return new RateRule(RateRuleId.of(null), ratePlanId, startDate, endDate,
+                basePrice, weekdayPrice, fridayPrice, saturdayPrice, sundayPrice,
+                now, now);
+    }
+
+    private static void validate(LocalDate startDate, LocalDate endDate, BigDecimal basePrice) {
         if (startDate == null || endDate == null) {
             throw new IllegalArgumentException("시작일과 종료일은 필수입니다");
         }
@@ -51,9 +58,6 @@ public class RateRule {
         if (basePrice == null || basePrice.compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalArgumentException("기본 가격은 0 이상이어야 합니다");
         }
-        return new RateRule(RateRuleId.of(null), ratePlanId, startDate, endDate,
-                basePrice, weekdayPrice, fridayPrice, saturdayPrice, sundayPrice,
-                now, now);
     }
 
     public static RateRule reconstitute(RateRuleId id, RatePlanId ratePlanId, LocalDate startDate, LocalDate endDate,

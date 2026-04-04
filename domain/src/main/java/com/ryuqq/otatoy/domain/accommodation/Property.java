@@ -40,11 +40,15 @@ public class Property {
     public static Property forNew(PartnerId partnerId, BrandId brandId, PropertyTypeId propertyTypeId,
                                    PropertyName name, PropertyDescription description,
                                    Location location, PromotionText promotionText, Instant now) {
+        validate(partnerId);
+        return new Property(null, partnerId, brandId, propertyTypeId, name, description,
+                location, promotionText, PropertyStatus.ACTIVE, now, now);
+    }
+
+    private static void validate(PartnerId partnerId) {
         if (partnerId == null || partnerId.isNew()) {
             throw new IllegalArgumentException("파트너 ID는 필수입니다");
         }
-        return new Property(null, partnerId, brandId, propertyTypeId, name, description,
-                location, promotionText, PropertyStatus.ACTIVE, now, now);
     }
 
     public static Property reconstitute(PropertyId id, PartnerId partnerId, BrandId brandId,

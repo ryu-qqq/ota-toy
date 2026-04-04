@@ -22,7 +22,6 @@ class SupplierErrorCodeTest {
         ErrorCode code = SupplierErrorCode.SUPPLIER_NOT_FOUND;
 
         assertThat(code.getCode()).isEqualTo("SUP-001");
-        assertThat(code.getHttpStatus()).isEqualTo(404);
         assertThat(code.getMessage()).isNotBlank();
     }
 

@@ -1,6 +1,5 @@
 package com.ryuqq.otatoy.domain.accommodation;
 
-import java.util.Collections;
 import java.util.List;
 
 public class PropertyAmenities {

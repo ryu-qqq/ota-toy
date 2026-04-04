@@ -21,19 +21,27 @@ public class PropertyLandmark {
 
     public static PropertyLandmark forNew(long propertyId, LandmarkId landmarkId,
                                            double distanceKm, int walkingMinutes) {
+        validateRequired(propertyId, landmarkId);
+        validateMeasurements(distanceKm, walkingMinutes);
+        return new PropertyLandmark(PropertyLandmarkId.of(null), propertyId, landmarkId, distanceKm, walkingMinutes);
+    }
+
+    private static void validateRequired(long propertyId, LandmarkId landmarkId) {
         if (propertyId <= 0) {
             throw new LocationException(LocationErrorCode.INVALID_PROPERTY_ID);
         }
         if (landmarkId == null || landmarkId.value() == null) {
             throw new LocationException(LocationErrorCode.INVALID_LANDMARK_ID);
         }
+    }
+
+    private static void validateMeasurements(double distanceKm, int walkingMinutes) {
         if (distanceKm < 0) {
             throw new LocationException(LocationErrorCode.INVALID_DISTANCE);
         }
         if (walkingMinutes < 0) {
             throw new LocationException(LocationErrorCode.INVALID_WALKING_MINUTES);
         }
-        return new PropertyLandmark(PropertyLandmarkId.of(null), propertyId, landmarkId, distanceKm, walkingMinutes);
     }
 
     public static PropertyLandmark reconstitute(PropertyLandmarkId id, long propertyId, LandmarkId landmarkId,

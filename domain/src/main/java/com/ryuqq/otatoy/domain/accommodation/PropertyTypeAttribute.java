@@ -26,6 +26,12 @@ public class PropertyTypeAttribute {
 
     public static PropertyTypeAttribute forNew(PropertyTypeId propertyTypeId, String attributeKey, String attributeName,
                                                 String valueType, boolean required, int sortOrder) {
+        validate(attributeKey, attributeName, valueType);
+        return new PropertyTypeAttribute(PropertyTypeAttributeId.of(null), propertyTypeId, attributeKey, attributeName,
+                valueType, required, sortOrder);
+    }
+
+    private static void validate(String attributeKey, String attributeName, String valueType) {
         if (attributeKey == null || attributeKey.isBlank()) {
             throw new IllegalArgumentException("속성 키는 필수입니다");
         }
@@ -35,8 +41,6 @@ public class PropertyTypeAttribute {
         if (valueType == null || valueType.isBlank()) {
             throw new IllegalArgumentException("값 유형은 필수입니다");
         }
-        return new PropertyTypeAttribute(PropertyTypeAttributeId.of(null), propertyTypeId, attributeKey, attributeName,
-                valueType, required, sortOrder);
     }
 
     public static PropertyTypeAttribute reconstitute(PropertyTypeAttributeId id, PropertyTypeId propertyTypeId, String attributeKey,

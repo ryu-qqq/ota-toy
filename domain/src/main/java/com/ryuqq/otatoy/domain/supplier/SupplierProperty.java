@@ -27,11 +27,15 @@ public class SupplierProperty {
 
     public static SupplierProperty forNew(SupplierId supplierId, PropertyId propertyId,
                                            String supplierPropertyCode) {
+        validate(supplierPropertyCode);
+        return new SupplierProperty(SupplierPropertyId.of(null), supplierId, propertyId, supplierPropertyCode,
+                null, SupplierPropertyStatus.MAPPED);
+    }
+
+    private static void validate(String supplierPropertyCode) {
         if (supplierPropertyCode == null || supplierPropertyCode.isBlank()) {
             throw new IllegalArgumentException("공급자 숙소 코드는 필수입니다");
         }
-        return new SupplierProperty(SupplierPropertyId.of(null), supplierId, propertyId, supplierPropertyCode,
-                null, SupplierPropertyStatus.MAPPED);
     }
 
     public static SupplierProperty reconstitute(SupplierPropertyId id, SupplierId supplierId, PropertyId propertyId,

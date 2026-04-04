@@ -27,10 +27,14 @@ public class RatePlanAddOn {
 
     public static RatePlanAddOn forNew(RatePlanId ratePlanId, AddOnType addOnType,
                                         AddOnName name, BigDecimal price, boolean included, Instant now) {
+        validatePrice(price);
+        return new RatePlanAddOn(RatePlanAddOnId.of(null), ratePlanId, addOnType, name, price, included, now);
+    }
+
+    private static void validatePrice(BigDecimal price) {
         if (price != null && price.compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalArgumentException("Add-on 가격은 0 이상이어야 합니다");
         }
-        return new RatePlanAddOn(RatePlanAddOnId.of(null), ratePlanId, addOnType, name, price, included, now);
     }
 
     public static RatePlanAddOn reconstitute(RatePlanAddOnId id, RatePlanId ratePlanId, AddOnType addOnType,

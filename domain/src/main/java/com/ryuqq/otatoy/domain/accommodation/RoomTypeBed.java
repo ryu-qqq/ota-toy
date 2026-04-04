@@ -17,13 +17,17 @@ public class RoomTypeBed {
     }
 
     public static RoomTypeBed forNew(RoomTypeId roomTypeId, BedTypeId bedTypeId, int quantity) {
+        validate(bedTypeId, quantity);
+        return new RoomTypeBed(RoomTypeBedId.of(null), roomTypeId, bedTypeId, quantity);
+    }
+
+    private static void validate(BedTypeId bedTypeId, int quantity) {
         if (bedTypeId == null || bedTypeId.value() == null) {
             throw new IllegalArgumentException("침대 유형 ID는 필수입니다");
         }
         if (quantity <= 0) {
             throw new IllegalArgumentException("침대 수량은 1개 이상이어야 합니다");
         }
-        return new RoomTypeBed(RoomTypeBedId.of(null), roomTypeId, bedTypeId, quantity);
     }
 
     public static RoomTypeBed reconstitute(RoomTypeBedId id, RoomTypeId roomTypeId, BedTypeId bedTypeId, int quantity) {

@@ -230,33 +230,35 @@ public record PropertySliceCriteria(
 
 ---
 
-### DOM-ERR-001: ErrorCode 인터페이스 + enum 구조 [BLOCKER]
+### DOM-ERR-001: ErrorCode 인터페이스 — HTTP 상태코드 분리 [BLOCKER]
 
 도메인별 ErrorCode enum은 공통 ErrorCode 인터페이스를 구현한다.
+**ErrorCode에 HTTP 상태코드를 포함하지 않는다** — HTTP는 API 레이어의 관심사이다.
 
 ```java
-// 공통 인터페이스 (core 모듈)
+// 공통 인터페이스 (domain 모듈)
 public interface ErrorCode {
     String getCode();       // "{DOMAIN}-{NUMBER}" 형식
-    int getHttpStatus();    // Spring HttpStatus 사용 금지 — int 반환
     String getMessage();    // 사용자 메시지
 }
 
 // 도메인별 구현 (domain 모듈)
 public enum AccommodationErrorCode implements ErrorCode {
-    PROPERTY_NOT_FOUND("ACC-001", 404, "숙소를 찾을 수 없습니다"),
-    INVALID_STAR_RATING("ACC-002", 400, "유효하지 않은 성급입니다"),
-    ROOM_TYPE_NOT_FOUND("ACC-003", 404, "객실 유형을 찾을 수 없습니다");
+    PROPERTY_NOT_FOUND("ACC-001", "숙소를 찾을 수 없습니다"),
+    INVALID_STAR_RATING("ACC-002", "유효하지 않은 성급입니다"),
+    ROOM_TYPE_NOT_FOUND("ACC-003", "객실 유형을 찾을 수 없습니다");
     
     private final String code;
-    private final int httpStatus;
     private final String message;
     
     // constructor, getters...
 }
+
+// HTTP 매핑은 API 레이어에서 처리 (adapter-in/rest-api)
+// ErrorCode → HttpStatus 변환은 GlobalExceptionHandler가 담당
 ```
 
-**왜 int인가**: `HttpStatus.NOT_FOUND` 같은 Spring 타입을 쓰면 Domain이 Spring에 의존하게 된다. int(404)로 반환하고, Spring 변환은 Adapter-In에서 처리한다.
+**왜 HTTP를 분리하는가**: 도메인 레이어가 HTTP를 알면 안 된다. ErrorCode.getCode() 접두사("ACC", "PRC" 등)를 기반으로 API 레이어에서 HttpStatus를 결정한다.
 
 ---
 
@@ -615,3 +617,109 @@ domain/
 | `{Domain}ErrorCode.java` | ErrorCode enum | ErrorCode 인터페이스 구현 |
 | `{Domain}Exception.java` | 도메인 예외 | DomainException 상속 |
 | `{Domain}SliceCriteria.java` | 조회 조건 | Record |
+
+---
+
+## 추가 컨벤션 (GitHub Issues에서 도출)
+
+### DOM-VO-003: String VO에 MAX_LENGTH 검증 필수 [MAJOR]
+
+String을 래핑하는 VO는 DDL의 VARCHAR 길이에 맞는 `MAX_LENGTH` 상수를 선언하고 검증해야 한다.
+
+```java
+public record PartnerName(String value) {
+    private static final int MAX_LENGTH = 200;  // partner.name VARCHAR(200)
+
+    public PartnerName {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException("파트너명은 필수입니다");
+        }
+        if (value.length() > MAX_LENGTH) {
+            throw new IllegalArgumentException("파트너명은 " + MAX_LENGTH + "자 이하여야 합니다");
+        }
+    }
+}
+```
+
+**왜**: DB에서 잘리는 것보다 도메인에서 먼저 거부하는 게 안전하다. DDL과 도메인의 제약이 일치해야 한다.
+
+---
+
+### DOM-VO-004: ID VO에 forNew() 팩토리 제공 [MAJOR]
+
+ID VO는 `of(Long)` 외에 신규 생성 의도를 명시하는 `forNew()` 팩토리를 제공한다.
+
+```java
+public record PropertyId(Long value) {
+    public static PropertyId of(Long value) { return new PropertyId(value); }
+    public static PropertyId forNew() { return new PropertyId(null); }
+    public boolean isNew() { return value == null; }
+}
+```
+
+**왜**: `of(null)`은 "새 엔티티 생성"이라는 의도가 불명확하다. `forNew()`로 의미를 드러낸다.
+
+---
+
+### DOM-ENUM-001: 상태 Enum에 전이 테이블 선언 [MAJOR]
+
+상태 전이가 있는 Enum은 전이 테이블을 Enum 내부에 선언한다. Aggregate는 부수효과만 담당한다.
+
+```java
+public enum ReservationStatus {
+    PENDING("대기"),
+    CONFIRMED("확정"),
+    CANCELLED("취소"),
+    COMPLETED("완료"),
+    NO_SHOW("노쇼");
+
+    private static final Map<ReservationStatus, Set<ReservationStatus>> TRANSITIONS = Map.of(
+        PENDING,    Set.of(CONFIRMED, CANCELLED),
+        CONFIRMED,  Set.of(COMPLETED, NO_SHOW, CANCELLED)
+    );
+
+    public boolean canTransitTo(ReservationStatus target) {
+        return TRANSITIONS.getOrDefault(this, Set.of()).contains(target);
+    }
+
+    public ReservationStatus transitTo(ReservationStatus target) {
+        if (!canTransitTo(target)) {
+            throw new InvalidReservationStateException(this, target);
+        }
+        return target;
+    }
+}
+```
+
+Aggregate 코드:
+```java
+public void confirm() {
+    this.status = status.transitTo(CONFIRMED);
+}
+```
+
+**왜**: 전이 규칙이 각 메서드에 흩어지면 상태 머신 전체를 파악하기 어렵다. Enum에 집중시키면 한 곳에서 전이 테이블을 볼 수 있다.
+
+---
+
+### DOM-AGG-015: 도메인에 인프라 인터페이스 금지 [BLOCKER]
+
+CacheKey, LockKey 등 인프라 관심사는 도메인 레이어에 두지 않는다.
+캐시, 분산 락은 adapter-out 또는 application 레이어에서 정의한다.
+
+**왜**: 도메인은 비즈니스 규칙만 표현한다. 캐시 키 패턴이나 락 전략은 인프라 결정이다.
+
+---
+
+### DOM-ERR-002: ErrorCode는 자기 BC만 담당 [MAJOR]
+
+ErrorCode enum에 다른 BC의 에러코드를 포함하지 않는다.
+
+```java
+// 잘못된 예: AccommodationErrorCode에 pricing 관련 코드
+RATE_PLAN_NOT_FOUND("ACC-003", "요금 정책을 찾을 수 없습니다")  // ← pricing BC 책임
+
+// 올바른 예: 각 BC가 자기 에러코드만 관리
+// AccommodationErrorCode → ACC-xxx
+// PricingErrorCode → PRC-xxx
+```

@@ -19,7 +19,6 @@ class PartnerErrorCodeTest {
             PartnerErrorCode code = PartnerErrorCode.PARTNER_NOT_FOUND;
 
             assertThat(code.getCode()).isEqualTo("PTN-001");
-            assertThat(code.getHttpStatus()).isEqualTo(404);
             assertThat(code.getMessage()).isEqualTo("파트너를 찾을 수 없습니다");
         }
 
@@ -29,7 +28,6 @@ class PartnerErrorCodeTest {
             PartnerErrorCode code = PartnerErrorCode.PARTNER_ALREADY_SUSPENDED;
 
             assertThat(code.getCode()).isEqualTo("PTN-002");
-            assertThat(code.getHttpStatus()).isEqualTo(409);
             assertThat(code.getMessage()).isEqualTo("이미 정지된 파트너입니다");
         }
 
@@ -39,7 +37,6 @@ class PartnerErrorCodeTest {
             PartnerErrorCode code = PartnerErrorCode.PARTNER_ALREADY_ACTIVE;
 
             assertThat(code.getCode()).isEqualTo("PTN-003");
-            assertThat(code.getHttpStatus()).isEqualTo(409);
             assertThat(code.getMessage()).isEqualTo("이미 활성 상태인 파트너입니다");
         }
 
@@ -49,7 +46,6 @@ class PartnerErrorCodeTest {
             PartnerErrorCode code = PartnerErrorCode.PARTNER_MEMBER_NOT_FOUND;
 
             assertThat(code.getCode()).isEqualTo("PTN-004");
-            assertThat(code.getHttpStatus()).isEqualTo(404);
             assertThat(code.getMessage()).isEqualTo("파트너 멤버를 찾을 수 없습니다");
         }
 

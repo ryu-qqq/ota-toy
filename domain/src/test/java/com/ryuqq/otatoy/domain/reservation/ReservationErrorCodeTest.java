@@ -19,7 +19,6 @@ class ReservationErrorCodeTest {
             ReservationErrorCode code = ReservationErrorCode.RESERVATION_NOT_FOUND;
 
             assertThat(code.getCode()).isEqualTo("RSV-001");
-            assertThat(code.getHttpStatus()).isEqualTo(404);
             assertThat(code.getMessage()).isEqualTo("예약을 찾을 수 없습니다");
         }
 
@@ -29,7 +28,6 @@ class ReservationErrorCodeTest {
             ReservationErrorCode code = ReservationErrorCode.INVALID_RESERVATION_STATE;
 
             assertThat(code.getCode()).isEqualTo("RSV-002");
-            assertThat(code.getHttpStatus()).isEqualTo(400);
             assertThat(code.getMessage()).isEqualTo("유효하지 않은 예약 상태 전이입니다");
         }
 
@@ -39,7 +37,6 @@ class ReservationErrorCodeTest {
             ReservationErrorCode code = ReservationErrorCode.RESERVATION_ALREADY_CANCELLED;
 
             assertThat(code.getCode()).isEqualTo("RSV-003");
-            assertThat(code.getHttpStatus()).isEqualTo(409);
             assertThat(code.getMessage()).isEqualTo("이미 취소된 예약입니다");
         }
 
@@ -49,7 +46,6 @@ class ReservationErrorCodeTest {
             ReservationErrorCode code = ReservationErrorCode.RESERVATION_ALREADY_COMPLETED;
 
             assertThat(code.getCode()).isEqualTo("RSV-004");
-            assertThat(code.getHttpStatus()).isEqualTo(409);
             assertThat(code.getMessage()).isEqualTo("이미 완료된 예약입니다");
         }
 

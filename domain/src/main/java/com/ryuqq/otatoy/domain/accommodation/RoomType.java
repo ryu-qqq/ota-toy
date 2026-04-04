@@ -46,18 +46,9 @@ public class RoomType {
                                    BigDecimal areaSqm, String areaPyeong,
                                    int baseOccupancy, int maxOccupancy, int baseInventory,
                                    LocalTime checkInTime, LocalTime checkOutTime, Instant now) {
-        if (baseOccupancy <= 0) {
-            throw new IllegalArgumentException("기본 인원은 1명 이상이어야 합니다");
-        }
-        if (maxOccupancy < baseOccupancy) {
-            throw new IllegalArgumentException("최대 인원은 기본 인원 이상이어야 합니다");
-        }
-        if (baseInventory < 0) {
-            throw new IllegalArgumentException("기본 재고는 0 이상이어야 합니다");
-        }
-        if (areaSqm != null && areaSqm.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("객실 면적은 0보다 커야 합니다");
-        }
+        validateOccupancy(baseOccupancy, maxOccupancy);
+        validateInventory(baseInventory);
+        validateArea(areaSqm);
         return new RoomType(null, propertyId, name, description, areaSqm, areaPyeong,
                 baseOccupancy, maxOccupancy, baseInventory, checkInTime, checkOutTime,
                 RoomTypeStatus.ACTIVE, now, now);
@@ -75,12 +66,8 @@ public class RoomType {
 
     public void updateInfo(RoomTypeName name, RoomTypeDescription description, BigDecimal areaSqm, String areaPyeong,
                            int baseOccupancy, int maxOccupancy, Instant now) {
-        if (maxOccupancy < baseOccupancy) {
-            throw new IllegalArgumentException("최대 인원은 기본 인원 이상이어야 합니다");
-        }
-        if (areaSqm != null && areaSqm.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("객실 면적은 0보다 커야 합니다");
-        }
+        validateOccupancy(baseOccupancy, maxOccupancy);
+        validateArea(areaSqm);
         this.name = name;
         this.description = description;
         this.areaSqm = areaSqm;
@@ -91,11 +78,30 @@ public class RoomType {
     }
 
     public void updateInventory(int baseInventory, Instant now) {
+        validateInventory(baseInventory);
+        this.baseInventory = baseInventory;
+        this.updatedAt = now;
+    }
+
+    private static void validateOccupancy(int baseOccupancy, int maxOccupancy) {
+        if (baseOccupancy <= 0) {
+            throw new IllegalArgumentException("기본 인원은 1명 이상이어야 합니다");
+        }
+        if (maxOccupancy < baseOccupancy) {
+            throw new IllegalArgumentException("최대 인원은 기본 인원 이상이어야 합니다");
+        }
+    }
+
+    private static void validateInventory(int baseInventory) {
         if (baseInventory < 0) {
             throw new IllegalArgumentException("기본 재고는 0 이상이어야 합니다");
         }
-        this.baseInventory = baseInventory;
-        this.updatedAt = now;
+    }
+
+    private static void validateArea(BigDecimal areaSqm) {
+        if (areaSqm != null && areaSqm.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("객실 면적은 0보다 커야 합니다");
+        }
     }
 
     public void updateCheckInOut(LocalTime checkInTime, LocalTime checkOutTime, Instant now) {

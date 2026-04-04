@@ -44,6 +44,13 @@ public class Supplier {
     public static Supplier forNew(SupplierName name, String nameKr, String companyTitle,
                                    String ownerName, String businessNo, String address,
                                    PhoneNumber phone, Email email, String termsUrl, Instant now) {
+        validateCompanyInfo(nameKr, companyTitle, ownerName, businessNo);
+        return new Supplier(SupplierId.of(null), name, nameKr, companyTitle, ownerName, businessNo,
+                address, phone, email, termsUrl, SupplierStatus.ACTIVE, now, now);
+    }
+
+    private static void validateCompanyInfo(String nameKr, String companyTitle,
+                                             String ownerName, String businessNo) {
         if (nameKr == null || nameKr.isBlank()) {
             throw new IllegalArgumentException("공급자 한글명은 필수입니다");
         }
@@ -56,8 +63,6 @@ public class Supplier {
         if (businessNo == null || businessNo.isBlank()) {
             throw new IllegalArgumentException("사업자번호는 필수입니다");
         }
-        return new Supplier(SupplierId.of(null), name, nameKr, companyTitle, ownerName, businessNo,
-                address, phone, email, termsUrl, SupplierStatus.ACTIVE, now, now);
     }
 
     public static Supplier reconstitute(SupplierId id, SupplierName name, String nameKr, String companyTitle,

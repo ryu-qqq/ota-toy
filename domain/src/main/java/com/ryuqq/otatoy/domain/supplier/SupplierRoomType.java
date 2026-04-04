@@ -27,11 +27,15 @@ public class SupplierRoomType {
 
     public static SupplierRoomType forNew(SupplierPropertyId supplierPropertyId, RoomTypeId roomTypeId,
                                            String supplierRoomCode) {
+        validate(supplierRoomCode);
+        return new SupplierRoomType(SupplierRoomTypeId.of(null), supplierPropertyId, roomTypeId, supplierRoomCode,
+                null, SupplierPropertyStatus.MAPPED);
+    }
+
+    private static void validate(String supplierRoomCode) {
         if (supplierRoomCode == null || supplierRoomCode.isBlank()) {
             throw new IllegalArgumentException("공급자 객실 코드는 필수입니다");
         }
-        return new SupplierRoomType(SupplierRoomTypeId.of(null), supplierPropertyId, roomTypeId, supplierRoomCode,
-                null, SupplierPropertyStatus.MAPPED);
     }
 
     public static SupplierRoomType reconstitute(SupplierRoomTypeId id, SupplierPropertyId supplierPropertyId, RoomTypeId roomTypeId,

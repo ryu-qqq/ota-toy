@@ -47,21 +47,9 @@ public class RatePlan {
                                    int freeCancellationDeadlineDays,
                                    String cancellationPolicyText, PaymentPolicy paymentPolicy,
                                    Instant now) {
-        if (roomTypeId == null) {
-            throw new IllegalArgumentException("객실 유형 ID는 필수입니다");
-        }
-        if (paymentPolicy == null) {
-            throw new IllegalArgumentException("결제 방식은 필수입니다");
-        }
-        if (sourceType == SourceType.SUPPLIER && supplierId == null) {
-            throw new IllegalArgumentException("외부 공급자 요금 정책은 supplierId가 필수입니다");
-        }
-        if (freeCancellation && nonRefundable) {
-            throw new IllegalArgumentException("무료 취소와 환불 불가는 동시에 설정할 수 없습니다");
-        }
-        if (freeCancellationDeadlineDays < 0) {
-            throw new IllegalArgumentException("무료 취소 기한은 0 이상이어야 합니다");
-        }
+        validateRequired(roomTypeId, paymentPolicy);
+        validateSupplier(sourceType, supplierId);
+        validateCancellationPolicy(freeCancellation, nonRefundable, freeCancellationDeadlineDays);
         return new RatePlan(null, roomTypeId, name, sourceType, supplierId,
                 freeCancellation, nonRefundable, freeCancellationDeadlineDays,
                 cancellationPolicyText, paymentPolicy, now, now);
@@ -81,18 +69,38 @@ public class RatePlan {
     public void updatePolicy(boolean freeCancellation, boolean nonRefundable,
                               int freeCancellationDeadlineDays,
                               String cancellationPolicyText, PaymentPolicy paymentPolicy, Instant now) {
-        if (freeCancellation && nonRefundable) {
-            throw new IllegalArgumentException("무료 취소와 환불 불가는 동시에 설정할 수 없습니다");
-        }
-        if (freeCancellationDeadlineDays < 0) {
-            throw new IllegalArgumentException("무료 취소 기한은 0 이상이어야 합니다");
-        }
+        validateCancellationPolicy(freeCancellation, nonRefundable, freeCancellationDeadlineDays);
         this.freeCancellation = freeCancellation;
         this.nonRefundable = nonRefundable;
         this.freeCancellationDeadlineDays = freeCancellationDeadlineDays;
         this.cancellationPolicyText = cancellationPolicyText;
         this.paymentPolicy = paymentPolicy;
         this.updatedAt = now;
+    }
+
+    private static void validateRequired(RoomTypeId roomTypeId, PaymentPolicy paymentPolicy) {
+        if (roomTypeId == null) {
+            throw new IllegalArgumentException("객실 유형 ID는 필수입니다");
+        }
+        if (paymentPolicy == null) {
+            throw new IllegalArgumentException("결제 방식은 필수입니다");
+        }
+    }
+
+    private static void validateSupplier(SourceType sourceType, SupplierId supplierId) {
+        if (sourceType == SourceType.SUPPLIER && supplierId == null) {
+            throw new IllegalArgumentException("외부 공급자 요금 정책은 supplierId가 필수입니다");
+        }
+    }
+
+    private static void validateCancellationPolicy(boolean freeCancellation, boolean nonRefundable,
+                                                    int freeCancellationDeadlineDays) {
+        if (freeCancellation && nonRefundable) {
+            throw new IllegalArgumentException("무료 취소와 환불 불가는 동시에 설정할 수 없습니다");
+        }
+        if (freeCancellationDeadlineDays < 0) {
+            throw new IllegalArgumentException("무료 취소 기한은 0 이상이어야 합니다");
+        }
     }
 
     public boolean isDirect() {

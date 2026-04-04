@@ -52,6 +52,17 @@ public class Reservation {
                                       int guestCount, Money totalAmount,
                                       String bookingSnapshot, List<ReservationItem> items,
                                       LocalDate today, Instant now) {
+        validateRequired(ratePlanId, guestInfo, stayPeriod, totalAmount, items);
+        validateGuestCount(guestCount);
+        validateStayPeriod(stayPeriod, today);
+        return new Reservation(null, ratePlanId, reservationNo, guestInfo, stayPeriod,
+                guestCount, totalAmount, ReservationStatus.PENDING,
+                null, bookingSnapshot, now, null, List.copyOf(items));
+    }
+
+    private static void validateRequired(RatePlanId ratePlanId, GuestInfo guestInfo,
+                                          DateRange stayPeriod, Money totalAmount,
+                                          List<ReservationItem> items) {
         if (ratePlanId == null) {
             throw new IllegalArgumentException("요금 정책 ID는 필수입니다");
         }
@@ -61,24 +72,27 @@ public class Reservation {
         if (stayPeriod == null) {
             throw new IllegalArgumentException("숙박 기간은 필수입니다");
         }
-        if (guestCount <= 0) {
-            throw new IllegalArgumentException("투숙 인원은 1명 이상이어야 합니다");
-        }
         if (totalAmount == null) {
             throw new IllegalArgumentException("총 금액은 필수입니다");
         }
+        if (items == null || items.isEmpty()) {
+            throw new IllegalArgumentException("예약 항목은 최소 1개 이상이어야 합니다");
+        }
+    }
+
+    private static void validateGuestCount(int guestCount) {
+        if (guestCount <= 0) {
+            throw new IllegalArgumentException("투숙 인원은 1명 이상이어야 합니다");
+        }
+    }
+
+    private static void validateStayPeriod(DateRange stayPeriod, LocalDate today) {
         if (stayPeriod.startDate().isBefore(today)) {
             throw new IllegalArgumentException("과거 날짜는 예약할 수 없습니다");
         }
         if (stayPeriod.nights() > MAX_STAY_NIGHTS) {
             throw new IllegalArgumentException("최대 " + MAX_STAY_NIGHTS + "박까지 예약 가능합니다");
         }
-        if (items == null || items.isEmpty()) {
-            throw new IllegalArgumentException("예약 항목은 최소 1개 이상이어야 합니다");
-        }
-        return new Reservation(null, ratePlanId, reservationNo, guestInfo, stayPeriod,
-                guestCount, totalAmount, ReservationStatus.PENDING,
-                null, bookingSnapshot, now, null, List.copyOf(items));
     }
 
     public static Reservation reconstitute(ReservationId id, RatePlanId ratePlanId, ReservationNo reservationNo,

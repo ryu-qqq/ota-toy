@@ -26,15 +26,8 @@ public class Inventory {
 
     public static Inventory forNew(RoomTypeId roomTypeId, LocalDate inventoryDate,
                                     int availableCount) {
-        if (roomTypeId == null) {
-            throw new IllegalArgumentException("객실 유형 ID는 필수입니다");
-        }
-        if (inventoryDate == null) {
-            throw new IllegalArgumentException("재고 날짜는 필수입니다");
-        }
-        if (availableCount < 0) {
-            throw new IllegalArgumentException("가용 재고는 0 이상이어야 합니다");
-        }
+        validateRequired(roomTypeId, inventoryDate);
+        validateAvailableCount(availableCount);
         return new Inventory(null, roomTypeId, inventoryDate, availableCount, false, 0);
     }
 
@@ -91,10 +84,23 @@ public class Inventory {
      * @param newCount 새로운 가용 재고 수 (0 이상)
      */
     public void updateAvailableCount(int newCount) {
-        if (newCount < 0) {
+        validateAvailableCount(newCount);
+        this.availableCount = newCount;
+    }
+
+    private static void validateRequired(RoomTypeId roomTypeId, LocalDate inventoryDate) {
+        if (roomTypeId == null) {
+            throw new IllegalArgumentException("객실 유형 ID는 필수입니다");
+        }
+        if (inventoryDate == null) {
+            throw new IllegalArgumentException("재고 날짜는 필수입니다");
+        }
+    }
+
+    private static void validateAvailableCount(int availableCount) {
+        if (availableCount < 0) {
             throw new IllegalArgumentException("가용 재고는 0 이상이어야 합니다");
         }
-        this.availableCount = newCount;
     }
 
     public void stopSell() {

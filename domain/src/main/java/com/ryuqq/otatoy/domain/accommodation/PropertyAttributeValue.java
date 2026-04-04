@@ -18,13 +18,17 @@ public class PropertyAttributeValue {
     }
 
     public static PropertyAttributeValue forNew(PropertyId propertyId, PropertyTypeAttributeId propertyTypeAttributeId, String value) {
+        validate(propertyId, propertyTypeAttributeId);
+        return new PropertyAttributeValue(PropertyAttributeValueId.of(null), propertyId, propertyTypeAttributeId, value);
+    }
+
+    private static void validate(PropertyId propertyId, PropertyTypeAttributeId propertyTypeAttributeId) {
         if (propertyId == null) {
             throw new IllegalArgumentException("숙소 ID는 필수입니다");
         }
         if (propertyTypeAttributeId == null || propertyTypeAttributeId.value() == null) {
             throw new IllegalArgumentException("숙소 유형 속성 ID는 필수입니다");
         }
-        return new PropertyAttributeValue(PropertyAttributeValueId.of(null), propertyId, propertyTypeAttributeId, value);
     }
 
     public static PropertyAttributeValue reconstitute(PropertyAttributeValueId id, PropertyId propertyId,

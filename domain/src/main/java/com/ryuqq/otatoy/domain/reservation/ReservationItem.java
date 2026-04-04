@@ -20,13 +20,17 @@ public class ReservationItem {
     }
 
     public static ReservationItem forNew(ReservationId reservationId, InventoryId inventoryId, LocalDate stayDate) {
+        validate(inventoryId, stayDate);
+        return new ReservationItem(ReservationItemId.of(null), reservationId, inventoryId, stayDate);
+    }
+
+    private static void validate(InventoryId inventoryId, LocalDate stayDate) {
         if (stayDate == null) {
             throw new IllegalArgumentException("숙박 날짜는 필수입니다");
         }
         if (inventoryId == null) {
             throw new IllegalArgumentException("재고 ID는 필수입니다");
         }
-        return new ReservationItem(ReservationItemId.of(null), reservationId, inventoryId, stayDate);
     }
 
     public static ReservationItem reconstitute(ReservationItemId id, ReservationId reservationId, InventoryId inventoryId, LocalDate stayDate) {

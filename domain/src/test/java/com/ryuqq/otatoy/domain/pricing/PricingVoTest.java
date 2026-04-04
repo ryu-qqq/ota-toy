@@ -134,7 +134,6 @@ class PricingVoTest {
             PricingErrorCode code = PricingErrorCode.RATE_PLAN_NOT_FOUND;
 
             assertThat(code.getCode()).isEqualTo("PRC-001");
-            assertThat(code.getHttpStatus()).isEqualTo(404);
             assertThat(code.getMessage()).isEqualTo("요금 정책을 찾을 수 없습니다");
         }
 

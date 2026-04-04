@@ -15,13 +15,17 @@ public class RoomTypeView {
     }
 
     public static RoomTypeView forNew(RoomTypeId roomTypeId, ViewTypeId viewTypeId) {
+        validate(roomTypeId, viewTypeId);
+        return new RoomTypeView(RoomTypeViewId.of(null), roomTypeId, viewTypeId);
+    }
+
+    private static void validate(RoomTypeId roomTypeId, ViewTypeId viewTypeId) {
         if (roomTypeId == null) {
             throw new IllegalArgumentException("객실 유형 ID는 필수입니다");
         }
         if (viewTypeId == null || viewTypeId.value() == null) {
             throw new IllegalArgumentException("전망 유형 ID는 필수입니다");
         }
-        return new RoomTypeView(RoomTypeViewId.of(null), roomTypeId, viewTypeId);
     }
 
     public static RoomTypeView reconstitute(RoomTypeViewId id, RoomTypeId roomTypeId, ViewTypeId viewTypeId) {

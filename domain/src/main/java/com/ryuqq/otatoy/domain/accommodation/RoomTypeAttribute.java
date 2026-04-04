@@ -17,10 +17,14 @@ public class RoomTypeAttribute {
     }
 
     public static RoomTypeAttribute forNew(RoomTypeId roomTypeId, String attributeKey, String attributeValue) {
+        validate(attributeKey);
+        return new RoomTypeAttribute(RoomTypeAttributeId.of(null), roomTypeId, attributeKey, attributeValue);
+    }
+
+    private static void validate(String attributeKey) {
         if (attributeKey == null || attributeKey.isBlank()) {
             throw new IllegalArgumentException("속성 키는 필수입니다");
         }
-        return new RoomTypeAttribute(RoomTypeAttributeId.of(null), roomTypeId, attributeKey, attributeValue);
     }
 
     public static RoomTypeAttribute reconstitute(RoomTypeAttributeId id, RoomTypeId roomTypeId,
