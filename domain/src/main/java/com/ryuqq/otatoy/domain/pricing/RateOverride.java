@@ -5,6 +5,10 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Objects;
 
+/**
+ * 특정 날짜의 요금 덮어쓰기(Override)를 나타내는 엔티티.
+ * RateRule 기간 내 특정 날짜에 대해 별도 요금을 지정할 때 사용한다.
+ */
 public class RateOverride {
 
     private final RateOverrideId id;

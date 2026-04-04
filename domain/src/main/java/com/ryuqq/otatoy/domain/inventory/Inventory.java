@@ -5,6 +5,10 @@ import com.ryuqq.otatoy.domain.roomtype.RoomTypeId;
 import java.time.LocalDate;
 import java.util.Objects;
 
+/**
+ * 날짜별 객실 재고를 나타내는 Aggregate Root.
+ * 특정 객실 유형의 특정 날짜에 대한 판매 가능 수량과 판매 중지 여부를 관리한다.
+ */
 public class Inventory {
 
     private final InventoryId id;

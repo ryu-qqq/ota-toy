@@ -3,6 +3,11 @@ package com.ryuqq.otatoy.domain.reservation;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * 예약 상태.
+ * PENDING: 대기, CONFIRMED: 확정, CANCELLED: 취소, COMPLETED: 완료, NO_SHOW: 노쇼.
+ * 상태 전이 규칙을 포함한다.
+ */
 public enum ReservationStatus {
 
     PENDING("대기"),

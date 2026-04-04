@@ -2,6 +2,9 @@ package com.ryuqq.otatoy.domain.location;
 
 import com.ryuqq.otatoy.domain.common.ErrorCode;
 
+/**
+ * 위치(Location) 도메인의 에러 코드.
+ */
 public enum LocationErrorCode implements ErrorCode {
 
     LANDMARK_NOT_FOUND("LOC-001", "랜드마크를 찾을 수 없습니다"),

@@ -1,5 +1,8 @@
 package com.ryuqq.otatoy.domain.supplier;
 
+/**
+ * 공급자 영문명. null/blank 불가, 최대 200자.
+ */
 public record SupplierName(String value) {
 
     private static final int MAX_LENGTH = 200;

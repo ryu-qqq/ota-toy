@@ -1,5 +1,8 @@
 package com.ryuqq.otatoy.domain.propertytype;
 
+/**
+ * 숙소 유형 설명. nullable이며, 값이 있을 경우 최대 2000자.
+ */
 public record PropertyTypeDescription(String value) {
 
     private static final int MAX_LENGTH = 2000;

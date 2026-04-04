@@ -4,6 +4,10 @@ import com.ryuqq.otatoy.domain.roomattribute.BedTypeId;
 
 import java.util.Objects;
 
+/**
+ * 객실의 침대 구성을 나타내는 엔티티.
+ * 침대 유형과 수량을 관리한다.
+ */
 public class RoomTypeBed {
 
     private final RoomTypeBedId id;

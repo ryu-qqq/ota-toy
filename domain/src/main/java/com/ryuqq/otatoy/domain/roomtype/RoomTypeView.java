@@ -4,6 +4,9 @@ import com.ryuqq.otatoy.domain.roomattribute.ViewTypeId;
 
 import java.util.Objects;
 
+/**
+ * 객실과 전망 유형의 매핑을 나타내는 엔티티.
+ */
 public class RoomTypeView {
 
     private final RoomTypeViewId id;

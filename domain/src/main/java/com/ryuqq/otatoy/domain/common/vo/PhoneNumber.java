@@ -2,6 +2,9 @@ package com.ryuqq.otatoy.domain.common.vo;
 
 import java.util.regex.Pattern;
 
+/**
+ * 전화번호. nullable이며, 값이 있을 경우 숫자와 하이픈만 허용, 최대 30자.
+ */
 public record PhoneNumber(String value) {
 
     private static final int MAX_LENGTH = 30;

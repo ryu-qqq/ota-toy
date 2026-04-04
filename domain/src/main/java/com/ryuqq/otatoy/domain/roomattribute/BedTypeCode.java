@@ -1,5 +1,8 @@
 package com.ryuqq.otatoy.domain.roomattribute;
 
+/**
+ * 침대 유형 코드. null/blank 불가, 최대 50자.
+ */
 public record BedTypeCode(String value) {
 
     private static final int MAX_LENGTH = 50;

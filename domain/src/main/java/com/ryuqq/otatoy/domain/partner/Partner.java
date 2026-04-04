@@ -3,6 +3,12 @@ package com.ryuqq.otatoy.domain.partner;
 import java.time.Instant;
 import java.util.Objects;
 
+/**
+ * 파트너를 나타내는 Aggregate Root.
+ * 숙소를 등록하고 관리하는 사업자(파트너)의 정보와 상태를 관리한다.
+ *
+ * @see PartnerMember 파트너 소속 멤버
+ */
 public class Partner {
 
     private final PartnerId id;

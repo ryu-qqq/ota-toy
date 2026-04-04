@@ -1,5 +1,8 @@
 package com.ryuqq.otatoy.domain.accommodation;
 
+/**
+ * 편의시설명. null/blank 불가, 최대 200자.
+ */
 public record AmenityName(String value) {
 
     private static final int MAX_LENGTH = 200;

@@ -3,6 +3,10 @@ package com.ryuqq.otatoy.domain.partner;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * 파트너 상태.
+ * ACTIVE: 활성, SUSPENDED: 정지. 상태 전이 규칙을 포함한다.
+ */
 public enum PartnerStatus {
 
     ACTIVE("활성"),

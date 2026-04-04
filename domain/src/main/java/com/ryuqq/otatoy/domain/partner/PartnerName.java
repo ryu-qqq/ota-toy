@@ -1,5 +1,8 @@
 package com.ryuqq.otatoy.domain.partner;
 
+/**
+ * 파트너명. null/blank 불가, 최대 200자.
+ */
 public record PartnerName(String value) {
 
     private static final int MAX_LENGTH = 200;

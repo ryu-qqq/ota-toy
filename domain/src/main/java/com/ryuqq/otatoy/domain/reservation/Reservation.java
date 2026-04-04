@@ -9,6 +9,13 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * 예약을 나타내는 Aggregate Root.
+ * 투숙객 정보, 숙박 기간, 총 금액, 예약 상태, 예약 항목을 관리한다.
+ * 최대 연박 제한은 30박이다.
+ *
+ * @see ReservationItem 예약 항목(날짜별 재고 연결)
+ */
 public class Reservation {
 
     private static final int MAX_STAY_NIGHTS = 30;

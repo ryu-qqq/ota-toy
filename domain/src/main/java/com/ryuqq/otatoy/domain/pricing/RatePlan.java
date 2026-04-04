@@ -6,6 +6,14 @@ import com.ryuqq.otatoy.domain.supplier.SupplierId;
 import java.time.Instant;
 import java.util.Objects;
 
+/**
+ * 요금 정책(Rate Plan)을 나타내는 Aggregate Root.
+ * 객실 유형에 연결되며, 취소 정책, 결제 정책, 공급 소스를 포함한다.
+ *
+ * @see RateRule 요금 규칙
+ * @see RatePlanAddOn 부가 서비스
+ * @see Rate 날짜별 최종 요금
+ */
 public class RatePlan {
 
     private final RatePlanId id;

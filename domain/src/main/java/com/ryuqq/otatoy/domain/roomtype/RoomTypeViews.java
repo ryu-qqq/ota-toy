@@ -2,6 +2,10 @@ package com.ryuqq.otatoy.domain.roomtype;
 
 import java.util.List;
 
+/**
+ * 객실 전망 매핑 일급 컬렉션.
+ * 전망 유형 중복 검증을 수행한다.
+ */
 public class RoomTypeViews {
 
     private final List<RoomTypeView> items;

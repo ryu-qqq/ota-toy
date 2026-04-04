@@ -3,6 +3,11 @@ package com.ryuqq.otatoy.domain.supplier;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * 공급자 상태.
+ * ACTIVE: 활성, SUSPENDED: 정지, TERMINATED: 해지.
+ * 상태 전이 규칙을 포함한다.
+ */
 public enum SupplierStatus {
 
     ACTIVE("활성"),

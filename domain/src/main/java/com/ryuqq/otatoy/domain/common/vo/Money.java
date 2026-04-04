@@ -3,6 +3,9 @@ package com.ryuqq.otatoy.domain.common.vo;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
+/**
+ * 금액을 나타내는 VO. 0 이상이어야 하며, 사칙연산 메서드를 제공한다.
+ */
 public record Money(BigDecimal amount) {
 
     public Money {

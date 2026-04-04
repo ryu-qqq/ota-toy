@@ -1,5 +1,8 @@
 package com.ryuqq.otatoy.domain.location;
 
+/**
+ * 랜드마크명. null/blank 불가, 최대 200자.
+ */
 public record LandmarkName(String value) {
 
     private static final int MAX_LENGTH = 200;

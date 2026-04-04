@@ -1,5 +1,8 @@
 package com.ryuqq.otatoy.domain.supplier;
 
+/**
+ * 공급자 동기화 로그 식별자. null이면 아직 DB에 저장되지 않은 신규 엔티티.
+ */
 public record SupplierSyncLogId(Long value) {
 
     public static SupplierSyncLogId of(Long value) {

@@ -1,5 +1,8 @@
 package com.ryuqq.otatoy.domain.brand;
 
+/**
+ * 브랜드 영문명. null/blank 불가, 최대 100자.
+ */
 public record BrandName(String value) {
 
     private static final int MAX_LENGTH = 100;

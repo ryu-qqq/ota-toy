@@ -2,6 +2,10 @@ package com.ryuqq.otatoy.domain.property;
 
 import java.util.List;
 
+/**
+ * 숙소 사진 일급 컬렉션.
+ * 정렬 순서 중복 검증을 수행한다.
+ */
 public class PropertyPhotos {
 
     private final List<PropertyPhoto> items;

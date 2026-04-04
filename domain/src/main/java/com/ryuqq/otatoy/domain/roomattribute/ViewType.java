@@ -2,6 +2,10 @@ package com.ryuqq.otatoy.domain.roomattribute;
 
 import java.util.Objects;
 
+/**
+ * 전망 유형을 나타내는 엔티티.
+ * 바다 전망, 산 전망 등 객실 전망 분류를 코드와 이름으로 관리한다.
+ */
 public class ViewType {
 
     private final ViewTypeId id;

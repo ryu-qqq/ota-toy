@@ -2,6 +2,9 @@ package com.ryuqq.otatoy.domain.supplier;
 
 import com.ryuqq.otatoy.domain.common.ErrorCode;
 
+/**
+ * 공급자(Supplier) 도메인의 에러 코드.
+ */
 public enum SupplierErrorCode implements ErrorCode {
 
     SUPPLIER_NOT_FOUND("SUP-001", "공급자를 찾을 수 없습니다"),

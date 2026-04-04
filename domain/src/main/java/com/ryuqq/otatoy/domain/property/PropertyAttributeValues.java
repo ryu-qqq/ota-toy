@@ -2,6 +2,10 @@ package com.ryuqq.otatoy.domain.property;
 
 import java.util.List;
 
+/**
+ * 숙소 속성값 일급 컬렉션.
+ * 동일 속성 중복 검증을 수행한다.
+ */
 public class PropertyAttributeValues {
 
     private final List<PropertyAttributeValue> items;

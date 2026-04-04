@@ -2,6 +2,10 @@ package com.ryuqq.otatoy.domain.location;
 
 import java.util.Objects;
 
+/**
+ * 숙소와 랜드마크 간의 매핑 관계를 나타내는 엔티티.
+ * 숙소로부터의 거리(km)와 도보 시간(분)을 관리한다.
+ */
 public class PropertyLandmark {
 
     private final PropertyLandmarkId id;

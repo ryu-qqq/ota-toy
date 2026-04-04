@@ -4,6 +4,10 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.stream.Stream;
 
+/**
+ * 시작일-종료일 범위를 나타내는 VO.
+ * 시작일과 종료일은 필수이며, 종료일은 시작일보다 뒤여야 한다.
+ */
 public record DateRange(LocalDate startDate, LocalDate endDate) {
 
     public DateRange {

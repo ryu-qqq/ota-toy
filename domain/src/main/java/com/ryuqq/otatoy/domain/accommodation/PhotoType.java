@@ -1,5 +1,9 @@
 package com.ryuqq.otatoy.domain.accommodation;
 
+/**
+ * 사진 유형.
+ * EXTERIOR: 외관, LOBBY: 로비, ROOM: 객실, BATHROOM: 욕실 등.
+ */
 public enum PhotoType {
 
     EXTERIOR("외관"),

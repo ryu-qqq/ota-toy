@@ -2,6 +2,10 @@ package com.ryuqq.otatoy.domain.roomtype;
 
 import java.util.List;
 
+/**
+ * 객실 유형 속성 일급 컬렉션.
+ * 속성 키 중복 검증을 수행한다.
+ */
 public class RoomTypeAttributes {
 
     private final List<RoomTypeAttribute> items;

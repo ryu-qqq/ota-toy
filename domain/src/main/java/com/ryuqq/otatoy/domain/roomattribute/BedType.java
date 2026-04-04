@@ -2,6 +2,10 @@ package com.ryuqq.otatoy.domain.roomattribute;
 
 import java.util.Objects;
 
+/**
+ * 침대 유형을 나타내는 엔티티.
+ * 싱글, 더블, 킹 등 침대 분류를 코드와 이름으로 관리한다.
+ */
 public class BedType {
 
     private final BedTypeId id;

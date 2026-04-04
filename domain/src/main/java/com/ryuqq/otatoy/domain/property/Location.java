@@ -2,6 +2,10 @@ package com.ryuqq.otatoy.domain.property;
 
 import com.ryuqq.otatoy.domain.common.vo.Coordinate;
 
+/**
+ * 숙소의 위치 정보를 나타내는 VO.
+ * 주소(필수), 좌표(필수), 동네명, 지역명을 포함한다.
+ */
 public record Location(
         String address,
         Coordinate coordinate,

@@ -1,5 +1,9 @@
 package com.ryuqq.otatoy.domain.partner;
 
+/**
+ * 파트너 멤버 상태.
+ * ACTIVE: 활성, SUSPENDED: 정지.
+ */
 public enum PartnerMemberStatus {
 
     ACTIVE("활성"),

@@ -1,5 +1,8 @@
 package com.ryuqq.otatoy.domain.pricing;
 
+/**
+ * 부가 서비스(Add-on) 이름. null/blank 불가, 최대 200자.
+ */
 public record AddOnName(String value) {
 
     private static final int MAX_LENGTH = 200;

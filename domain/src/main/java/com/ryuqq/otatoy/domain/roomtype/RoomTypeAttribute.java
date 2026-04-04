@@ -2,6 +2,10 @@ package com.ryuqq.otatoy.domain.roomtype;
 
 import java.util.Objects;
 
+/**
+ * 객실 유형의 추가 속성을 나타내는 엔티티.
+ * 키-값 쌍으로 다양한 객실 부가 정보를 저장한다.
+ */
 public class RoomTypeAttribute {
 
     private final RoomTypeAttributeId id;

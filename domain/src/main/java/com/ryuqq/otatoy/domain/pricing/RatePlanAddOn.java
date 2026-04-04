@@ -4,6 +4,10 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Objects;
 
+/**
+ * 요금 정책에 연결된 부가 서비스를 나타내는 엔티티.
+ * 조식, 스파 이용권 등 추가 서비스와 그 가격을 관리한다.
+ */
 public class RatePlanAddOn {
 
     private final RatePlanAddOnId id;

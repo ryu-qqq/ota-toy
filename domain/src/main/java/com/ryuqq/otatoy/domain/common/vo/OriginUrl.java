@@ -1,5 +1,8 @@
 package com.ryuqq.otatoy.domain.common.vo;
 
+/**
+ * 원본 URL. null/blank 불가, 최대 500자.
+ */
 public record OriginUrl(String value) {
 
     private static final int MAX_LENGTH = 500;

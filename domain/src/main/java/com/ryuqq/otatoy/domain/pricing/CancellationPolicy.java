@@ -1,5 +1,10 @@
 package com.ryuqq.otatoy.domain.pricing;
 
+/**
+ * 취소 정책 VO.
+ * 무료 취소 여부, 환불 불가 여부, 무료 취소 기한(일)을 관리한다.
+ * 무료 취소와 환불 불가는 동시에 설정할 수 없다.
+ */
 public record CancellationPolicy(
         boolean freeCancellation,
         boolean nonRefundable,

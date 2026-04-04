@@ -1,5 +1,8 @@
 package com.ryuqq.otatoy.domain.common.vo;
 
+/**
+ * CDN URL. nullable이며, 값이 있을 경우 blank 불가.
+ */
 public record CdnUrl(String value) {
 
     public CdnUrl {

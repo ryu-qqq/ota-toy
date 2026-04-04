@@ -2,6 +2,10 @@ package com.ryuqq.otatoy.domain.roomtype;
 
 import java.util.List;
 
+/**
+ * 객실 사진 일급 컬렉션.
+ * 정렬 순서 중복 검증을 수행한다.
+ */
 public class RoomPhotos {
 
     private final List<RoomPhoto> items;

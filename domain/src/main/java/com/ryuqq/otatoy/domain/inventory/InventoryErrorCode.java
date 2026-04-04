@@ -2,6 +2,9 @@ package com.ryuqq.otatoy.domain.inventory;
 
 import com.ryuqq.otatoy.domain.common.ErrorCode;
 
+/**
+ * 재고(Inventory) 도메인의 에러 코드.
+ */
 public enum InventoryErrorCode implements ErrorCode {
 
     INVENTORY_NOT_FOUND("INV-001", "재고를 찾을 수 없습니다"),

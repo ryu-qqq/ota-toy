@@ -5,6 +5,10 @@ import com.ryuqq.otatoy.domain.property.PropertyId;
 import java.time.Instant;
 import java.util.Objects;
 
+/**
+ * 공급자와 숙소 간의 매핑을 나타내는 엔티티.
+ * 공급자 측 숙소 코드와 마지막 동기화 시각을 관리한다.
+ */
 public class SupplierProperty {
 
     private final SupplierPropertyId id;

@@ -4,6 +4,12 @@ import com.ryuqq.otatoy.domain.common.vo.Coordinate;
 
 import java.util.Objects;
 
+/**
+ * 랜드마크를 나타내는 엔티티.
+ * 역, 관광지, 공항 등 주요 지점의 이름, 유형, 좌표를 관리한다.
+ *
+ * @see PropertyLandmark 숙소-랜드마크 매핑
+ */
 public class Landmark {
 
     private final LandmarkId id;

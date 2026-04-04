@@ -2,6 +2,9 @@ package com.ryuqq.otatoy.domain.partner;
 
 import com.ryuqq.otatoy.domain.common.ErrorCode;
 
+/**
+ * 파트너(Partner) 도메인의 에러 코드.
+ */
 public enum PartnerErrorCode implements ErrorCode {
 
     PARTNER_NOT_FOUND("PTN-001", "파트너를 찾을 수 없습니다"),

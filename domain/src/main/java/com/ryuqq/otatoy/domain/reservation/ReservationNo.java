@@ -1,5 +1,8 @@
 package com.ryuqq.otatoy.domain.reservation;
 
+/**
+ * 예약 번호. null/blank 불가, 최대 50자.
+ */
 public record ReservationNo(String value) {
 
     private static final int MAX_LENGTH = 50;

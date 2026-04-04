@@ -1,5 +1,8 @@
 package com.ryuqq.otatoy.domain.property;
 
+/**
+ * 숙소명. null/blank 불가, 최대 100자.
+ */
 public record PropertyName(String value) {
 
     private static final int MAX_LENGTH = 100;

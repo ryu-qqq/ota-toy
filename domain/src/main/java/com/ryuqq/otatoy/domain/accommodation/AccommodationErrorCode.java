@@ -2,6 +2,9 @@ package com.ryuqq.otatoy.domain.accommodation;
 
 import com.ryuqq.otatoy.domain.common.ErrorCode;
 
+/**
+ * 숙박(Accommodation) 도메인의 에러 코드.
+ */
 public enum AccommodationErrorCode implements ErrorCode {
 
     PROPERTY_NOT_FOUND("ACC-001", "숙소를 찾을 수 없습니다"),

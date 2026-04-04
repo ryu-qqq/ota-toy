@@ -1,5 +1,8 @@
 package com.ryuqq.otatoy.domain.property;
 
+/**
+ * 숙소 홍보 문구. nullable이며, 값이 있을 경우 최대 500자.
+ */
 public record PromotionText(String value) {
 
     private static final int MAX_LENGTH = 500;

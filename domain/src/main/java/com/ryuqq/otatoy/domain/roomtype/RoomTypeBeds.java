@@ -2,6 +2,10 @@ package com.ryuqq.otatoy.domain.roomtype;
 
 import java.util.List;
 
+/**
+ * 객실 침대 구성 일급 컬렉션.
+ * 침대 유형 중복 검증을 수행한다.
+ */
 public class RoomTypeBeds {
 
     private final List<RoomTypeBed> items;

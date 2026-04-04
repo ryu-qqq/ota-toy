@@ -3,6 +3,10 @@ package com.ryuqq.otatoy.domain.brand;
 import java.time.Instant;
 import java.util.Objects;
 
+/**
+ * 숙박 브랜드를 나타내는 엔티티.
+ * 호텔 체인이나 프랜차이즈 브랜드 정보를 관리한다.
+ */
 public class Brand {
 
     private final BrandId id;

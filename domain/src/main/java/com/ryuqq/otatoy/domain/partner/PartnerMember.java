@@ -6,6 +6,10 @@ import com.ryuqq.otatoy.domain.common.vo.PhoneNumber;
 import java.time.Instant;
 import java.util.Objects;
 
+/**
+ * 파트너에 소속된 멤버를 나타내는 엔티티.
+ * 소유자, 관리자, 직원 역할을 가지며, 이메일/전화번호를 포함한다.
+ */
 public class PartnerMember {
 
     private final PartnerMemberId id;

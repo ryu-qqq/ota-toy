@@ -1,5 +1,8 @@
 package com.ryuqq.otatoy.domain.common.query;
 
+/**
+ * 커서 기반 페이지네이션 요청. size는 1~100 범위.
+ */
 public record CursorPageRequest<C>(C cursor, int size) {
 
     public CursorPageRequest {

@@ -1,5 +1,8 @@
 package com.ryuqq.otatoy.domain.roomattribute;
 
+/**
+ * 침대 유형 식별자. null이면 아직 DB에 저장되지 않은 신규 엔티티.
+ */
 public record BedTypeId(Long value) {
 
     public static BedTypeId of(Long value) {

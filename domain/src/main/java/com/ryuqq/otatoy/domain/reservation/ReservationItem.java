@@ -5,6 +5,10 @@ import com.ryuqq.otatoy.domain.inventory.InventoryId;
 import java.time.LocalDate;
 import java.util.Objects;
 
+/**
+ * 예약의 날짜별 항목을 나타내는 엔티티.
+ * 하나의 예약에서 각 숙박 날짜와 해당 재고를 연결한다.
+ */
 public class ReservationItem {
 
     private final ReservationItemId id;

@@ -3,6 +3,10 @@ package com.ryuqq.otatoy.domain.common;
 import java.util.Collections;
 import java.util.Map;
 
+/**
+ * 도메인 레이어의 기본 예외 클래스.
+ * 모든 도메인 예외는 이 클래스를 상속하며, ErrorCode와 부가 인자를 포함한다.
+ */
 public abstract class DomainException extends RuntimeException {
 
     private final ErrorCode errorCode;

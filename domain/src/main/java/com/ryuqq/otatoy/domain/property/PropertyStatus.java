@@ -1,5 +1,9 @@
 package com.ryuqq.otatoy.domain.property;
 
+/**
+ * 숙소 상태.
+ * ACTIVE: 운영 중, INACTIVE: 비활성.
+ */
 public enum PropertyStatus {
 
     ACTIVE("운영중"),

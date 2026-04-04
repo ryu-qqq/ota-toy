@@ -2,6 +2,9 @@ package com.ryuqq.otatoy.domain.reservation;
 
 import com.ryuqq.otatoy.domain.common.ErrorCode;
 
+/**
+ * 예약(Reservation) 도메인의 에러 코드.
+ */
 public enum ReservationErrorCode implements ErrorCode {
 
     RESERVATION_NOT_FOUND("RSV-001", "예약을 찾을 수 없습니다"),

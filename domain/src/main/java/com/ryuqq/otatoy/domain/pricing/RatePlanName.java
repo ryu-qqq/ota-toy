@@ -1,5 +1,8 @@
 package com.ryuqq.otatoy.domain.pricing;
 
+/**
+ * 요금 정책명. null/blank 불가, 최대 200자.
+ */
 public record RatePlanName(String value) {
 
     private static final int MAX_LENGTH = 200;

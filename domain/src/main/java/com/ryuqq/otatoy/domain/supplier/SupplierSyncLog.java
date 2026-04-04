@@ -3,6 +3,10 @@ package com.ryuqq.otatoy.domain.supplier;
 import java.time.Instant;
 import java.util.Objects;
 
+/**
+ * 공급자 동기화 로그를 나타내는 엔티티.
+ * 동기화 유형, 처리 건수, 상태, 오류 메시지를 기록한다.
+ */
 public class SupplierSyncLog {
 
     private final SupplierSyncLogId id;

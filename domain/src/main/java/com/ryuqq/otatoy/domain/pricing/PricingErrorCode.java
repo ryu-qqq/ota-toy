@@ -2,6 +2,9 @@ package com.ryuqq.otatoy.domain.pricing;
 
 import com.ryuqq.otatoy.domain.common.ErrorCode;
 
+/**
+ * 요금(Pricing) 도메인의 에러 코드.
+ */
 public enum PricingErrorCode implements ErrorCode {
 
     RATE_PLAN_NOT_FOUND("PRC-001", "요금 정책을 찾을 수 없습니다"),
