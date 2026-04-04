@@ -304,6 +304,30 @@ erDiagram
         string error_message
     }
 
+    ReservationOutbox {
+        long id PK
+        long reservation_id FK
+        string event_type
+        string payload
+        string status
+        int retry_count
+        string created_at
+        string updated_at
+        string processed_at
+    }
+
+    SupplierOutbox {
+        long id PK
+        long supplier_id FK
+        string event_type
+        string payload
+        string status
+        int retry_count
+        string created_at
+        string updated_at
+        string processed_at
+    }
+
     Brand ||--o{ Property : has
     PropertyType ||--o{ Property : categorizes
     PropertyType ||--o{ PropertyTypeAttribute : defines
@@ -339,4 +363,6 @@ erDiagram
     SupplierProperty ||--o{ SupplierRoomType : has
     SupplierProperty }o--|| Property : maps
     SupplierRoomType }o--|| RoomType : maps
+    Reservation ||--o{ ReservationOutbox : publishes
+    Supplier ||--o{ SupplierOutbox : publishes
 ```

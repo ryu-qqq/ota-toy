@@ -493,22 +493,32 @@ public record DateRange(LocalDate startDate, LocalDate endDate) {
     }
 }
 
-// 금액 (int 기반 원화)
-public record Money(int amount) {
+// 금액 (BigDecimal 기반 — 다통화, 소수점 지원)
+public record Money(BigDecimal amount) {
     public Money {
-        if (amount < 0) throw new IllegalArgumentException("금액은 0 이상이어야 합니다");
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("금액은 0 이상이어야 합니다");
+        }
     }
     
-    public static Money of(int amount) {
+    public static Money of(BigDecimal amount) {
         return new Money(amount);
     }
     
+    public static Money of(int amount) {
+        return new Money(BigDecimal.valueOf(amount));
+    }
+    
     public Money add(Money other) {
-        return new Money(this.amount + other.amount);
+        return new Money(this.amount.add(other.amount));
     }
     
     public Money multiply(int factor) {
-        return new Money(this.amount * factor);
+        return new Money(this.amount.multiply(BigDecimal.valueOf(factor)));
+    }
+    
+    public boolean isZero() {
+        return amount.compareTo(BigDecimal.ZERO) == 0;
     }
 }
 
@@ -524,7 +534,7 @@ public record DeletionStatus(boolean deleted, Instant deletedAt) {
 }
 ```
 
-**왜 Money가 int인가**: 이 프로젝트는 원화(KRW) 전용이다. 원화는 소수점이 없으므로 int로 충분하다. BigDecimal은 다통화 지원이 필요할 때 도입한다. `int`는 약 21억까지 표현 가능하므로 숙박 요금 범위에서 오버플로우 위험이 없다.
+**왜 BigDecimal인가**: 해외 Supplier 연동 시 달러, 엔 등 소수점이 있는 통화를 다룰 수 있다. BigDecimal은 부동소수점 오차가 없어 금융/결제 계산에 적합하다. `of(int)` 팩토리도 제공하여 원화 사용 시 편의성을 유지한다.
 
 ---
 
@@ -574,9 +584,20 @@ domain/
 │   └── infra/
 │       ├── CacheKey.java             ← 인터페이스
 │       └── LockKey.java              ← 인터페이스
-├── accommodation/
+├── accommodation/              ← 숙소, 객실, 브랜드, 편의시설, 사진, EAV
 │   └── ...
-└── ...
+├── pricing/                    ← 요금 정책, 요금 규칙, Add-on, Rate
+│   └── ...
+├── location/                   ← 랜드마크, PropertyLandmark 매핑
+│   └── ...
+├── inventory/                  ← 재고 (미구현)
+│   └── ...
+├── reservation/                ← 예약 (미구현)
+│   └── ...
+├── partner/                    ← 파트너 ID VO
+│   └── ...
+└── supplier/                   ← 외부 공급자 (미구현)
+    └── ...
 ```
 
 ---
