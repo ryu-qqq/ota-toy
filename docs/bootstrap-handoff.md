@@ -48,6 +48,15 @@ domain/src/test/java/com/ryuqq/otatoy/domain/DomainLayerArchTest.java
 
 ## 지금 해야 할 것
 
+### Step 0: 하네스 오케스트레이터 보강
+
+domain-harness-orchestrator.md에 **Phase 결과 문서화** 규칙 추가:
+- Phase 2 결과 → `docs/review/{BC}-code-review.md`, `docs/review/{BC}-spec-review.md`
+- Phase 4 결과 → `docs/review/{BC}-test-scenarios.md` (어떤 비즈니스 규칙을 어떤 테스트가 검증하는지)
+- Phase 6 결과 → `docs/review/{BC}-harness-result.md` (전체 요약)
+
+이 문서들이 있어야 "이 도메인이 어떤 시나리오를 커버하는지" 사람이 볼 수 있다.
+
 ### Step 1: 래핑 객체 도입 (PropertyAmenities 등)
 
 사용자가 결정한 설계:
