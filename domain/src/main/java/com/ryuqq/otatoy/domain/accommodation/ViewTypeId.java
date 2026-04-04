@@ -1,9 +1,9 @@
 package com.ryuqq.otatoy.domain.accommodation;
 
-public record BrandId(Long value) {
+public record ViewTypeId(Long value) {
 
-    public static BrandId of(Long value) {
-        return new BrandId(value);
+    public static ViewTypeId of(Long value) {
+        return new ViewTypeId(value);
     }
 
     public boolean isNew() {

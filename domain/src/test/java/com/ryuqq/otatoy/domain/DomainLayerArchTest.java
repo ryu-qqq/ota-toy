@@ -2,6 +2,8 @@ package com.ryuqq.otatoy.domain;
 
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
+import com.tngtech.archunit.core.domain.JavaField;
+import com.tngtech.archunit.core.domain.JavaMethod;
 import com.tngtech.archunit.core.domain.JavaModifier;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
@@ -259,6 +261,85 @@ class DomainLayerArchTest {
                     .resideInAPackage("jakarta.validation..");
 
             rule.check(domainClasses);
+        }
+    }
+
+    @Nested
+    @DisplayName("DOM-AGG-013: Long id를 가진 record 금지")
+    class RecordWithIdFieldProhibitionTest {
+
+        @Test
+        @DisplayName("도메인 record 클래스에 Long 또는 *Id 타입의 id 필드가 있으면 안 된다 (*Id VO record 자체는 제외)")
+        void recordShouldNotHaveLongIdField() {
+            // record의 compact constructor는 모든 생성 경로에서 실행되어 reconstitute()에서도 검증이 돌아간다.
+            // record는 equals/hashCode가 전체 필드 비교라 ID 기반 비교가 불가능하다.
+            // record는 private 생성자가 불가능하므로 Aggregate 생성자 제한 규칙을 우회한다.
+            // 따라서 Long id를 가진 엔티티급 클래스는 반드시 class로 선언해야 한다.
+            StringBuilder violations = new StringBuilder();
+
+            domainClasses.stream()
+                    .filter(JavaClass::isRecord)
+                    .filter(clazz -> clazz.getPackageName().startsWith("com.ryuqq.otatoy.domain"))
+                    // *Id VO record 자체는 제외 (PropertyId, BrandId 등) — 이것들은 value 필드를 가짐
+                    .filter(clazz -> !clazz.getSimpleName().endsWith("Id"))
+                    .forEach(clazz -> {
+                        for (JavaField field : clazz.getFields()) {
+                            if (!"id".equals(field.getName())) {
+                                continue;
+                            }
+                            String fieldTypeName = field.getRawType().getSimpleName();
+                            // Long 타입이거나 *Id 타입(PropertyId 등)의 id 필드
+                            if ("Long".equals(fieldTypeName) || fieldTypeName.endsWith("Id")) {
+                                violations.append("Record에 id 필드 금지 위반: ")
+                                        .append(clazz.getName())
+                                        .append(" (필드 타입: ")
+                                        .append(fieldTypeName)
+                                        .append(")\n");
+                            }
+                        }
+                    });
+
+            if (!violations.isEmpty()) {
+                fail("Long/Id 타입의 id 필드를 가진 record가 있습니다. "
+                        + "엔티티급 클래스는 class로 선언하세요 (DOM-AGG-013):\n" + violations);
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("DOM-AGG-014: 엔티티 class의 of() 메서드 금지")
+    class EntityOfMethodProhibitionTest {
+
+        @Test
+        @DisplayName("도메인 class (record/enum 제외)에 public static of() 메서드가 없어야 한다")
+        void classShouldNotHaveOfMethod() {
+            // 엔티티(class)는 forNew() / reconstitute() 패턴을 사용해야 한다.
+            // of()는 VO(record)에서만 허용되는 팩토리 메서드다.
+            // class에서 of()를 사용하면 생성 의도(신규 vs 복원)가 드러나지 않는다.
+            StringBuilder violations = new StringBuilder();
+
+            domainClasses.stream()
+                    .filter(clazz -> clazz.getPackageName().startsWith("com.ryuqq.otatoy.domain"))
+                    .filter(clazz -> !clazz.isRecord())
+                    .filter(clazz -> !clazz.isEnum())
+                    .filter(clazz -> !clazz.isInterface())
+                    .filter(clazz -> !clazz.getSimpleName().endsWith("Exception"))
+                    .forEach(clazz -> {
+                        for (JavaMethod method : clazz.getMethods()) {
+                            if ("of".equals(method.getName())
+                                    && method.getModifiers().contains(JavaModifier.PUBLIC)
+                                    && method.getModifiers().contains(JavaModifier.STATIC)) {
+                                violations.append("엔티티 of() 금지 위반: ")
+                                        .append(clazz.getName())
+                                        .append(".of()\n");
+                            }
+                        }
+                    });
+
+            if (!violations.isEmpty()) {
+                fail("엔티티(class)에 of() 메서드가 있습니다. "
+                        + "forNew() / reconstitute()를 사용하세요 (DOM-AGG-014):\n" + violations);
+            }
         }
     }
 }

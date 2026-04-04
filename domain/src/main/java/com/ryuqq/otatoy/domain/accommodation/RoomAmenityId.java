@@ -1,0 +1,12 @@
+package com.ryuqq.otatoy.domain.accommodation;
+
+public record RoomAmenityId(Long value) {
+
+    public static RoomAmenityId of(Long value) {
+        return new RoomAmenityId(value);
+    }
+
+    public boolean isNew() {
+        return value == null;
+    }
+}

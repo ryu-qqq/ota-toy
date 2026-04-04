@@ -43,3 +43,45 @@
   - (B) Outbox + 스케줄러 ✅ 선택
 - **이유**: 예약 생성 → 재고 차감이 원자적이어야 하는데, ApplicationEvent는 @TransactionalEventListener로 커밋 후 발행하더라도 발행 실패 시 복구 수단이 없음. Outbox 패턴은 이벤트를 DB에 저장하므로 트랜잭션과 같은 원자성을 보장하고, 스케줄러가 폴링하므로 장애 후 자동 재처리 가능
 - **출처**: PO 백로그 재검증 (Outbox Story 추가) + PL 정합성 점검 결과를 종합
+
+## Decision 10: record → class 전환 (13개 하위 엔티티)
+- **시점**: domain-harness 완료 후, 직접 리뷰에서 발견
+- **선택**: Long id를 가진 record 13개를 전부 class로 전환
+- **대안**: record 유지 + 별도 규칙 완화 → 거부 (컨벤션 일관성 깨짐)
+- **이유**: record의 compact constructor가 모든 생성 경로에서 실행되어, reconstitute()에서도 검증이 돌아감. DB에 저장된 데이터가 과거 규칙으로는 유효했지만 규칙 변경 시 복원 자체가 실패하는 치명적 문제. equals/hashCode가 전체 필드 비교라 ID 기반 비교 불가, private 생성자 불가로 외부 생성 차단 불가, of() 네이밍도 forNew()/reconstitute() 분리 불가
+- **출처**: domain-harness 완료 후 직접 리뷰. 하네스가 잡지 못한 구조적 문제를 사람이 발견한 케이스
+
+## Decision 11: 하위 엔티티도 전용 ID VO 적용
+- **시점**: record → class 전환 과정에서 ID 타입 재검토
+- **선택**: PropertyAmenityId, RoomAmenityId, PropertyPhotoId 등 하위 엔티티에도 전부 ID VO 적용
+- **대안**: 하위 엔티티는 Long id 유지 → 거부
+- **이유**: Aggregate Root만 ID VO라는 기존 컨벤션이 있었지만, 하위 엔티티도 DB에 id가 존재. Long으로 두면 타입 안전성이 없어 PropertyAmenityId와 RoomAmenityId를 실수로 바꿔 넣어도 컴파일러가 잡지 못함. 전용 ID VO로 컴파일 타임에 타입 혼동을 방지
+- **출처**: record → class 전환 작업 중 설계 판단
+
+## Decision 12: additionalPrice → Money VO
+- **시점**: 하위 엔티티 class 전환 시 필드 타입 재검토
+- **선택**: BigDecimal 대신 Money VO 사용
+- **대안**: BigDecimal 유지 — 단순하지만 금액 전용 로직이 호출 측에 분산됨
+- **이유**: Money VO에 isZero(), add(), multiply() 등 금액 전용 로직이 캡슐화되어 있고, 음수 방어도 VO가 담당. BigDecimal을 그대로 쓰면 음수 검증, 영점 비교 등이 호출 측마다 중복됨
+- **출처**: record → class 전환 작업 중 설계 판단
+
+## Decision 13: amenityType, photoType → enum 전환
+- **시점**: 하위 엔티티 class 전환 시 필드 타입 재검토
+- **선택**: String 대신 enum (AmenityType, PhotoType) 사용
+- **대안**: String 유지 + 검색 필터에서 자유롭게 → 거부
+- **이유**: 검색 필터와 직결되는 값이라 유효값 통제 필수. String이면 오타나 비정합을 런타임까지 발견할 수 없음. enum이면 컴파일 타임에 유효값이 보장됨
+- **출처**: record → class 전환 작업 중 설계 판단
+
+## Decision 14: 래핑 객체 (PropertyAmenities 등) 도입
+- **시점**: 하위 엔티티 class 전환 후 컬렉션 수준 불변식 검증 필요성 대두
+- **선택**: PropertyAmenities, PropertyPhotos 등 래핑 객체 도입
+- **대안**: Aggregate Root에서 컬렉션 검증 → 거부 (Aggregate Root 비대화)
+- **이유**: sortOrder 중복 검증 등 컬렉션 수준 불변식은 개별 엔티티에서 검증 불가. 래핑 객체를 두면 persistence에서 도메인 객체로 변환할 때 자동으로 컬렉션 수준 검증이 수행됨. 개별 엔티티는 자기 검증만, 컬렉션 규칙은 래핑 객체가 담당하여 책임 분리
+- **출처**: record → class 전환 작업 중 설계 판단
+
+## Decision 15: BrandId nullable 유지 (CONVENTION-DISPUTE 해결)
+- **시점**: code-reviewer가 BLOCKER로 지적 (참조 ID는 null 불허 규칙)
+- **선택**: BrandId nullable 유지
+- **대안**: BrandId 필수 + "브랜드 없음" 값 도입 → 거부 (인위적)
+- **이유**: OTA 리서치에서 모텔 769개, 펜션 21개 등 대다수 숙소가 브랜드에 속하지 않음. "참조 ID는 null 불허"라는 컨벤션 규칙이 있지만, BrandId는 자기 ID이면서 참조 용도를 겸용하는 특수 케이스. 도메인 현실을 컨벤션보다 우선
+- **출처**: code-reviewer BLOCKER → CONVENTION-DISPUTE → OTA 리서치 데이터 기반 판정

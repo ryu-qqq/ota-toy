@@ -18,14 +18,14 @@ public class RoomType {
     private int baseInventory;
     private LocalTime checkInTime;
     private LocalTime checkOutTime;
-    private PropertyStatus status;
+    private RoomTypeStatus status;
     private final Instant createdAt;
     private Instant updatedAt;
 
     private RoomType(RoomTypeId id, PropertyId propertyId, String name, String description,
                      BigDecimal areaSqm, String areaPyeong, int baseOccupancy, int maxOccupancy,
                      int baseInventory, LocalTime checkInTime, LocalTime checkOutTime,
-                     PropertyStatus status, Instant createdAt, Instant updatedAt) {
+                     RoomTypeStatus status, Instant createdAt, Instant updatedAt) {
         this.id = id;
         this.propertyId = propertyId;
         this.name = name;
@@ -58,16 +58,19 @@ public class RoomType {
         if (baseInventory < 0) {
             throw new IllegalArgumentException("기본 재고는 0 이상이어야 합니다");
         }
+        if (areaSqm != null && areaSqm.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("객실 면적은 0보다 커야 합니다");
+        }
         return new RoomType(null, propertyId, name, description, areaSqm, areaPyeong,
                 baseOccupancy, maxOccupancy, baseInventory, checkInTime, checkOutTime,
-                PropertyStatus.ACTIVE, now, now);
+                RoomTypeStatus.ACTIVE, now, now);
     }
 
     public static RoomType reconstitute(RoomTypeId id, PropertyId propertyId, String name, String description,
                                          BigDecimal areaSqm, String areaPyeong,
                                          int baseOccupancy, int maxOccupancy, int baseInventory,
                                          LocalTime checkInTime, LocalTime checkOutTime,
-                                         PropertyStatus status, Instant createdAt, Instant updatedAt) {
+                                         RoomTypeStatus status, Instant createdAt, Instant updatedAt) {
         return new RoomType(id, propertyId, name, description, areaSqm, areaPyeong,
                 baseOccupancy, maxOccupancy, baseInventory, checkInTime, checkOutTime,
                 status, createdAt, updatedAt);
@@ -80,6 +83,9 @@ public class RoomType {
         }
         if (maxOccupancy < baseOccupancy) {
             throw new IllegalArgumentException("최대 인원은 기본 인원 이상이어야 합니다");
+        }
+        if (areaSqm != null && areaSqm.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("객실 면적은 0보다 커야 합니다");
         }
         this.name = name;
         this.description = description;
@@ -105,17 +111,17 @@ public class RoomType {
     }
 
     public void deactivate(Instant now) {
-        this.status = PropertyStatus.INACTIVE;
+        this.status = RoomTypeStatus.INACTIVE;
         this.updatedAt = now;
     }
 
     public void activate(Instant now) {
-        this.status = PropertyStatus.ACTIVE;
+        this.status = RoomTypeStatus.ACTIVE;
         this.updatedAt = now;
     }
 
     public boolean isActive() {
-        return this.status == PropertyStatus.ACTIVE;
+        return this.status == RoomTypeStatus.ACTIVE;
     }
 
     public RoomTypeId id() { return id; }
@@ -129,7 +135,7 @@ public class RoomType {
     public int baseInventory() { return baseInventory; }
     public LocalTime checkInTime() { return checkInTime; }
     public LocalTime checkOutTime() { return checkOutTime; }
-    public PropertyStatus status() { return status; }
+    public RoomTypeStatus status() { return status; }
     public Instant createdAt() { return createdAt; }
     public Instant updatedAt() { return updatedAt; }
 

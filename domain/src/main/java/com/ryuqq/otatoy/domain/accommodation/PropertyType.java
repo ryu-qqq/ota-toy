@@ -5,36 +5,44 @@ import java.util.Objects;
 
 public class PropertyType {
 
-    private final Long id;
-    private final String code;
+    private final PropertyTypeId id;
+    private final PropertyTypeCode code;
     private String name;
     private String description;
     private final Instant createdAt;
+    private Instant updatedAt;
 
-    private PropertyType(Long id, String code, String name, String description, Instant createdAt) {
+    private PropertyType(PropertyTypeId id, PropertyTypeCode code, String name, String description,
+                         Instant createdAt, Instant updatedAt) {
         this.id = id;
         this.code = code;
         this.name = name;
         this.description = description;
         this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
     }
 
-    public static PropertyType forNew(String code, String name, String description, Instant now) {
-        if (code == null || code.isBlank()) {
-            throw new IllegalArgumentException("숙소 유형 코드는 필수입니다");
-        }
-        return new PropertyType(null, code, name, description, now);
+    public static PropertyType forNew(PropertyTypeCode code, String name, String description, Instant now) {
+        return new PropertyType(null, code, name, description, now, now);
     }
 
-    public static PropertyType reconstitute(Long id, String code, String name, String description, Instant createdAt) {
-        return new PropertyType(id, code, name, description, createdAt);
+    public static PropertyType reconstitute(PropertyTypeId id, PropertyTypeCode code, String name,
+                                             String description, Instant createdAt, Instant updatedAt) {
+        return new PropertyType(id, code, name, description, createdAt, updatedAt);
     }
 
-    public Long id() { return id; }
-    public String code() { return code; }
+    public void updateInfo(String name, String description, Instant now) {
+        this.name = name;
+        this.description = description;
+        this.updatedAt = now;
+    }
+
+    public PropertyTypeId id() { return id; }
+    public PropertyTypeCode code() { return code; }
     public String name() { return name; }
     public String description() { return description; }
     public Instant createdAt() { return createdAt; }
+    public Instant updatedAt() { return updatedAt; }
 
     @Override
     public boolean equals(Object o) {
