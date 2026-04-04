@@ -20,21 +20,23 @@ public class RateOverride {
     private BigDecimal price;
     private String reason;
     private final Instant createdAt;
+    private Instant updatedAt;
 
     private RateOverride(RateOverrideId id, RateRuleId rateRuleId, LocalDate overrideDate,
-                         BigDecimal price, String reason, Instant createdAt) {
+                         BigDecimal price, String reason, Instant createdAt, Instant updatedAt) {
         this.id = id;
         this.rateRuleId = rateRuleId;
         this.overrideDate = overrideDate;
         this.price = price;
         this.reason = reason;
         this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
     }
 
     public static RateOverride forNew(RateRuleId rateRuleId, LocalDate ruleStartDate, LocalDate ruleEndDate,
                                        LocalDate overrideDate, BigDecimal price, String reason, Instant now) {
         validate(overrideDate, price, ruleStartDate, ruleEndDate);
-        return new RateOverride(RateOverrideId.of(null), rateRuleId, overrideDate, price, reason, now);
+        return new RateOverride(RateOverrideId.of(null), rateRuleId, overrideDate, price, reason, now, now);
     }
 
     private static void validate(LocalDate overrideDate, BigDecimal price,
@@ -52,8 +54,8 @@ public class RateOverride {
     }
 
     public static RateOverride reconstitute(RateOverrideId id, RateRuleId rateRuleId, LocalDate overrideDate,
-                                             BigDecimal price, String reason, Instant createdAt) {
-        return new RateOverride(id, rateRuleId, overrideDate, price, reason, createdAt);
+                                             BigDecimal price, String reason, Instant createdAt, Instant updatedAt) {
+        return new RateOverride(id, rateRuleId, overrideDate, price, reason, createdAt, updatedAt);
     }
 
     public RateOverrideId id() { return id; }
@@ -62,6 +64,7 @@ public class RateOverride {
     public BigDecimal price() { return price; }
     public String reason() { return reason; }
     public Instant createdAt() { return createdAt; }
+    public Instant updatedAt() { return updatedAt; }
 
     @Override
     public boolean equals(Object o) {

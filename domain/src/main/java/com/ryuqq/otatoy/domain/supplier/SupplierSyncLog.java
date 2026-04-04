@@ -22,10 +22,13 @@ public class SupplierSyncLog {
     private final int updatedCount;
     private final int deletedCount;
     private String errorMessage;
+    private final Instant createdAt;
+    private Instant updatedAt;
 
     private SupplierSyncLog(SupplierSyncLogId id, SupplierId supplierId, SupplierSyncType syncType, Instant syncedAt,
                             SupplierSyncStatus status, int totalCount, int createdCount,
-                            int updatedCount, int deletedCount, String errorMessage) {
+                            int updatedCount, int deletedCount, String errorMessage,
+                            Instant createdAt, Instant updatedAt) {
         this.id = id;
         this.supplierId = supplierId;
         this.syncType = syncType;
@@ -36,26 +39,29 @@ public class SupplierSyncLog {
         this.updatedCount = updatedCount;
         this.deletedCount = deletedCount;
         this.errorMessage = errorMessage;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
     }
 
     public static SupplierSyncLog forSuccess(SupplierId supplierId, SupplierSyncType syncType, Instant syncedAt,
                                               int totalCount, int createdCount, int updatedCount,
                                               int deletedCount) {
         return new SupplierSyncLog(SupplierSyncLogId.of(null), supplierId, syncType, syncedAt,
-                SupplierSyncStatus.SUCCESS, totalCount, createdCount, updatedCount, deletedCount, null);
+                SupplierSyncStatus.SUCCESS, totalCount, createdCount, updatedCount, deletedCount, null, syncedAt, syncedAt);
     }
 
     public static SupplierSyncLog forFailed(SupplierId supplierId, SupplierSyncType syncType, Instant syncedAt,
                                              String errorMessage) {
         return new SupplierSyncLog(SupplierSyncLogId.of(null), supplierId, syncType, syncedAt,
-                SupplierSyncStatus.FAILED, 0, 0, 0, 0, errorMessage);
+                SupplierSyncStatus.FAILED, 0, 0, 0, 0, errorMessage, syncedAt, syncedAt);
     }
 
     public static SupplierSyncLog reconstitute(SupplierSyncLogId id, SupplierId supplierId, SupplierSyncType syncType, Instant syncedAt,
                                                 SupplierSyncStatus status, int totalCount, int createdCount,
-                                                int updatedCount, int deletedCount, String errorMessage) {
+                                                int updatedCount, int deletedCount, String errorMessage,
+                                                Instant createdAt, Instant updatedAt) {
         return new SupplierSyncLog(id, supplierId, syncType, syncedAt, status,
-                totalCount, createdCount, updatedCount, deletedCount, errorMessage);
+                totalCount, createdCount, updatedCount, deletedCount, errorMessage, createdAt, updatedAt);
     }
 
     public void markFailed(String errorMessage) {
@@ -73,6 +79,8 @@ public class SupplierSyncLog {
     public int updatedCount() { return updatedCount; }
     public int deletedCount() { return deletedCount; }
     public String errorMessage() { return errorMessage; }
+    public Instant createdAt() { return createdAt; }
+    public Instant updatedAt() { return updatedAt; }
 
     @Override
     public boolean equals(Object o) {

@@ -30,8 +30,8 @@ class ReservationTest {
 
     private static List<ReservationItem> defaultItems() {
         return List.of(
-                ReservationItem.forNew(null, InventoryId.of(100L), LocalDate.of(2026, 4, 10)),
-                ReservationItem.forNew(null, InventoryId.of(101L), LocalDate.of(2026, 4, 11))
+                ReservationItem.forNew(null, InventoryId.of(100L), LocalDate.of(2026, 4, 10), NOW),
+                ReservationItem.forNew(null, InventoryId.of(101L), LocalDate.of(2026, 4, 11), NOW)
         );
     }
 
@@ -47,7 +47,7 @@ class ReservationTest {
         return Reservation.reconstitute(
                 ReservationId.of(1L), RATE_PLAN_ID, RESERVATION_NO, GUEST_INFO,
                 STAY_PERIOD, GUEST_COUNT, TOTAL_AMOUNT, status, null,
-                BOOKING_SNAPSHOT, NOW, null, defaultItems()
+                BOOKING_SNAPSHOT, NOW, NOW, null, defaultItems()
         );
     }
 
@@ -70,6 +70,7 @@ class ReservationTest {
             assertThat(reservation.totalAmount()).isEqualTo(TOTAL_AMOUNT);
             assertThat(reservation.bookingSnapshot()).isEqualTo(BOOKING_SNAPSHOT);
             assertThat(reservation.createdAt()).isEqualTo(NOW);
+            assertThat(reservation.updatedAt()).isEqualTo(NOW);
             assertThat(reservation.cancelReason()).isNull();
             assertThat(reservation.cancelledAt()).isNull();
             assertThat(reservation.items()).hasSize(2);
@@ -168,8 +169,8 @@ class ReservationTest {
         void shouldFailWhenCheckInDateIsInThePast() {
             DateRange pastPeriod = new DateRange(LocalDate.of(2026, 4, 1), LocalDate.of(2026, 4, 3));
             List<ReservationItem> items = List.of(
-                    ReservationItem.forNew(null, InventoryId.of(100L), LocalDate.of(2026, 4, 1)),
-                    ReservationItem.forNew(null, InventoryId.of(101L), LocalDate.of(2026, 4, 2))
+                    ReservationItem.forNew(null, InventoryId.of(100L), LocalDate.of(2026, 4, 1), NOW),
+                    ReservationItem.forNew(null, InventoryId.of(101L), LocalDate.of(2026, 4, 2), NOW)
             );
 
             assertThatThrownBy(() -> Reservation.forNew(
@@ -186,7 +187,7 @@ class ReservationTest {
         void shouldSucceedWhenCheckInIsToday() {
             DateRange todayPeriod = new DateRange(TODAY, TODAY.plusDays(1));
             List<ReservationItem> items = List.of(
-                    ReservationItem.forNew(null, InventoryId.of(100L), TODAY)
+                    ReservationItem.forNew(null, InventoryId.of(100L), TODAY, NOW)
             );
 
             Reservation reservation = Reservation.forNew(
@@ -203,7 +204,7 @@ class ReservationTest {
         void shouldFailWhenStayExceeds30Nights() {
             DateRange longPeriod = new DateRange(TODAY.plusDays(1), TODAY.plusDays(32));
             List<ReservationItem> items = List.of(
-                    ReservationItem.forNew(null, InventoryId.of(100L), TODAY.plusDays(1))
+                    ReservationItem.forNew(null, InventoryId.of(100L), TODAY.plusDays(1), NOW)
             );
 
             assertThatThrownBy(() -> Reservation.forNew(
@@ -220,7 +221,7 @@ class ReservationTest {
         void shouldSucceedWhenStayIsExactly30Nights() {
             DateRange exactPeriod = new DateRange(TODAY.plusDays(1), TODAY.plusDays(31));
             List<ReservationItem> items = List.of(
-                    ReservationItem.forNew(null, InventoryId.of(100L), TODAY.plusDays(1))
+                    ReservationItem.forNew(null, InventoryId.of(100L), TODAY.plusDays(1), NOW)
             );
 
             Reservation reservation = Reservation.forNew(
@@ -262,7 +263,7 @@ class ReservationTest {
             Reservation reservation = createDefaultReservation();
 
             assertThatThrownBy(() -> reservation.items().add(
-                    ReservationItem.forNew(null, InventoryId.of(999L), LocalDate.of(2026, 4, 12))
+                    ReservationItem.forNew(null, InventoryId.of(999L), LocalDate.of(2026, 4, 12), NOW)
             ))
                     .isInstanceOf(UnsupportedOperationException.class);
         }
@@ -281,7 +282,7 @@ class ReservationTest {
             void shouldConfirmFromPending() {
                 Reservation reservation = createReservationWithStatus(ReservationStatus.PENDING);
 
-                reservation.confirm();
+                reservation.confirm(NOW);
 
                 assertThat(reservation.status()).isEqualTo(ReservationStatus.CONFIRMED);
             }
@@ -291,7 +292,7 @@ class ReservationTest {
             void shouldFailWhenAlreadyConfirmed() {
                 Reservation reservation = createReservationWithStatus(ReservationStatus.CONFIRMED);
 
-                assertThatThrownBy(reservation::confirm)
+                assertThatThrownBy(() -> reservation.confirm(NOW))
                         .isInstanceOf(InvalidReservationStateException.class);
             }
 
@@ -300,7 +301,7 @@ class ReservationTest {
             void shouldFailWhenCompleted() {
                 Reservation reservation = createReservationWithStatus(ReservationStatus.COMPLETED);
 
-                assertThatThrownBy(reservation::confirm)
+                assertThatThrownBy(() -> reservation.confirm(NOW))
                         .isInstanceOf(InvalidReservationStateException.class);
             }
 
@@ -309,7 +310,7 @@ class ReservationTest {
             void shouldFailWhenCancelled() {
                 Reservation reservation = createReservationWithStatus(ReservationStatus.CANCELLED);
 
-                assertThatThrownBy(reservation::confirm)
+                assertThatThrownBy(() -> reservation.confirm(NOW))
                         .isInstanceOf(InvalidReservationStateException.class);
             }
         }
@@ -393,7 +394,7 @@ class ReservationTest {
             void shouldCompleteFromConfirmed() {
                 Reservation reservation = createReservationWithStatus(ReservationStatus.CONFIRMED);
 
-                reservation.complete();
+                reservation.complete(NOW);
 
                 assertThat(reservation.status()).isEqualTo(ReservationStatus.COMPLETED);
             }
@@ -403,7 +404,7 @@ class ReservationTest {
             void shouldFailWhenPending() {
                 Reservation reservation = createReservationWithStatus(ReservationStatus.PENDING);
 
-                assertThatThrownBy(reservation::complete)
+                assertThatThrownBy(() -> reservation.complete(NOW))
                         .isInstanceOf(InvalidReservationStateException.class);
             }
 
@@ -412,7 +413,7 @@ class ReservationTest {
             void shouldFailWhenCancelled() {
                 Reservation reservation = createReservationWithStatus(ReservationStatus.CANCELLED);
 
-                assertThatThrownBy(reservation::complete)
+                assertThatThrownBy(() -> reservation.complete(NOW))
                         .isInstanceOf(InvalidReservationStateException.class);
             }
         }
@@ -426,7 +427,7 @@ class ReservationTest {
             void shouldNoShowFromConfirmed() {
                 Reservation reservation = createReservationWithStatus(ReservationStatus.CONFIRMED);
 
-                reservation.noShow();
+                reservation.noShow(NOW);
 
                 assertThat(reservation.status()).isEqualTo(ReservationStatus.NO_SHOW);
             }
@@ -436,7 +437,7 @@ class ReservationTest {
             void shouldFailWhenPending() {
                 Reservation reservation = createReservationWithStatus(ReservationStatus.PENDING);
 
-                assertThatThrownBy(reservation::noShow)
+                assertThatThrownBy(() -> reservation.noShow(NOW))
                         .isInstanceOf(InvalidReservationStateException.class);
             }
 
@@ -445,7 +446,7 @@ class ReservationTest {
             void shouldFailWhenCompleted() {
                 Reservation reservation = createReservationWithStatus(ReservationStatus.COMPLETED);
 
-                assertThatThrownBy(reservation::noShow)
+                assertThatThrownBy(() -> reservation.noShow(NOW))
                         .isInstanceOf(InvalidReservationStateException.class);
             }
 
@@ -454,7 +455,7 @@ class ReservationTest {
             void shouldFailWhenCancelled() {
                 Reservation reservation = createReservationWithStatus(ReservationStatus.CANCELLED);
 
-                assertThatThrownBy(reservation::noShow)
+                assertThatThrownBy(() -> reservation.noShow(NOW))
                         .isInstanceOf(InvalidReservationStateException.class);
             }
         }
@@ -469,12 +470,13 @@ class ReservationTest {
         void shouldReconstituteFaithfully() {
             ReservationId id = ReservationId.of(42L);
             Instant createdAt = Instant.parse("2026-04-01T00:00:00Z");
+            Instant updatedAt = Instant.parse("2026-04-03T10:00:00Z");
             Instant cancelledAt = Instant.parse("2026-04-03T12:00:00Z");
 
             Reservation reservation = Reservation.reconstitute(
                     id, RATE_PLAN_ID, RESERVATION_NO, GUEST_INFO, STAY_PERIOD,
                     GUEST_COUNT, TOTAL_AMOUNT, ReservationStatus.CANCELLED, "환불 요청",
-                    BOOKING_SNAPSHOT, createdAt, cancelledAt, defaultItems()
+                    BOOKING_SNAPSHOT, createdAt, updatedAt, cancelledAt, defaultItems()
             );
 
             assertThat(reservation.id()).isEqualTo(id);
@@ -488,6 +490,7 @@ class ReservationTest {
             assertThat(reservation.cancelReason()).isEqualTo("환불 요청");
             assertThat(reservation.bookingSnapshot()).isEqualTo(BOOKING_SNAPSHOT);
             assertThat(reservation.createdAt()).isEqualTo(createdAt);
+            assertThat(reservation.updatedAt()).isEqualTo(updatedAt);
             assertThat(reservation.cancelledAt()).isEqualTo(cancelledAt);
             assertThat(reservation.items()).hasSize(2);
         }

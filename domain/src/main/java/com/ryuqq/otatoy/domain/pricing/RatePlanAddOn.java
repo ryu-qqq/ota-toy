@@ -20,9 +20,10 @@ public class RatePlanAddOn {
     private BigDecimal price;
     private boolean included;
     private final Instant createdAt;
+    private Instant updatedAt;
 
     private RatePlanAddOn(RatePlanAddOnId id, RatePlanId ratePlanId, AddOnType addOnType,
-                          AddOnName name, BigDecimal price, boolean included, Instant createdAt) {
+                          AddOnName name, BigDecimal price, boolean included, Instant createdAt, Instant updatedAt) {
         this.id = id;
         this.ratePlanId = ratePlanId;
         this.addOnType = addOnType;
@@ -30,12 +31,13 @@ public class RatePlanAddOn {
         this.price = price;
         this.included = included;
         this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
     }
 
     public static RatePlanAddOn forNew(RatePlanId ratePlanId, AddOnType addOnType,
                                         AddOnName name, BigDecimal price, boolean included, Instant now) {
         validatePriceAndInclusion(price, included);
-        return new RatePlanAddOn(RatePlanAddOnId.of(null), ratePlanId, addOnType, name, price, included, now);
+        return new RatePlanAddOn(RatePlanAddOnId.of(null), ratePlanId, addOnType, name, price, included, now, now);
     }
 
     private static void validatePriceAndInclusion(BigDecimal price, boolean included) {
@@ -51,8 +53,9 @@ public class RatePlanAddOn {
     }
 
     public static RatePlanAddOn reconstitute(RatePlanAddOnId id, RatePlanId ratePlanId, AddOnType addOnType,
-                                              AddOnName name, BigDecimal price, boolean included, Instant createdAt) {
-        return new RatePlanAddOn(id, ratePlanId, addOnType, name, price, included, createdAt);
+                                              AddOnName name, BigDecimal price, boolean included,
+                                              Instant createdAt, Instant updatedAt) {
+        return new RatePlanAddOn(id, ratePlanId, addOnType, name, price, included, createdAt, updatedAt);
     }
 
     public boolean isFree() {
@@ -66,6 +69,7 @@ public class RatePlanAddOn {
     public BigDecimal price() { return price; }
     public boolean included() { return included; }
     public Instant createdAt() { return createdAt; }
+    public Instant updatedAt() { return updatedAt; }
 
     @Override
     public boolean equals(Object o) {

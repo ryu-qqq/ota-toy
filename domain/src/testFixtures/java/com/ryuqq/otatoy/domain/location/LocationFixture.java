@@ -2,6 +2,8 @@ package com.ryuqq.otatoy.domain.location;
 
 import com.ryuqq.otatoy.domain.property.Location;
 
+import java.time.Instant;
+
 /**
  * Location BC 테스트용 Fixture.
  * 다양한 상태의 Location, Landmark, PropertyLandmark 객체를 생성한다.
@@ -16,6 +18,7 @@ public final class LocationFixture {
     public static final double DEFAULT_LONGITUDE = 126.9780;
     public static final double DEFAULT_DISTANCE_KM = 1.5;
     public static final int DEFAULT_WALKING_MINUTES = 18;
+    public static final Instant DEFAULT_NOW = Instant.parse("2026-04-04T00:00:00Z");
 
     // === Location VO ===
 
@@ -96,7 +99,8 @@ public final class LocationFixture {
                 DEFAULT_PROPERTY_ID,
                 LandmarkId.of(1L),
                 DEFAULT_DISTANCE_KM,
-                DEFAULT_WALKING_MINUTES
+                DEFAULT_WALKING_MINUTES,
+                DEFAULT_NOW
         );
     }
 
@@ -108,7 +112,8 @@ public final class LocationFixture {
                 DEFAULT_PROPERTY_ID,
                 LandmarkId.of(1L),
                 distanceKm,
-                walkingMinutes
+                walkingMinutes,
+                DEFAULT_NOW
         );
     }
 
@@ -121,7 +126,8 @@ public final class LocationFixture {
                 DEFAULT_PROPERTY_ID,
                 LandmarkId.of(1L),
                 DEFAULT_DISTANCE_KM,
-                DEFAULT_WALKING_MINUTES
+                DEFAULT_WALKING_MINUTES,
+                DEFAULT_NOW, DEFAULT_NOW
         );
     }
 
@@ -132,7 +138,7 @@ public final class LocationFixture {
                                                                   double distanceKm, int walkingMinutes) {
         return PropertyLandmark.reconstitute(
                 PropertyLandmarkId.of(id), propertyId, LandmarkId.of(landmarkId),
-                distanceKm, walkingMinutes
+                distanceKm, walkingMinutes, DEFAULT_NOW, DEFAULT_NOW
         );
     }
 }

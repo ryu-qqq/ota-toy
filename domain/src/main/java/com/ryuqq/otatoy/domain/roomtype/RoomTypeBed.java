@@ -2,6 +2,7 @@ package com.ryuqq.otatoy.domain.roomtype;
 
 import com.ryuqq.otatoy.domain.roomattribute.BedTypeId;
 
+import java.time.Instant;
 import java.util.Objects;
 
 /**
@@ -17,17 +18,22 @@ public class RoomTypeBed {
     private final RoomTypeId roomTypeId;
     private final BedTypeId bedTypeId;
     private final int quantity;
+    private final Instant createdAt;
+    private Instant updatedAt;
 
-    private RoomTypeBed(RoomTypeBedId id, RoomTypeId roomTypeId, BedTypeId bedTypeId, int quantity) {
+    private RoomTypeBed(RoomTypeBedId id, RoomTypeId roomTypeId, BedTypeId bedTypeId, int quantity,
+                        Instant createdAt, Instant updatedAt) {
         this.id = id;
         this.roomTypeId = roomTypeId;
         this.bedTypeId = bedTypeId;
         this.quantity = quantity;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
     }
 
-    public static RoomTypeBed forNew(RoomTypeId roomTypeId, BedTypeId bedTypeId, int quantity) {
+    public static RoomTypeBed forNew(RoomTypeId roomTypeId, BedTypeId bedTypeId, int quantity, Instant now) {
         validate(bedTypeId, quantity);
-        return new RoomTypeBed(RoomTypeBedId.of(null), roomTypeId, bedTypeId, quantity);
+        return new RoomTypeBed(RoomTypeBedId.of(null), roomTypeId, bedTypeId, quantity, now, now);
     }
 
     private static void validate(BedTypeId bedTypeId, int quantity) {
@@ -39,14 +45,17 @@ public class RoomTypeBed {
         }
     }
 
-    public static RoomTypeBed reconstitute(RoomTypeBedId id, RoomTypeId roomTypeId, BedTypeId bedTypeId, int quantity) {
-        return new RoomTypeBed(id, roomTypeId, bedTypeId, quantity);
+    public static RoomTypeBed reconstitute(RoomTypeBedId id, RoomTypeId roomTypeId, BedTypeId bedTypeId, int quantity,
+                                              Instant createdAt, Instant updatedAt) {
+        return new RoomTypeBed(id, roomTypeId, bedTypeId, quantity, createdAt, updatedAt);
     }
 
     public RoomTypeBedId id() { return id; }
     public RoomTypeId roomTypeId() { return roomTypeId; }
     public BedTypeId bedTypeId() { return bedTypeId; }
     public int quantity() { return quantity; }
+    public Instant createdAt() { return createdAt; }
+    public Instant updatedAt() { return updatedAt; }
 
     @Override
     public boolean equals(Object o) {

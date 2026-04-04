@@ -4,10 +4,14 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class PropertyLandmarkTest {
+
+    private static final Instant NOW = Instant.parse("2026-04-04T00:00:00Z");
 
     @Nested
     @DisplayName("forNew() 생성 검증")
@@ -16,26 +20,22 @@ class PropertyLandmarkTest {
         @Test
         @DisplayName("PropertyLandmark 정상 생성")
         void shouldCreateSuccessfully() {
-            // when
-            PropertyLandmark pl = PropertyLandmark.forNew(
-                    1L, LandmarkId.of(10L), 1.5, 18
-            );
+            PropertyLandmark pl = PropertyLandmark.forNew(1L, LandmarkId.of(10L), 1.5, 18, NOW);
 
-            // then
             assertThat(pl).isNotNull();
             assertThat(pl.id().isNew()).isTrue();
             assertThat(pl.propertyId()).isEqualTo(1L);
             assertThat(pl.landmarkId()).isEqualTo(LandmarkId.of(10L));
             assertThat(pl.distanceKm()).isEqualTo(1.5);
             assertThat(pl.walkingMinutes()).isEqualTo(18);
+            assertThat(pl.createdAt()).isEqualTo(NOW);
+            assertThat(pl.updatedAt()).isEqualTo(NOW);
         }
 
         @Test
         @DisplayName("propertyId가 0이면 생성 실패")
         void shouldFailWhenPropertyIdIsZero() {
-            assertThatThrownBy(() -> PropertyLandmark.forNew(
-                    0, LandmarkId.of(1L), 1.0, 10
-            ))
+            assertThatThrownBy(() -> PropertyLandmark.forNew(0, LandmarkId.of(1L), 1.0, 10, NOW))
                     .isInstanceOf(LocationException.class)
                     .hasMessageContaining("숙소 ID");
         }
@@ -43,9 +43,7 @@ class PropertyLandmarkTest {
         @Test
         @DisplayName("propertyId가 음수이면 생성 실패")
         void shouldFailWhenPropertyIdIsNegative() {
-            assertThatThrownBy(() -> PropertyLandmark.forNew(
-                    -1, LandmarkId.of(1L), 1.0, 10
-            ))
+            assertThatThrownBy(() -> PropertyLandmark.forNew(-1, LandmarkId.of(1L), 1.0, 10, NOW))
                     .isInstanceOf(LocationException.class)
                     .hasMessageContaining("숙소 ID");
         }
@@ -53,9 +51,7 @@ class PropertyLandmarkTest {
         @Test
         @DisplayName("landmarkId가 null이면 생성 실패")
         void shouldFailWhenLandmarkIdIsNull() {
-            assertThatThrownBy(() -> PropertyLandmark.forNew(
-                    1L, null, 1.0, 10
-            ))
+            assertThatThrownBy(() -> PropertyLandmark.forNew(1L, null, 1.0, 10, NOW))
                     .isInstanceOf(LocationException.class)
                     .hasMessageContaining("랜드마크 ID");
         }
@@ -63,9 +59,7 @@ class PropertyLandmarkTest {
         @Test
         @DisplayName("landmarkId value가 null이면 생성 실패")
         void shouldFailWhenLandmarkIdValueIsNull() {
-            assertThatThrownBy(() -> PropertyLandmark.forNew(
-                    1L, LandmarkId.of(null), 1.0, 10
-            ))
+            assertThatThrownBy(() -> PropertyLandmark.forNew(1L, LandmarkId.of(null), 1.0, 10, NOW))
                     .isInstanceOf(LocationException.class)
                     .hasMessageContaining("랜드마크 ID");
         }
@@ -73,9 +67,7 @@ class PropertyLandmarkTest {
         @Test
         @DisplayName("distanceKm가 음수이면 생성 실패")
         void shouldFailWhenDistanceIsNegative() {
-            assertThatThrownBy(() -> PropertyLandmark.forNew(
-                    1L, LandmarkId.of(1L), -0.1, 10
-            ))
+            assertThatThrownBy(() -> PropertyLandmark.forNew(1L, LandmarkId.of(1L), -0.1, 10, NOW))
                     .isInstanceOf(LocationException.class)
                     .hasMessageContaining("거리");
         }
@@ -83,9 +75,7 @@ class PropertyLandmarkTest {
         @Test
         @DisplayName("walkingMinutes가 음수이면 생성 실패")
         void shouldFailWhenWalkingMinutesIsNegative() {
-            assertThatThrownBy(() -> PropertyLandmark.forNew(
-                    1L, LandmarkId.of(1L), 1.0, -1
-            ))
+            assertThatThrownBy(() -> PropertyLandmark.forNew(1L, LandmarkId.of(1L), 1.0, -1, NOW))
                     .isInstanceOf(LocationException.class)
                     .hasMessageContaining("도보 시간");
         }
@@ -93,9 +83,7 @@ class PropertyLandmarkTest {
         @Test
         @DisplayName("경계값 -- distanceKm=0, walkingMinutes=0은 성공")
         void shouldSucceedWithZeroValues() {
-            PropertyLandmark pl = PropertyLandmark.forNew(
-                    1L, LandmarkId.of(1L), 0, 0
-            );
+            PropertyLandmark pl = PropertyLandmark.forNew(1L, LandmarkId.of(1L), 0, 0, NOW);
 
             assertThat(pl.distanceKm()).isEqualTo(0);
             assertThat(pl.walkingMinutes()).isEqualTo(0);
@@ -109,18 +97,18 @@ class PropertyLandmarkTest {
         @Test
         @DisplayName("모든 필드가 올바르게 복원된다")
         void shouldReconstituteWithAllFields() {
-            // when
             PropertyLandmark pl = PropertyLandmark.reconstitute(
-                    PropertyLandmarkId.of(99L), 5L, LandmarkId.of(10L), 2.3, 28
+                    PropertyLandmarkId.of(99L), 5L, LandmarkId.of(10L), 2.3, 28, NOW, NOW
             );
 
-            // then
             assertThat(pl.id()).isEqualTo(PropertyLandmarkId.of(99L));
             assertThat(pl.id().isNew()).isFalse();
             assertThat(pl.propertyId()).isEqualTo(5L);
             assertThat(pl.landmarkId()).isEqualTo(LandmarkId.of(10L));
             assertThat(pl.distanceKm()).isEqualTo(2.3);
             assertThat(pl.walkingMinutes()).isEqualTo(28);
+            assertThat(pl.createdAt()).isEqualTo(NOW);
+            assertThat(pl.updatedAt()).isEqualTo(NOW);
         }
     }
 
@@ -132,10 +120,10 @@ class PropertyLandmarkTest {
         @DisplayName("동일 ID의 PropertyLandmark는 equals true")
         void shouldBeEqualWithSameId() {
             PropertyLandmark a = PropertyLandmark.reconstitute(
-                    PropertyLandmarkId.of(1L), 1L, LandmarkId.of(1L), 1.0, 10
+                    PropertyLandmarkId.of(1L), 1L, LandmarkId.of(1L), 1.0, 10, NOW, NOW
             );
             PropertyLandmark b = PropertyLandmark.reconstitute(
-                    PropertyLandmarkId.of(1L), 2L, LandmarkId.of(2L), 2.0, 20
+                    PropertyLandmarkId.of(1L), 2L, LandmarkId.of(2L), 2.0, 20, NOW, NOW
             );
 
             assertThat(a).isEqualTo(b);
@@ -146,10 +134,10 @@ class PropertyLandmarkTest {
         @DisplayName("다른 ID의 PropertyLandmark는 equals false")
         void shouldNotBeEqualWithDifferentId() {
             PropertyLandmark a = PropertyLandmark.reconstitute(
-                    PropertyLandmarkId.of(1L), 1L, LandmarkId.of(1L), 1.0, 10
+                    PropertyLandmarkId.of(1L), 1L, LandmarkId.of(1L), 1.0, 10, NOW, NOW
             );
             PropertyLandmark b = PropertyLandmark.reconstitute(
-                    PropertyLandmarkId.of(2L), 1L, LandmarkId.of(1L), 1.0, 10
+                    PropertyLandmarkId.of(2L), 1L, LandmarkId.of(1L), 1.0, 10, NOW, NOW
             );
 
             assertThat(a).isNotEqualTo(b);

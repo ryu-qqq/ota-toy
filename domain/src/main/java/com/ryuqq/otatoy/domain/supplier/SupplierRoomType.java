@@ -20,23 +20,27 @@ public class SupplierRoomType {
     private final String supplierRoomCode;
     private Instant lastSyncedAt;
     private SupplierMappingStatus status;
+    private final Instant createdAt;
+    private Instant updatedAt;
 
     private SupplierRoomType(SupplierRoomTypeId id, SupplierPropertyId supplierPropertyId, RoomTypeId roomTypeId,
                              String supplierRoomCode, Instant lastSyncedAt,
-                             SupplierMappingStatus status) {
+                             SupplierMappingStatus status, Instant createdAt, Instant updatedAt) {
         this.id = id;
         this.supplierPropertyId = supplierPropertyId;
         this.roomTypeId = roomTypeId;
         this.supplierRoomCode = supplierRoomCode;
         this.lastSyncedAt = lastSyncedAt;
         this.status = status;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
     }
 
     public static SupplierRoomType forNew(SupplierPropertyId supplierPropertyId, RoomTypeId roomTypeId,
-                                           String supplierRoomCode) {
+                                           String supplierRoomCode, Instant now) {
         validate(supplierRoomCode);
         return new SupplierRoomType(SupplierRoomTypeId.of(null), supplierPropertyId, roomTypeId, supplierRoomCode,
-                null, SupplierMappingStatus.MAPPED);
+                null, SupplierMappingStatus.MAPPED, now, now);
     }
 
     private static void validate(String supplierRoomCode) {
@@ -47,8 +51,8 @@ public class SupplierRoomType {
 
     public static SupplierRoomType reconstitute(SupplierRoomTypeId id, SupplierPropertyId supplierPropertyId, RoomTypeId roomTypeId,
                                                  String supplierRoomCode, Instant lastSyncedAt,
-                                                 SupplierMappingStatus status) {
-        return new SupplierRoomType(id, supplierPropertyId, roomTypeId, supplierRoomCode, lastSyncedAt, status);
+                                                 SupplierMappingStatus status, Instant createdAt, Instant updatedAt) {
+        return new SupplierRoomType(id, supplierPropertyId, roomTypeId, supplierRoomCode, lastSyncedAt, status, createdAt, updatedAt);
     }
 
     public void synced(Instant syncedAt) {
@@ -56,10 +60,12 @@ public class SupplierRoomType {
             throw new IllegalStateException("매핑 해제된 상태에서는 동기화할 수 없습니다");
         }
         this.lastSyncedAt = syncedAt;
+        this.updatedAt = syncedAt;
     }
 
-    public void unmap() {
+    public void unmap(Instant now) {
         this.status = SupplierMappingStatus.UNMAPPED;
+        this.updatedAt = now;
     }
 
     public SupplierRoomTypeId id() { return id; }
@@ -68,6 +74,8 @@ public class SupplierRoomType {
     public String supplierRoomCode() { return supplierRoomCode; }
     public Instant lastSyncedAt() { return lastSyncedAt; }
     public SupplierMappingStatus status() { return status; }
+    public Instant createdAt() { return createdAt; }
+    public Instant updatedAt() { return updatedAt; }
 
     @Override
     public boolean equals(Object o) {

@@ -2,6 +2,7 @@ package com.ryuqq.otatoy.domain.property;
 
 import com.ryuqq.otatoy.domain.propertytype.PropertyTypeAttributeId;
 
+import java.time.Instant;
 import java.util.Objects;
 
 /**
@@ -17,18 +18,24 @@ public class PropertyAttributeValue {
     private final PropertyId propertyId;
     private final PropertyTypeAttributeId propertyTypeAttributeId;
     private final String value;
+    private final Instant createdAt;
+    private Instant updatedAt;
 
     private PropertyAttributeValue(PropertyAttributeValueId id, PropertyId propertyId,
-                                    PropertyTypeAttributeId propertyTypeAttributeId, String value) {
+                                    PropertyTypeAttributeId propertyTypeAttributeId, String value,
+                                    Instant createdAt, Instant updatedAt) {
         this.id = id;
         this.propertyId = propertyId;
         this.propertyTypeAttributeId = propertyTypeAttributeId;
         this.value = value;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
     }
 
-    public static PropertyAttributeValue forNew(PropertyId propertyId, PropertyTypeAttributeId propertyTypeAttributeId, String value) {
+    public static PropertyAttributeValue forNew(PropertyId propertyId, PropertyTypeAttributeId propertyTypeAttributeId,
+                                                 String value, Instant now) {
         validate(propertyId, propertyTypeAttributeId);
-        return new PropertyAttributeValue(PropertyAttributeValueId.of(null), propertyId, propertyTypeAttributeId, value);
+        return new PropertyAttributeValue(PropertyAttributeValueId.of(null), propertyId, propertyTypeAttributeId, value, now, now);
     }
 
     private static void validate(PropertyId propertyId, PropertyTypeAttributeId propertyTypeAttributeId) {
@@ -41,14 +48,17 @@ public class PropertyAttributeValue {
     }
 
     public static PropertyAttributeValue reconstitute(PropertyAttributeValueId id, PropertyId propertyId,
-                                                       PropertyTypeAttributeId propertyTypeAttributeId, String value) {
-        return new PropertyAttributeValue(id, propertyId, propertyTypeAttributeId, value);
+                                                       PropertyTypeAttributeId propertyTypeAttributeId, String value,
+                                                       Instant createdAt, Instant updatedAt) {
+        return new PropertyAttributeValue(id, propertyId, propertyTypeAttributeId, value, createdAt, updatedAt);
     }
 
     public PropertyAttributeValueId id() { return id; }
     public PropertyId propertyId() { return propertyId; }
     public PropertyTypeAttributeId propertyTypeAttributeId() { return propertyTypeAttributeId; }
     public String value() { return value; }
+    public Instant createdAt() { return createdAt; }
+    public Instant updatedAt() { return updatedAt; }
 
     @Override
     public boolean equals(Object o) {

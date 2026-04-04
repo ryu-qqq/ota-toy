@@ -1,5 +1,6 @@
 package com.ryuqq.otatoy.domain.location;
 
+import java.time.Instant;
 import java.util.Objects;
 
 /**
@@ -16,21 +17,26 @@ public class PropertyLandmark {
     private final LandmarkId landmarkId;
     private final double distanceKm;
     private final int walkingMinutes;
+    private final Instant createdAt;
+    private Instant updatedAt;
 
     private PropertyLandmark(PropertyLandmarkId id, long propertyId, LandmarkId landmarkId,
-                              double distanceKm, int walkingMinutes) {
+                              double distanceKm, int walkingMinutes,
+                              Instant createdAt, Instant updatedAt) {
         this.id = id;
         this.propertyId = propertyId;
         this.landmarkId = landmarkId;
         this.distanceKm = distanceKm;
         this.walkingMinutes = walkingMinutes;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
     }
 
     public static PropertyLandmark forNew(long propertyId, LandmarkId landmarkId,
-                                           double distanceKm, int walkingMinutes) {
+                                           double distanceKm, int walkingMinutes, Instant now) {
         validateRequired(propertyId, landmarkId);
         validateMeasurements(distanceKm, walkingMinutes);
-        return new PropertyLandmark(PropertyLandmarkId.of(null), propertyId, landmarkId, distanceKm, walkingMinutes);
+        return new PropertyLandmark(PropertyLandmarkId.of(null), propertyId, landmarkId, distanceKm, walkingMinutes, now, now);
     }
 
     private static void validateRequired(long propertyId, LandmarkId landmarkId) {
@@ -52,8 +58,9 @@ public class PropertyLandmark {
     }
 
     public static PropertyLandmark reconstitute(PropertyLandmarkId id, long propertyId, LandmarkId landmarkId,
-                                                 double distanceKm, int walkingMinutes) {
-        return new PropertyLandmark(id, propertyId, landmarkId, distanceKm, walkingMinutes);
+                                                 double distanceKm, int walkingMinutes,
+                                                 Instant createdAt, Instant updatedAt) {
+        return new PropertyLandmark(id, propertyId, landmarkId, distanceKm, walkingMinutes, createdAt, updatedAt);
     }
 
     public PropertyLandmarkId id() { return id; }
@@ -61,6 +68,8 @@ public class PropertyLandmark {
     public LandmarkId landmarkId() { return landmarkId; }
     public double distanceKm() { return distanceKm; }
     public int walkingMinutes() { return walkingMinutes; }
+    public Instant createdAt() { return createdAt; }
+    public Instant updatedAt() { return updatedAt; }
 
     @Override
     public boolean equals(Object o) {

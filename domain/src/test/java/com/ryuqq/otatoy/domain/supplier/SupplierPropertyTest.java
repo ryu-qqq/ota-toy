@@ -35,7 +35,7 @@ class SupplierPropertyTest {
         @DisplayName("supplierPropertyCode가 null이면 생성 실패")
         void shouldFailWhenCodeIsNull() {
             assertThatThrownBy(() -> SupplierProperty.forNew(
-                    SupplierId.of(1L), PropertyId.of(100L), null
+                    SupplierId.of(1L), PropertyId.of(100L), null, NOW
             )).isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("공급자 숙소 코드");
         }
@@ -44,7 +44,7 @@ class SupplierPropertyTest {
         @DisplayName("supplierPropertyCode가 blank이면 생성 실패")
         void shouldFailWhenCodeIsBlank() {
             assertThatThrownBy(() -> SupplierProperty.forNew(
-                    SupplierId.of(1L), PropertyId.of(100L), "  "
+                    SupplierId.of(1L), PropertyId.of(100L), "  ", NOW
             )).isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("공급자 숙소 코드");
         }
@@ -100,7 +100,7 @@ class SupplierPropertyTest {
         void shouldChangeToUnmapped() {
             SupplierProperty sp = SupplierFixture.mappedProperty();
 
-            sp.unmap();
+            sp.unmap(NOW);
 
             assertThat(sp.status()).isEqualTo(SupplierMappingStatus.UNMAPPED);
         }
@@ -110,7 +110,7 @@ class SupplierPropertyTest {
         void shouldBeIdempotentWhenAlreadyUnmapped() {
             SupplierProperty sp = SupplierFixture.unmappedProperty();
 
-            sp.unmap();
+            sp.unmap(NOW);
 
             assertThat(sp.status()).isEqualTo(SupplierMappingStatus.UNMAPPED);
         }

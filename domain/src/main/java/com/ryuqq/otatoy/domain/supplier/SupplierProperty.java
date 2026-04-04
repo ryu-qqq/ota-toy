@@ -20,23 +20,27 @@ public class SupplierProperty {
     private final String supplierPropertyCode;
     private Instant lastSyncedAt;
     private SupplierMappingStatus status;
+    private final Instant createdAt;
+    private Instant updatedAt;
 
     private SupplierProperty(SupplierPropertyId id, SupplierId supplierId, PropertyId propertyId,
                              String supplierPropertyCode, Instant lastSyncedAt,
-                             SupplierMappingStatus status) {
+                             SupplierMappingStatus status, Instant createdAt, Instant updatedAt) {
         this.id = id;
         this.supplierId = supplierId;
         this.propertyId = propertyId;
         this.supplierPropertyCode = supplierPropertyCode;
         this.lastSyncedAt = lastSyncedAt;
         this.status = status;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
     }
 
     public static SupplierProperty forNew(SupplierId supplierId, PropertyId propertyId,
-                                           String supplierPropertyCode) {
+                                           String supplierPropertyCode, Instant now) {
         validate(supplierPropertyCode);
         return new SupplierProperty(SupplierPropertyId.of(null), supplierId, propertyId, supplierPropertyCode,
-                null, SupplierMappingStatus.MAPPED);
+                null, SupplierMappingStatus.MAPPED, now, now);
     }
 
     private static void validate(String supplierPropertyCode) {
@@ -47,8 +51,8 @@ public class SupplierProperty {
 
     public static SupplierProperty reconstitute(SupplierPropertyId id, SupplierId supplierId, PropertyId propertyId,
                                                  String supplierPropertyCode, Instant lastSyncedAt,
-                                                 SupplierMappingStatus status) {
-        return new SupplierProperty(id, supplierId, propertyId, supplierPropertyCode, lastSyncedAt, status);
+                                                 SupplierMappingStatus status, Instant createdAt, Instant updatedAt) {
+        return new SupplierProperty(id, supplierId, propertyId, supplierPropertyCode, lastSyncedAt, status, createdAt, updatedAt);
     }
 
     public void synced(Instant syncedAt) {
@@ -56,10 +60,12 @@ public class SupplierProperty {
             throw new IllegalStateException("매핑 해제된 상태에서는 동기화할 수 없습니다");
         }
         this.lastSyncedAt = syncedAt;
+        this.updatedAt = syncedAt;
     }
 
-    public void unmap() {
+    public void unmap(Instant now) {
         this.status = SupplierMappingStatus.UNMAPPED;
+        this.updatedAt = now;
     }
 
     public SupplierPropertyId id() { return id; }
@@ -68,6 +74,8 @@ public class SupplierProperty {
     public String supplierPropertyCode() { return supplierPropertyCode; }
     public Instant lastSyncedAt() { return lastSyncedAt; }
     public SupplierMappingStatus status() { return status; }
+    public Instant createdAt() { return createdAt; }
+    public Instant updatedAt() { return updatedAt; }
 
     @Override
     public boolean equals(Object o) {

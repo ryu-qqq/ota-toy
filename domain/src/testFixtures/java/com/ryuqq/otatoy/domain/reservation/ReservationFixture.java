@@ -35,8 +35,8 @@ public final class ReservationFixture {
      */
     public static List<ReservationItem> defaultItems() {
         return List.of(
-                ReservationItem.forNew(null, InventoryId.of(100L), LocalDate.of(2026, 4, 10)),
-                ReservationItem.forNew(null, InventoryId.of(101L), LocalDate.of(2026, 4, 11))
+                ReservationItem.forNew(null, InventoryId.of(100L), LocalDate.of(2026, 4, 10), DEFAULT_NOW),
+                ReservationItem.forNew(null, InventoryId.of(101L), LocalDate.of(2026, 4, 11), DEFAULT_NOW)
         );
     }
 
@@ -44,7 +44,7 @@ public final class ReservationFixture {
      * 단일 예약 항목 (1박)
      */
     public static ReservationItem singleItem(LocalDate stayDate, long inventoryIdValue) {
-        return ReservationItem.forNew(null, InventoryId.of(inventoryIdValue), stayDate);
+        return ReservationItem.forNew(null, InventoryId.of(inventoryIdValue), stayDate, DEFAULT_NOW);
     }
 
     /**
@@ -55,7 +55,7 @@ public final class ReservationFixture {
                 ReservationItemId.of(id),
                 ReservationId.of(reservationId),
                 InventoryId.of(inventoryId),
-                stayDate
+                stayDate, DEFAULT_NOW, DEFAULT_NOW
         );
     }
 
@@ -79,7 +79,7 @@ public final class ReservationFixture {
         return Reservation.reconstitute(
                 ReservationId.of(1L), DEFAULT_RATE_PLAN_ID, DEFAULT_RESERVATION_NO, DEFAULT_GUEST_INFO,
                 DEFAULT_STAY_PERIOD, DEFAULT_GUEST_COUNT, DEFAULT_TOTAL_AMOUNT, status, null,
-                DEFAULT_BOOKING_SNAPSHOT, DEFAULT_NOW, null, defaultItems()
+                DEFAULT_BOOKING_SNAPSHOT, DEFAULT_NOW, DEFAULT_NOW, null, defaultItems()
         );
     }
 
@@ -97,7 +97,7 @@ public final class ReservationFixture {
         return Reservation.reconstitute(
                 ReservationId.of(2L), DEFAULT_RATE_PLAN_ID, DEFAULT_RESERVATION_NO, DEFAULT_GUEST_INFO,
                 DEFAULT_STAY_PERIOD, DEFAULT_GUEST_COUNT, DEFAULT_TOTAL_AMOUNT, ReservationStatus.CANCELLED,
-                "고객 요청 취소", DEFAULT_BOOKING_SNAPSHOT, DEFAULT_NOW,
+                "고객 요청 취소", DEFAULT_BOOKING_SNAPSHOT, DEFAULT_NOW, DEFAULT_NOW,
                 Instant.parse("2026-04-05T10:00:00Z"), defaultItems()
         );
     }

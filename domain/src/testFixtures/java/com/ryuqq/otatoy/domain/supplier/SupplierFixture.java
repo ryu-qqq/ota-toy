@@ -80,7 +80,7 @@ public final class SupplierFixture {
      */
     public static SupplierProperty mappedProperty() {
         return SupplierProperty.forNew(
-                SupplierId.of(1L), PropertyId.of(100L), "EXT-PROP-001"
+                SupplierId.of(1L), PropertyId.of(100L), "EXT-PROP-001", DEFAULT_NOW
         );
     }
 
@@ -90,7 +90,7 @@ public final class SupplierFixture {
     public static SupplierProperty reconstitutedProperty(SupplierMappingStatus status) {
         return SupplierProperty.reconstitute(
                 SupplierPropertyId.of(1L), SupplierId.of(1L), PropertyId.of(100L),
-                "EXT-PROP-001", DEFAULT_NOW, status
+                "EXT-PROP-001", DEFAULT_NOW, status, DEFAULT_NOW, DEFAULT_NOW
         );
     }
 
@@ -108,7 +108,7 @@ public final class SupplierFixture {
      */
     public static SupplierRoomType mappedRoomType() {
         return SupplierRoomType.forNew(
-                SupplierPropertyId.of(1L), RoomTypeId.of(200L), "EXT-ROOM-001"
+                SupplierPropertyId.of(1L), RoomTypeId.of(200L), "EXT-ROOM-001", DEFAULT_NOW
         );
     }
 
@@ -118,7 +118,7 @@ public final class SupplierFixture {
     public static SupplierRoomType reconstitutedRoomType(SupplierMappingStatus status) {
         return SupplierRoomType.reconstitute(
                 SupplierRoomTypeId.of(1L), SupplierPropertyId.of(1L), RoomTypeId.of(200L),
-                "EXT-ROOM-001", DEFAULT_NOW, status
+                "EXT-ROOM-001", DEFAULT_NOW, status, DEFAULT_NOW, DEFAULT_NOW
         );
     }
 
@@ -157,7 +157,8 @@ public final class SupplierFixture {
     public static SupplierSyncLog reconstitutedSyncLog(SupplierSyncStatus status) {
         return SupplierSyncLog.reconstitute(
                 SupplierSyncLogId.of(1L), SupplierId.of(1L), SupplierSyncType.FULL, DEFAULT_NOW,
-                status, 10, 5, 3, 2, status == SupplierSyncStatus.FAILED ? "에러 발생" : null
+                status, 10, 5, 3, 2, status == SupplierSyncStatus.FAILED ? "에러 발생" : null,
+                DEFAULT_NOW, DEFAULT_NOW
         );
     }
 }

@@ -1,5 +1,6 @@
 package com.ryuqq.otatoy.domain.roomtype;
 
+import java.time.Instant;
 import java.util.Objects;
 
 /**
@@ -15,17 +16,22 @@ public class RoomTypeAttribute {
     private final RoomTypeId roomTypeId;
     private final String attributeKey;
     private final String attributeValue;
+    private final Instant createdAt;
+    private Instant updatedAt;
 
-    private RoomTypeAttribute(RoomTypeAttributeId id, RoomTypeId roomTypeId, String attributeKey, String attributeValue) {
+    private RoomTypeAttribute(RoomTypeAttributeId id, RoomTypeId roomTypeId, String attributeKey, String attributeValue,
+                               Instant createdAt, Instant updatedAt) {
         this.id = id;
         this.roomTypeId = roomTypeId;
         this.attributeKey = attributeKey;
         this.attributeValue = attributeValue;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
     }
 
-    public static RoomTypeAttribute forNew(RoomTypeId roomTypeId, String attributeKey, String attributeValue) {
+    public static RoomTypeAttribute forNew(RoomTypeId roomTypeId, String attributeKey, String attributeValue, Instant now) {
         validate(attributeKey);
-        return new RoomTypeAttribute(RoomTypeAttributeId.of(null), roomTypeId, attributeKey, attributeValue);
+        return new RoomTypeAttribute(RoomTypeAttributeId.of(null), roomTypeId, attributeKey, attributeValue, now, now);
     }
 
     private static void validate(String attributeKey) {
@@ -35,14 +41,17 @@ public class RoomTypeAttribute {
     }
 
     public static RoomTypeAttribute reconstitute(RoomTypeAttributeId id, RoomTypeId roomTypeId,
-                                                  String attributeKey, String attributeValue) {
-        return new RoomTypeAttribute(id, roomTypeId, attributeKey, attributeValue);
+                                                  String attributeKey, String attributeValue,
+                                                  Instant createdAt, Instant updatedAt) {
+        return new RoomTypeAttribute(id, roomTypeId, attributeKey, attributeValue, createdAt, updatedAt);
     }
 
     public RoomTypeAttributeId id() { return id; }
     public RoomTypeId roomTypeId() { return roomTypeId; }
     public String attributeKey() { return attributeKey; }
     public String attributeValue() { return attributeValue; }
+    public Instant createdAt() { return createdAt; }
+    public Instant updatedAt() { return updatedAt; }
 
     @Override
     public boolean equals(Object o) {

@@ -108,7 +108,7 @@ public final class PricingFixtures {
         return RateOverride.reconstitute(
                 RateOverrideId.of(id), RATE_RULE_ID,
                 LocalDate.of(2026, 4, 5), BigDecimal.valueOf(170_000),
-                "공휴일 특가", NOW
+                "공휴일 특가", NOW, NOW
         );
     }
 
@@ -151,7 +151,7 @@ public final class PricingFixtures {
         return RatePlanAddOn.reconstitute(
                 RatePlanAddOnId.of(id), RATE_PLAN_ID,
                 AddOnType.of("BREAKFAST"), AddOnName.of("조식 뷔페"),
-                BigDecimal.valueOf(23_000), false, NOW
+                BigDecimal.valueOf(23_000), false, NOW, NOW
         );
     }
 

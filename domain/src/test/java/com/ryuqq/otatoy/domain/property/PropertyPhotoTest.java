@@ -8,12 +8,15 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class PropertyPhotoTest {
 
     private static final PropertyId PROPERTY_ID = PropertyId.of(1L);
+    private static final Instant NOW = Instant.parse("2026-04-04T00:00:00Z");
 
     @Nested
     @DisplayName("생성 검증")
@@ -26,7 +29,7 @@ class PropertyPhotoTest {
             PropertyPhoto photo = PropertyPhoto.forNew(
                     PROPERTY_ID, PhotoType.EXTERIOR,
                     OriginUrl.of("https://example.com/photo.jpg"),
-                    CdnUrl.of("https://cdn.example.com/photo.jpg"), 1
+                    CdnUrl.of("https://cdn.example.com/photo.jpg"), 1, NOW
             );
 
             // then

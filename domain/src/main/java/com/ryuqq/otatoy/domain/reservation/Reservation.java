@@ -33,14 +33,15 @@ public class Reservation {
     private String cancelReason;
     private final String bookingSnapshot;
     private final Instant createdAt;
+    private Instant updatedAt;
     private Instant cancelledAt;
     private final List<ReservationItem> items;
 
     private Reservation(ReservationId id, RatePlanId ratePlanId, ReservationNo reservationNo,
                         GuestInfo guestInfo, DateRange stayPeriod, int guestCount,
                         Money totalAmount, ReservationStatus status, String cancelReason,
-                        String bookingSnapshot, Instant createdAt, Instant cancelledAt,
-                        List<ReservationItem> items) {
+                        String bookingSnapshot, Instant createdAt, Instant updatedAt,
+                        Instant cancelledAt, List<ReservationItem> items) {
         this.id = id;
         this.ratePlanId = ratePlanId;
         this.reservationNo = reservationNo;
@@ -52,6 +53,7 @@ public class Reservation {
         this.cancelReason = cancelReason;
         this.bookingSnapshot = bookingSnapshot;
         this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
         this.cancelledAt = cancelledAt;
         this.items = items;
     }
@@ -66,7 +68,7 @@ public class Reservation {
         validateStayPeriod(stayPeriod, today);
         return new Reservation(null, ratePlanId, reservationNo, guestInfo, stayPeriod,
                 guestCount, totalAmount, ReservationStatus.PENDING,
-                null, bookingSnapshot, now, null, List.copyOf(items));
+                null, bookingSnapshot, now, now, null, List.copyOf(items));
     }
 
     private static void validateRequired(RatePlanId ratePlanId, GuestInfo guestInfo,
@@ -107,15 +109,16 @@ public class Reservation {
     public static Reservation reconstitute(ReservationId id, RatePlanId ratePlanId, ReservationNo reservationNo,
                                             GuestInfo guestInfo, DateRange stayPeriod, int guestCount,
                                             Money totalAmount, ReservationStatus status, String cancelReason,
-                                            String bookingSnapshot, Instant createdAt, Instant cancelledAt,
-                                            List<ReservationItem> items) {
+                                            String bookingSnapshot, Instant createdAt, Instant updatedAt,
+                                            Instant cancelledAt, List<ReservationItem> items) {
         return new Reservation(id, ratePlanId, reservationNo, guestInfo, stayPeriod,
                 guestCount, totalAmount, status, cancelReason,
-                bookingSnapshot, createdAt, cancelledAt, List.copyOf(items));
+                bookingSnapshot, createdAt, updatedAt, cancelledAt, List.copyOf(items));
     }
 
-    public void confirm() {
+    public void confirm(Instant now) {
         this.status = status.transitTo(ReservationStatus.CONFIRMED);
+        this.updatedAt = now;
     }
 
     public void cancel(String reason, Instant now) {
@@ -128,14 +131,17 @@ public class Reservation {
         this.status = status.transitTo(ReservationStatus.CANCELLED);
         this.cancelReason = reason;
         this.cancelledAt = now;
+        this.updatedAt = now;
     }
 
-    public void complete() {
+    public void complete(Instant now) {
         this.status = status.transitTo(ReservationStatus.COMPLETED);
+        this.updatedAt = now;
     }
 
-    public void noShow() {
+    public void noShow(Instant now) {
         this.status = status.transitTo(ReservationStatus.NO_SHOW);
+        this.updatedAt = now;
     }
 
     public ReservationId id() { return id; }
@@ -149,6 +155,7 @@ public class Reservation {
     public String cancelReason() { return cancelReason; }
     public String bookingSnapshot() { return bookingSnapshot; }
     public Instant createdAt() { return createdAt; }
+    public Instant updatedAt() { return updatedAt; }
     public Instant cancelledAt() { return cancelledAt; }
     public List<ReservationItem> items() { return items; }
 

@@ -1,5 +1,6 @@
 package com.ryuqq.otatoy.domain.propertytype;
 
+import java.time.Instant;
 import java.util.Objects;
 
 /**
@@ -18,10 +19,13 @@ public class PropertyTypeAttribute {
     private final String valueType;
     private final boolean required;
     private final int sortOrder;
+    private final Instant createdAt;
+    private Instant updatedAt;
 
     private PropertyTypeAttribute(PropertyTypeAttributeId id, PropertyTypeId propertyTypeId, String attributeKey,
                                    String attributeName, String valueType,
-                                   boolean required, int sortOrder) {
+                                   boolean required, int sortOrder,
+                                   Instant createdAt, Instant updatedAt) {
         this.id = id;
         this.propertyTypeId = propertyTypeId;
         this.attributeKey = attributeKey;
@@ -29,13 +33,15 @@ public class PropertyTypeAttribute {
         this.valueType = valueType;
         this.required = required;
         this.sortOrder = sortOrder;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
     }
 
     public static PropertyTypeAttribute forNew(PropertyTypeId propertyTypeId, String attributeKey, String attributeName,
-                                                String valueType, boolean required, int sortOrder) {
+                                                String valueType, boolean required, int sortOrder, Instant now) {
         validate(attributeKey, attributeName, valueType);
         return new PropertyTypeAttribute(PropertyTypeAttributeId.of(null), propertyTypeId, attributeKey, attributeName,
-                valueType, required, sortOrder);
+                valueType, required, sortOrder, now, now);
     }
 
     private static void validate(String attributeKey, String attributeName, String valueType) {
@@ -52,9 +58,10 @@ public class PropertyTypeAttribute {
 
     public static PropertyTypeAttribute reconstitute(PropertyTypeAttributeId id, PropertyTypeId propertyTypeId, String attributeKey,
                                                       String attributeName, String valueType,
-                                                      boolean required, int sortOrder) {
+                                                      boolean required, int sortOrder,
+                                                      Instant createdAt, Instant updatedAt) {
         return new PropertyTypeAttribute(id, propertyTypeId, attributeKey, attributeName,
-                valueType, required, sortOrder);
+                valueType, required, sortOrder, createdAt, updatedAt);
     }
 
     public PropertyTypeAttributeId id() { return id; }
@@ -64,6 +71,8 @@ public class PropertyTypeAttribute {
     public String valueType() { return valueType; }
     public boolean required() { return required; }
     public int sortOrder() { return sortOrder; }
+    public Instant createdAt() { return createdAt; }
+    public Instant updatedAt() { return updatedAt; }
 
     @Override
     public boolean equals(Object o) {

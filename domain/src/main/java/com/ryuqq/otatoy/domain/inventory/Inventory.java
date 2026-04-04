@@ -2,6 +2,7 @@ package com.ryuqq.otatoy.domain.inventory;
 
 import com.ryuqq.otatoy.domain.roomtype.RoomTypeId;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Objects;
 
@@ -22,27 +23,33 @@ public class Inventory {
     // 낙관적 락 버전. JPA @Version으로 매핑되어 동시 수정 시 OptimisticLockException 발생.
     // 도메인 레이어에서는 버전 비교 로직 없음 — Persistence 레이어에서 자동 처리.
     private int version;
+    private final Instant createdAt;
+    private Instant updatedAt;
 
     private Inventory(InventoryId id, RoomTypeId roomTypeId, LocalDate inventoryDate,
-                      int availableCount, boolean stopSell, int version) {
+                      int availableCount, boolean stopSell, int version,
+                      Instant createdAt, Instant updatedAt) {
         this.id = id;
         this.roomTypeId = roomTypeId;
         this.inventoryDate = inventoryDate;
         this.availableCount = availableCount;
         this.stopSell = stopSell;
         this.version = version;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
     }
 
     public static Inventory forNew(RoomTypeId roomTypeId, LocalDate inventoryDate,
-                                    int availableCount) {
+                                    int availableCount, Instant now) {
         validateRequired(roomTypeId, inventoryDate);
         validateAvailableCount(availableCount);
-        return new Inventory(null, roomTypeId, inventoryDate, availableCount, false, 0);
+        return new Inventory(null, roomTypeId, inventoryDate, availableCount, false, 0, now, now);
     }
 
     public static Inventory reconstitute(InventoryId id, RoomTypeId roomTypeId, LocalDate inventoryDate,
-                                          int availableCount, boolean stopSell, int version) {
-        return new Inventory(id, roomTypeId, inventoryDate, availableCount, stopSell, version);
+                                          int availableCount, boolean stopSell, int version,
+                                          Instant createdAt, Instant updatedAt) {
+        return new Inventory(id, roomTypeId, inventoryDate, availableCount, stopSell, version, createdAt, updatedAt);
     }
 
     /**
@@ -131,6 +138,8 @@ public class Inventory {
     public int availableCount() { return availableCount; }
     public boolean isStopSell() { return stopSell; }
     public int version() { return version; }
+    public Instant createdAt() { return createdAt; }
+    public Instant updatedAt() { return updatedAt; }
 
     @Override
     public boolean equals(Object o) {

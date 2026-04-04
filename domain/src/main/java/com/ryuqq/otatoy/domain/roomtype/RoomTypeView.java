@@ -2,6 +2,7 @@ package com.ryuqq.otatoy.domain.roomtype;
 
 import com.ryuqq.otatoy.domain.roomattribute.ViewTypeId;
 
+import java.time.Instant;
 import java.util.Objects;
 
 /**
@@ -15,16 +16,21 @@ public class RoomTypeView {
     private final RoomTypeViewId id;
     private final RoomTypeId roomTypeId;
     private final ViewTypeId viewTypeId;
+    private final Instant createdAt;
+    private Instant updatedAt;
 
-    private RoomTypeView(RoomTypeViewId id, RoomTypeId roomTypeId, ViewTypeId viewTypeId) {
+    private RoomTypeView(RoomTypeViewId id, RoomTypeId roomTypeId, ViewTypeId viewTypeId,
+                         Instant createdAt, Instant updatedAt) {
         this.id = id;
         this.roomTypeId = roomTypeId;
         this.viewTypeId = viewTypeId;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
     }
 
-    public static RoomTypeView forNew(RoomTypeId roomTypeId, ViewTypeId viewTypeId) {
+    public static RoomTypeView forNew(RoomTypeId roomTypeId, ViewTypeId viewTypeId, Instant now) {
         validate(roomTypeId, viewTypeId);
-        return new RoomTypeView(RoomTypeViewId.of(null), roomTypeId, viewTypeId);
+        return new RoomTypeView(RoomTypeViewId.of(null), roomTypeId, viewTypeId, now, now);
     }
 
     private static void validate(RoomTypeId roomTypeId, ViewTypeId viewTypeId) {
@@ -36,13 +42,16 @@ public class RoomTypeView {
         }
     }
 
-    public static RoomTypeView reconstitute(RoomTypeViewId id, RoomTypeId roomTypeId, ViewTypeId viewTypeId) {
-        return new RoomTypeView(id, roomTypeId, viewTypeId);
+    public static RoomTypeView reconstitute(RoomTypeViewId id, RoomTypeId roomTypeId, ViewTypeId viewTypeId,
+                                               Instant createdAt, Instant updatedAt) {
+        return new RoomTypeView(id, roomTypeId, viewTypeId, createdAt, updatedAt);
     }
 
     public RoomTypeViewId id() { return id; }
     public RoomTypeId roomTypeId() { return roomTypeId; }
     public ViewTypeId viewTypeId() { return viewTypeId; }
+    public Instant createdAt() { return createdAt; }
+    public Instant updatedAt() { return updatedAt; }
 
     @Override
     public boolean equals(Object o) {

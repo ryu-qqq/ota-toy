@@ -2,6 +2,7 @@ package com.ryuqq.otatoy.domain.reservation;
 
 import com.ryuqq.otatoy.domain.inventory.InventoryId;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Objects;
 
@@ -18,17 +19,22 @@ public class ReservationItem {
     private final ReservationId reservationId;
     private final InventoryId inventoryId;
     private final LocalDate stayDate;
+    private final Instant createdAt;
+    private Instant updatedAt;
 
-    private ReservationItem(ReservationItemId id, ReservationId reservationId, InventoryId inventoryId, LocalDate stayDate) {
+    private ReservationItem(ReservationItemId id, ReservationId reservationId, InventoryId inventoryId, LocalDate stayDate,
+                             Instant createdAt, Instant updatedAt) {
         this.id = id;
         this.reservationId = reservationId;
         this.inventoryId = inventoryId;
         this.stayDate = stayDate;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
     }
 
-    public static ReservationItem forNew(ReservationId reservationId, InventoryId inventoryId, LocalDate stayDate) {
+    public static ReservationItem forNew(ReservationId reservationId, InventoryId inventoryId, LocalDate stayDate, Instant now) {
         validate(inventoryId, stayDate);
-        return new ReservationItem(ReservationItemId.of(null), reservationId, inventoryId, stayDate);
+        return new ReservationItem(ReservationItemId.of(null), reservationId, inventoryId, stayDate, now, now);
     }
 
     private static void validate(InventoryId inventoryId, LocalDate stayDate) {
@@ -40,14 +46,17 @@ public class ReservationItem {
         }
     }
 
-    public static ReservationItem reconstitute(ReservationItemId id, ReservationId reservationId, InventoryId inventoryId, LocalDate stayDate) {
-        return new ReservationItem(id, reservationId, inventoryId, stayDate);
+    public static ReservationItem reconstitute(ReservationItemId id, ReservationId reservationId, InventoryId inventoryId, LocalDate stayDate,
+                                                  Instant createdAt, Instant updatedAt) {
+        return new ReservationItem(id, reservationId, inventoryId, stayDate, createdAt, updatedAt);
     }
 
     public ReservationItemId id() { return id; }
     public ReservationId reservationId() { return reservationId; }
     public InventoryId inventoryId() { return inventoryId; }
     public LocalDate stayDate() { return stayDate; }
+    public Instant createdAt() { return createdAt; }
+    public Instant updatedAt() { return updatedAt; }
 
     @Override
     public boolean equals(Object o) {

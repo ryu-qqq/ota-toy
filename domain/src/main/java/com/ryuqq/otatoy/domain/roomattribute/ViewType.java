@@ -1,5 +1,6 @@
 package com.ryuqq.otatoy.domain.roomattribute;
 
+import java.time.Instant;
 import java.util.Objects;
 
 /**
@@ -14,24 +15,32 @@ public class ViewType {
     private final ViewTypeId id;
     private final ViewTypeCode code;
     private final ViewTypeName name;
+    private final Instant createdAt;
+    private Instant updatedAt;
 
-    private ViewType(ViewTypeId id, ViewTypeCode code, ViewTypeName name) {
+    private ViewType(ViewTypeId id, ViewTypeCode code, ViewTypeName name,
+                     Instant createdAt, Instant updatedAt) {
         this.id = id;
         this.code = code;
         this.name = name;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
     }
 
-    public static ViewType forNew(ViewTypeCode code, ViewTypeName name) {
-        return new ViewType(ViewTypeId.of(null), code, name);
+    public static ViewType forNew(ViewTypeCode code, ViewTypeName name, Instant now) {
+        return new ViewType(ViewTypeId.of(null), code, name, now, now);
     }
 
-    public static ViewType reconstitute(ViewTypeId id, ViewTypeCode code, ViewTypeName name) {
-        return new ViewType(id, code, name);
+    public static ViewType reconstitute(ViewTypeId id, ViewTypeCode code, ViewTypeName name,
+                                         Instant createdAt, Instant updatedAt) {
+        return new ViewType(id, code, name, createdAt, updatedAt);
     }
 
     public ViewTypeId id() { return id; }
     public ViewTypeCode code() { return code; }
     public ViewTypeName name() { return name; }
+    public Instant createdAt() { return createdAt; }
+    public Instant updatedAt() { return updatedAt; }
 
     @Override
     public boolean equals(Object o) {

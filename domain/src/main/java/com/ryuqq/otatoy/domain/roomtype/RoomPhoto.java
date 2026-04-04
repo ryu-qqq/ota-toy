@@ -5,6 +5,7 @@ import com.ryuqq.otatoy.domain.accommodation.PhotoType;
 import com.ryuqq.otatoy.domain.common.vo.CdnUrl;
 import com.ryuqq.otatoy.domain.common.vo.OriginUrl;
 
+import java.time.Instant;
 import java.util.Objects;
 
 /**
@@ -22,25 +23,31 @@ public class RoomPhoto {
     private final OriginUrl originUrl;
     private final CdnUrl cdnUrl;
     private final int sortOrder;
+    private final Instant createdAt;
+    private Instant updatedAt;
 
     private RoomPhoto(RoomPhotoId id, RoomTypeId roomTypeId, PhotoType photoType,
-                      OriginUrl originUrl, CdnUrl cdnUrl, int sortOrder) {
+                      OriginUrl originUrl, CdnUrl cdnUrl, int sortOrder,
+                      Instant createdAt, Instant updatedAt) {
         this.id = id;
         this.roomTypeId = roomTypeId;
         this.photoType = photoType;
         this.originUrl = originUrl;
         this.cdnUrl = cdnUrl;
         this.sortOrder = sortOrder;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
     }
 
     public static RoomPhoto forNew(RoomTypeId roomTypeId, PhotoType photoType,
-                                    OriginUrl originUrl, CdnUrl cdnUrl, int sortOrder) {
-        return new RoomPhoto(RoomPhotoId.of(null), roomTypeId, photoType, originUrl, cdnUrl, sortOrder);
+                                    OriginUrl originUrl, CdnUrl cdnUrl, int sortOrder, Instant now) {
+        return new RoomPhoto(RoomPhotoId.of(null), roomTypeId, photoType, originUrl, cdnUrl, sortOrder, now, now);
     }
 
     public static RoomPhoto reconstitute(RoomPhotoId id, RoomTypeId roomTypeId, PhotoType photoType,
-                                          OriginUrl originUrl, CdnUrl cdnUrl, int sortOrder) {
-        return new RoomPhoto(id, roomTypeId, photoType, originUrl, cdnUrl, sortOrder);
+                                          OriginUrl originUrl, CdnUrl cdnUrl, int sortOrder,
+                                          Instant createdAt, Instant updatedAt) {
+        return new RoomPhoto(id, roomTypeId, photoType, originUrl, cdnUrl, sortOrder, createdAt, updatedAt);
     }
 
     public RoomPhotoId id() { return id; }
@@ -49,6 +56,8 @@ public class RoomPhoto {
     public OriginUrl originUrl() { return originUrl; }
     public CdnUrl cdnUrl() { return cdnUrl; }
     public int sortOrder() { return sortOrder; }
+    public Instant createdAt() { return createdAt; }
+    public Instant updatedAt() { return updatedAt; }
 
     @Override
     public boolean equals(Object o) {

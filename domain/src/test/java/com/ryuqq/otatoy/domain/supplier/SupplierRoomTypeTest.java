@@ -33,7 +33,7 @@ class SupplierRoomTypeTest {
         @DisplayName("supplierRoomCode가 null이면 생성 실패")
         void shouldFailWhenCodeIsNull() {
             assertThatThrownBy(() -> SupplierRoomType.forNew(
-                    SupplierPropertyId.of(1L), RoomTypeId.of(200L), null
+                    SupplierPropertyId.of(1L), RoomTypeId.of(200L), null, Instant.parse("2026-04-04T00:00:00Z")
             )).isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("공급자 객실 코드");
         }
@@ -42,7 +42,7 @@ class SupplierRoomTypeTest {
         @DisplayName("supplierRoomCode가 blank이면 생성 실패")
         void shouldFailWhenCodeIsBlank() {
             assertThatThrownBy(() -> SupplierRoomType.forNew(
-                    SupplierPropertyId.of(1L), RoomTypeId.of(200L), "  "
+                    SupplierPropertyId.of(1L), RoomTypeId.of(200L), "  ", Instant.parse("2026-04-04T00:00:00Z")
             )).isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("공급자 객실 코드");
         }
@@ -98,7 +98,7 @@ class SupplierRoomTypeTest {
         void shouldChangeToUnmapped() {
             SupplierRoomType srt = SupplierFixture.mappedRoomType();
 
-            srt.unmap();
+            srt.unmap(Instant.parse("2026-04-04T00:00:00Z"));
 
             assertThat(srt.status()).isEqualTo(SupplierMappingStatus.UNMAPPED);
         }
@@ -108,7 +108,7 @@ class SupplierRoomTypeTest {
         void shouldBeIdempotentWhenAlreadyUnmapped() {
             SupplierRoomType srt = SupplierFixture.unmappedRoomType();
 
-            srt.unmap();
+            srt.unmap(Instant.parse("2026-04-04T00:00:00Z"));
 
             assertThat(srt.status()).isEqualTo(SupplierMappingStatus.UNMAPPED);
         }

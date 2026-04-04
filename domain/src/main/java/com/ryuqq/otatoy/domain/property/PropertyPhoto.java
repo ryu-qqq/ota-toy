@@ -5,6 +5,7 @@ import com.ryuqq.otatoy.domain.accommodation.PhotoType;
 import com.ryuqq.otatoy.domain.common.vo.CdnUrl;
 import com.ryuqq.otatoy.domain.common.vo.OriginUrl;
 
+import java.time.Instant;
 import java.util.Objects;
 
 /**
@@ -22,25 +23,31 @@ public class PropertyPhoto {
     private final OriginUrl originUrl;
     private final CdnUrl cdnUrl;
     private final int sortOrder;
+    private final Instant createdAt;
+    private Instant updatedAt;
 
     private PropertyPhoto(PropertyPhotoId id, PropertyId propertyId, PhotoType photoType,
-                          OriginUrl originUrl, CdnUrl cdnUrl, int sortOrder) {
+                          OriginUrl originUrl, CdnUrl cdnUrl, int sortOrder,
+                          Instant createdAt, Instant updatedAt) {
         this.id = id;
         this.propertyId = propertyId;
         this.photoType = photoType;
         this.originUrl = originUrl;
         this.cdnUrl = cdnUrl;
         this.sortOrder = sortOrder;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
     }
 
     public static PropertyPhoto forNew(PropertyId propertyId, PhotoType photoType,
-                                        OriginUrl originUrl, CdnUrl cdnUrl, int sortOrder) {
-        return new PropertyPhoto(PropertyPhotoId.of(null), propertyId, photoType, originUrl, cdnUrl, sortOrder);
+                                        OriginUrl originUrl, CdnUrl cdnUrl, int sortOrder, Instant now) {
+        return new PropertyPhoto(PropertyPhotoId.of(null), propertyId, photoType, originUrl, cdnUrl, sortOrder, now, now);
     }
 
     public static PropertyPhoto reconstitute(PropertyPhotoId id, PropertyId propertyId, PhotoType photoType,
-                                              OriginUrl originUrl, CdnUrl cdnUrl, int sortOrder) {
-        return new PropertyPhoto(id, propertyId, photoType, originUrl, cdnUrl, sortOrder);
+                                              OriginUrl originUrl, CdnUrl cdnUrl, int sortOrder,
+                                              Instant createdAt, Instant updatedAt) {
+        return new PropertyPhoto(id, propertyId, photoType, originUrl, cdnUrl, sortOrder, createdAt, updatedAt);
     }
 
     public PropertyPhotoId id() { return id; }
@@ -49,6 +56,8 @@ public class PropertyPhoto {
     public OriginUrl originUrl() { return originUrl; }
     public CdnUrl cdnUrl() { return cdnUrl; }
     public int sortOrder() { return sortOrder; }
+    public Instant createdAt() { return createdAt; }
+    public Instant updatedAt() { return updatedAt; }
 
     @Override
     public boolean equals(Object o) {
