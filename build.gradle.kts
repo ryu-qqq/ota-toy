@@ -23,6 +23,14 @@ subprojects {
         targetCompatibility = JavaVersion.toVersion(javaVersion)
     }
 
+    pluginManager.withPlugin("io.spring.dependency-management") {
+        configure<io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension> {
+            imports {
+                mavenBom("org.springframework.boot:spring-boot-dependencies:${rootProject.libs.versions.springBoot.get()}")
+            }
+        }
+    }
+
     dependencies {
         // 공통 테스트 의존성
         testImplementation(platform(rootProject.libs.junit.bom))

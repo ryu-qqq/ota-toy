@@ -33,4 +33,13 @@ jd.txt
 
 # Sample data
 sample.json
-domain/bin/
+
+# Bin
+**/bin/
+
+# Serena / MCP
+.serena/
+.mcp.json
+
+# Issue
+issue.txt

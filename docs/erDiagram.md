@@ -1,6 +1,6 @@
-# ERD — OTA 숙박 플랫폼 (v2)
+# ERD — OTA 숙박 플랫폼 (v3)
 
-> v1 피드백 25개 반영. 정규화 + 구조 개선.
+> v2 → v3: 도메인 코드 정합성 동기화. audit/soft-delete 컬럼 전 테이블 추가, 필드명·타입 보정.
 
 ```mermaid
 erDiagram
@@ -9,6 +9,10 @@ erDiagram
         string name
         string name_kr
         string logo_url
+        timestamp created_at
+        timestamp updated_at
+        boolean deleted
+        timestamp deleted_at
     }
 
     PropertyType {
@@ -16,6 +20,10 @@ erDiagram
         string code
         string name
         string description
+        timestamp created_at
+        timestamp updated_at
+        boolean deleted
+        timestamp deleted_at
     }
 
     PropertyTypeAttribute {
@@ -24,8 +32,12 @@ erDiagram
         string attribute_key
         string attribute_name
         string value_type
-        int is_required
+        boolean is_required
         int sort_order
+        timestamp created_at
+        timestamp updated_at
+        boolean deleted
+        timestamp deleted_at
     }
 
     Property {
@@ -36,12 +48,16 @@ erDiagram
         string name
         string description
         string address
-        float latitude
-        float longitude
+        double latitude
+        double longitude
         string neighborhood
         string region
         string status
         string promotion_text
+        timestamp created_at
+        timestamp updated_at
+        boolean deleted
+        timestamp deleted_at
     }
 
     PropertyAttributeValue {
@@ -49,22 +65,34 @@ erDiagram
         long property_id FK
         long property_type_attribute_id FK
         string value
+        timestamp created_at
+        timestamp updated_at
+        boolean deleted
+        timestamp deleted_at
     }
 
     Landmark {
         long id PK
         string name
         string landmark_type
-        float latitude
-        float longitude
+        double latitude
+        double longitude
+        timestamp created_at
+        timestamp updated_at
+        boolean deleted
+        timestamp deleted_at
     }
 
     PropertyLandmark {
         long id PK
         long property_id FK
         long landmark_id FK
-        float distance_km
+        double distance_km
         int walking_minutes
+        timestamp created_at
+        timestamp updated_at
+        boolean deleted
+        timestamp deleted_at
     }
 
     RoomType {
@@ -72,7 +100,7 @@ erDiagram
         long property_id FK
         string name
         string description
-        float area_sqm
+        decimal area_sqm
         string area_pyeong
         int base_occupancy
         int max_occupancy
@@ -80,6 +108,10 @@ erDiagram
         string check_in_time
         string check_out_time
         string status
+        timestamp created_at
+        timestamp updated_at
+        boolean deleted
+        timestamp deleted_at
     }
 
     RoomTypeAttribute {
@@ -87,18 +119,30 @@ erDiagram
         long room_type_id FK
         string attribute_key
         string attribute_value
+        timestamp created_at
+        timestamp updated_at
+        boolean deleted
+        timestamp deleted_at
     }
 
     BedType {
         long id PK
         string code
         string name
+        timestamp created_at
+        timestamp updated_at
+        boolean deleted
+        timestamp deleted_at
     }
 
     ViewType {
         long id PK
         string code
         string name
+        timestamp created_at
+        timestamp updated_at
+        boolean deleted
+        timestamp deleted_at
     }
 
     RoomTypeBed {
@@ -106,12 +150,20 @@ erDiagram
         long room_type_id FK
         long bed_type_id FK
         int quantity
+        timestamp created_at
+        timestamp updated_at
+        boolean deleted
+        timestamp deleted_at
     }
 
     RoomTypeView {
         long id PK
         long room_type_id FK
         long view_type_id FK
+        timestamp created_at
+        timestamp updated_at
+        boolean deleted
+        timestamp deleted_at
     }
 
     PropertyAmenity {
@@ -119,8 +171,12 @@ erDiagram
         long property_id FK
         string amenity_type
         string name
-        float additional_price
+        decimal additional_price
         int sort_order
+        timestamp created_at
+        timestamp updated_at
+        boolean deleted
+        timestamp deleted_at
     }
 
     RoomAmenity {
@@ -128,8 +184,12 @@ erDiagram
         long room_type_id FK
         string amenity_type
         string name
-        float additional_price
+        decimal additional_price
         int sort_order
+        timestamp created_at
+        timestamp updated_at
+        boolean deleted
+        timestamp deleted_at
     }
 
     PropertyPhoto {
@@ -139,6 +199,10 @@ erDiagram
         string origin_url
         string cdn_url
         int sort_order
+        timestamp created_at
+        timestamp updated_at
+        boolean deleted
+        timestamp deleted_at
     }
 
     RoomPhoto {
@@ -148,6 +212,10 @@ erDiagram
         string origin_url
         string cdn_url
         int sort_order
+        timestamp created_at
+        timestamp updated_at
+        boolean deleted
+        timestamp deleted_at
     }
 
     RatePlan {
@@ -156,10 +224,15 @@ erDiagram
         string name
         string source_type
         long supplier_id FK
-        int is_free_cancellation
-        int is_non_refundable
+        boolean is_free_cancellation
+        boolean is_non_refundable
+        int free_cancellation_deadline_days
         string cancellation_policy_text
         string payment_policy
+        timestamp created_at
+        timestamp updated_at
+        boolean deleted
+        timestamp deleted_at
     }
 
     RatePlanAddOn {
@@ -167,8 +240,12 @@ erDiagram
         long rate_plan_id FK
         string add_on_type
         string name
-        float price
-        int is_included
+        decimal price
+        boolean is_included
+        timestamp created_at
+        timestamp updated_at
+        boolean deleted
+        timestamp deleted_at
     }
 
     RateRule {
@@ -176,27 +253,38 @@ erDiagram
         long rate_plan_id FK
         string start_date
         string end_date
-        float weekday_price
-        float friday_price
-        float saturday_price
-        float sunday_price
-        float base_price
+        decimal weekday_price
+        decimal friday_price
+        decimal saturday_price
+        decimal sunday_price
+        decimal base_price
+        timestamp created_at
+        timestamp updated_at
+        boolean deleted
+        timestamp deleted_at
     }
 
     RateOverride {
         long id PK
         long rate_rule_id FK
         string override_date
-        float price
+        decimal price
         string reason
+        timestamp created_at
+        timestamp updated_at
+        boolean deleted
+        timestamp deleted_at
     }
 
     Rate {
         long id PK
         long rate_plan_id FK
         string rate_date
-        float base_price
-        string calculated_from
+        decimal base_price
+        timestamp created_at
+        timestamp updated_at
+        boolean deleted
+        timestamp deleted_at
     }
 
     Inventory {
@@ -204,8 +292,12 @@ erDiagram
         long room_type_id FK
         string inventory_date
         int available_count
-        int is_stop_sell
+        boolean is_stop_sell
         int version
+        timestamp created_at
+        timestamp updated_at
+        boolean deleted
+        timestamp deleted_at
     }
 
     Reservation {
@@ -218,12 +310,15 @@ erDiagram
         string check_in_date
         string check_out_date
         int guest_count
-        float total_amount
+        decimal total_amount
         string status
         string cancel_reason
         string booking_snapshot
-        string created_at
-        string cancelled_at
+        timestamp created_at
+        timestamp updated_at
+        timestamp cancelled_at
+        boolean deleted
+        timestamp deleted_at
     }
 
     ReservationItem {
@@ -231,12 +326,20 @@ erDiagram
         long reservation_id FK
         long inventory_id FK
         string stay_date
+        timestamp created_at
+        timestamp updated_at
+        boolean deleted
+        timestamp deleted_at
     }
 
     Partner {
         long id PK
         string name
         string status
+        timestamp created_at
+        timestamp updated_at
+        boolean deleted
+        timestamp deleted_at
     }
 
     PartnerMember {
@@ -247,6 +350,10 @@ erDiagram
         string phone
         string role
         string status
+        timestamp created_at
+        timestamp updated_at
+        boolean deleted
+        timestamp deleted_at
     }
 
     Supplier {
@@ -261,6 +368,10 @@ erDiagram
         string email
         string terms_url
         string status
+        timestamp created_at
+        timestamp updated_at
+        boolean deleted
+        timestamp deleted_at
     }
 
     SupplierApiConfig {
@@ -271,37 +382,53 @@ erDiagram
         string auth_type
         int sync_interval_minutes
         string status
+        timestamp created_at
+        timestamp updated_at
+        boolean deleted
+        timestamp deleted_at
     }
 
     SupplierProperty {
         long id PK
         long supplier_id FK
         long property_id FK
-        string supplier_property_id
-        string last_synced_at
+        string supplier_property_code
+        timestamp last_synced_at
         string status
+        timestamp created_at
+        timestamp updated_at
+        boolean deleted
+        timestamp deleted_at
     }
 
     SupplierRoomType {
         long id PK
         long supplier_property_id FK
         long room_type_id FK
-        string supplier_room_id
-        string last_synced_at
+        string supplier_room_code
+        timestamp last_synced_at
         string status
+        timestamp created_at
+        timestamp updated_at
+        boolean deleted
+        timestamp deleted_at
     }
 
     SupplierSyncLog {
         long id PK
         long supplier_id FK
         string sync_type
-        string synced_at
+        timestamp synced_at
         string status
         int total_count
         int created_count
         int updated_count
         int deleted_count
         string error_message
+        timestamp created_at
+        timestamp updated_at
+        boolean deleted
+        timestamp deleted_at
     }
 
     ReservationOutbox {
@@ -311,9 +438,9 @@ erDiagram
         string payload
         string status
         int retry_count
-        string created_at
-        string updated_at
-        string processed_at
+        timestamp created_at
+        timestamp updated_at
+        timestamp processed_at
     }
 
     SupplierOutbox {
@@ -323,9 +450,9 @@ erDiagram
         string payload
         string status
         int retry_count
-        string created_at
-        string updated_at
-        string processed_at
+        timestamp created_at
+        timestamp updated_at
+        timestamp processed_at
     }
 
     Brand ||--o{ Property : has
