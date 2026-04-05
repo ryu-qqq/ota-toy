@@ -6,6 +6,7 @@
 > 현재 상태: Domain 모델 일부 구현 (accommodation, pricing, location, partner), Application/Adapter 전체 미구현
 
 ### 갱신 이력
+- **2026-04-04**: Phase 2 수용기준 재확인 (STORY-103/104/105). 현재 도메인 코드(property 패키지 세분화, 일급 컬렉션, VO) 기준으로 수용기준 보강. Application/Persistence/API 컨벤션 규칙 번호 매핑 추가. 하위 엔티티(PropertyAmenity, PropertyPhoto, PropertyAttributeValue) 저장 전략, CQRS 분리, ErrorMapper/ApiMapper 패턴, PropertyTypeReadManager 검증 등 누락 항목 보완
 - **2026-04-02**: ERD v2 반영 (PropertyLandmark, RateRule/RateOverride, Supplier 재설계), 동시성 제어 전략 변경 (비관적 락 → Redis 원자적 카운터), 요금 캐싱 3단 레이어 반영, Spring Event 금지 → Outbox 패턴 전환, Manager 레이어 컨벤션 반영, 도메인 컨텍스트 분리 (accommodation, pricing, location, partner) 반영
 
 ---
@@ -51,12 +52,17 @@
 - **우선순위**: P0
 - **구현 상태**: 미구현
 - **수용기준**:
-  - [ ] AC-1: RegisterPropertyUseCase 호출 시 Property가 저장되고 PropertyId가 반환됨
-  - [ ] AC-2: partnerId가 존재하지 않으면 PartnerNotFoundException 발생
-  - [ ] AC-3: PropertyCommandPort, PropertyQueryPort 인터페이스가 Application 레이어에 정의
-  - [ ] AC-4: PropertyFactory가 TimeProvider를 주입받아 Property 생성
-  - [ ] AC-5: RegisterPropertyService는 @Transactional 없이 Manager/Factory/Facade 조합으로 동작
-  - [ ] AC-6: PartnerReadManager를 통해 파트너 존재 확인 (다른 BC ReadManager 호출 패턴)
+  - [ ] AC-1: RegisterPropertyUseCase 호출 시 Property가 저장되고 PropertyId(Long)가 반환됨
+  - [ ] AC-2: partnerId가 존재하지 않으면 PartnerNotFoundException 발생 (PartnerReadManager.getById 경유)
+  - [ ] AC-3: propertyTypeId가 존재하지 않으면 PropertyTypeNotFoundException 발생 (PropertyTypeReadManager.getById 경유)
+  - [ ] AC-4: PropertyCommandPort, PropertyQueryPort 인터페이스가 Application 레이어(port/out/persistence/)에 정의됨. CommandPort는 persist/persistAll만 선언, QueryPort는 findById/findByCondition만 선언 (APP-PRT-001)
+  - [ ] AC-5: PropertyFactory가 TimeProvider를 주입받아 Property.forNew() 호출로 도메인 객체 생성 (APP-FAC-001). Service/Manager에서 TimeProvider 직접 주입 금지
+  - [ ] AC-6: RegisterPropertyService는 @Transactional 없이 Manager/Factory/Facade 조합으로 동작 (APP-SVC-001)
+  - [ ] AC-7: PartnerReadManager를 통해 파트너 존재 확인 — 다른 BC ReadManager 호출 패턴 (APP-BC-001)
+  - [ ] AC-8: PropertyPersistenceFacade가 Property + 하위 엔티티(PropertyAmenity, PropertyPhoto, PropertyAttributeValue)를 하나의 @Transactional에서 원자적으로 저장 (APP-FCD-001). Property 저장 후 PropertyId를 하위 엔티티에 세팅하는 흐름
+  - [ ] AC-9: RegisterPropertyCommand는 record로 선언. 편의시설/사진/속성값 리스트를 포함하는 중첩 record 구조 (APP-DTO-001)
+  - [ ] AC-10: PropertyFactory가 Command를 받아 Property + PropertyAmenities(일급 컬렉션) + PropertyPhotos(일급 컬렉션) + PropertyAttributeValues(일급 컬렉션)를 함께 생성. 하위 엔티티의 PropertyId는 저장 전이므로 null 가능
+  - [ ] AC-11: Port 직접 호출 금지 — Service는 Manager/Factory/Facade만 의존 (APP-BC-001)
 - **관련 레이어**: Domain → Application
 - **의존성**: STORY-101, STORY-102
 - **담당 팀**: application-team
@@ -66,11 +72,19 @@
 - **우선순위**: P0
 - **구현 상태**: 미구현
 - **수용기준**:
-  - [ ] AC-1: PropertyJpaEntity와 Property 도메인 간 매핑이 정확히 동작 (reconstitute 사용)
-  - [ ] AC-2: JPA 관계 어노테이션(@OneToMany, @ManyToOne) 사용 금지. 독립 Entity로 매핑
-  - [ ] AC-3: save() 후 DB에서 조회하면 모든 필드가 일치
-  - [ ] AC-4: Testcontainers(MySQL) 기반 통합 테스트 통과
-  - [ ] AC-5: persist 메서드에서 id == null이면 persist, 아니면 merge 판단
+  - [ ] AC-1: PropertyJpaEntity에 static create() 팩토리 메서드가 유일한 생성 진입점. Lombok 전면 금지(@Getter, @Setter, @NoArgsConstructor 등), setter 전면 금지 (PER-ENT-001, PER-ENT-004)
+  - [ ] AC-2: Entity에 비즈니스 로직 금지 — create(), getter, isXxx()만 허용. updateXxx(), changeXxx() 등 상태 변경 메서드 금지 (PER-ENT-005)
+  - [ ] AC-3: JPA 관계 어노테이션(@OneToMany, @ManyToOne, @OneToOne, @ManyToMany) Aggregate 내부 포함 전면 금지. Long FK 전략 사용 (PER-ENT-001)
+  - [ ] AC-4: PropertyCommandAdapter(JpaRepository만 의존)와 PropertyQueryAdapter(QueryDslRepository만 의존)로 CQRS 분리 (PER-ADP-001)
+  - [ ] AC-5: PropertyEntityMapper가 Domain → Entity 변환 시 create() 팩토리 사용, Entity → Domain 변환 시 reconstitute() 사용. VO(PropertyName, Location, PropertyStatus 등)와 일급 컬렉션(PropertyAmenities, PropertyPhotos, PropertyAttributeValues)의 변환 로직 포함 (PER-MAP-001)
+  - [ ] AC-6: 하위 Entity도 독립 테이블로 관리 — PropertyAmenityJpaEntity, PropertyPhotoJpaEntity, PropertyAttributeValueJpaEntity 각각 독립 Entity + Mapper + Repository + Adapter
+  - [ ] AC-7: PropertyJpaRepository는 save/saveAll만 허용. @Query, findBy*, deleteBy* 커스텀 메서드 금지 (PER-REP-001)
+  - [ ] AC-8: PropertyQueryDslRepository의 모든 조회에 deleted.isFalse() soft delete 필터 포함 (PER-REP-001)
+  - [ ] AC-9: persist 메서드에서 id == null이면 persist, 아니면 merge (PER-ADP-002)
+  - [ ] AC-10: save() 후 DB에서 조회하면 모든 필드가 일치 (Property + 하위 엔티티 모두)
+  - [ ] AC-11: Testcontainers(MySQL) 기반 통합 테스트 통과
+  - [ ] AC-12: Flyway 마이그레이션 파일 — property, property_amenity, property_photo, property_attribute_value, partner 테이블 (PER-FLY-001)
+  - [ ] AC-13: BaseAuditEntity(createdAt, updatedAt) / SoftDeletableEntity(deleted, deletedAt) 상속 구조 (PER-ENT-002)
 - **관련 레이어**: Application → Adapter-out:mysql
 - **의존성**: STORY-103
 - **담당 팀**: persistence-mysql-team
@@ -80,9 +94,16 @@
 - **우선순위**: P0
 - **구현 상태**: 미구현
 - **수용기준**:
-  - [ ] AC-1: POST /api/v1/extranet/properties 요청 시 201 응답 + JSON body에 propertyId 필드 존재
-  - [ ] AC-2: 필수 필드(name, propertyTypeId, partnerId) 누락 시 400 응답 + errorCode 필드 존재
-  - [ ] AC-3: Swagger UI에서 API 명세 확인 가능
+  - [ ] AC-1: POST /api/v1/extranet/properties 요청 시 201 응답 + ApiResponse 래핑 + data에 propertyId 반환 (API-CTR-002)
+  - [ ] AC-2: 필수 필드(name, propertyTypeCode, partnerId, address) 누락 시 400 응답 + error.code="VALIDATION_ERROR" + error.userMessage + error.debugMessage 포함 (API-ERR-001)
+  - [ ] AC-3: ExtranetPropertyController는 RegisterPropertyUseCase 인터페이스만 의존. 구체 Service 직접 주입 금지 (API-CTR-001)
+  - [ ] AC-4: RegisterPropertyApiRequest는 record로 선언. Jakarta Validation(@NotNull, @NotBlank 등) 적용 (API-DTO-001, API-DTO-002)
+  - [ ] AC-5: PropertyApiMapper.toCommand()로 Request → Command 변환. Controller에 인라인 변환 로직 금지 (API-DTO-001)
+  - [ ] AC-6: DomainException 발생 시 GlobalExceptionHandler + ErrorMapper가 errorCode/userMessage/debugMessage로 변환하여 적절한 HTTP 상태 코드 반환 (API-ERR-001)
+  - [ ] AC-7: @DeleteMapping 사용 금지 — soft delete는 PATCH로 처리 (API-CTR-001)
+  - [ ] AC-8: Controller에 @Transactional 사용 금지. 비즈니스 로직 금지 (API-CTR-001)
+  - [ ] AC-9: Swagger UI에서 API 명세 확인 가능 — @Tag, @Operation, @ApiResponses 어노테이션 적용 (API-DOC-001)
+  - [ ] AC-10: partnerId 미존재 시 404 응답 (PartnerNotFoundException → GlobalExceptionHandler 경유)
 - **관련 레이어**: Application → Adapter-in:rest-api
 - **의존성**: STORY-103
 - **담당 팀**: rest-api-team

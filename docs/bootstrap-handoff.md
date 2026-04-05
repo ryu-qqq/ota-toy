@@ -216,6 +216,45 @@ docs/design/ 의 각 컨벤션 문서 참조
 
 ---
 
+## Phase 2 구현 가이드 수정 필요 (사용자 피드백)
+
+`docs/design/phase2-implementation-guide.md`를 PL이 작성했으나 **핵심 구조가 잘못됨.**
+
+### 문제
+PL이 "숙소 등록 시 기본정보 + 편의시설 + 사진 + 속성값을 한번에 저장"하는 구조로 작성함.
+
+### 실제 (OTA 리서치 근거)
+`docs/research/ota-extranet-registration-flow.md` 참조:
+- Booking.com, 야놀자 모두 **단계별 별도 저장**
+- 기본정보 → 객실 → 사진 → 편의시설 → 요금 각각 독립 API
+- 등록 후에도 각각 독립 수정 (사진 업로드가 숙소 기본정보와 무관)
+- 중간 저장 가능
+
+### 수정 방향
+STORY-103을 쪼개야 함:
+```
+STORY-103: 숙소 기본정보 등록 UseCase (Property만)
+  → RegisterPropertyUseCase — Property 기본정보만 저장
+  → PersistenceFacade 불필요 (단일 Aggregate만 저장)
+
+별도 Story:
+  → AddPropertyPhotosUseCase — 사진 독립 업로드
+  → SetPropertyAmenitiesUseCase — 편의시설 독립 설정
+  → SetPropertyAttributesUseCase — 속성값 독립 설정
+  → RegisterRoomTypeUseCase — 객실 독립 등록
+```
+
+### PersistenceFacade 사용 시점
+여러 Aggregate를 한 트랜잭션에 묶는 게 아니라, **단일 Aggregate 저장이면 CommandManager로 충분.**
+PersistenceFacade는 "예약 생성 + Outbox 저장" 같은 진짜 여러 Aggregate가 원자적이어야 할 때만 사용.
+
+### PL에게 시킬 것
+1. phase2-implementation-guide.md 재작성
+2. 위 리서치 근거를 반영하여 UseCase를 단일 책임으로 분리
+3. 백로그(STORY-103)도 분할 필요 → PO에게 요청
+
+---
+
 ## 즉시 실행
 
 ```
