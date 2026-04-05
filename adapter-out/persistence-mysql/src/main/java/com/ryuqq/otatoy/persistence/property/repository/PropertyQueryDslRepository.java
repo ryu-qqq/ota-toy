@@ -1,10 +1,12 @@
 package com.ryuqq.otatoy.persistence.property.repository;
 
+import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.ryuqq.otatoy.persistence.property.entity.PropertyJpaEntity;
 import com.ryuqq.otatoy.persistence.property.entity.QPropertyJpaEntity;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -45,5 +47,29 @@ public class PropertyQueryDslRepository {
                 )
                 .fetchFirst();
         return result != null;
+    }
+
+    /**
+     * 특정 파트너의 숙소 목록을 커서 기반으로 조회한다.
+     * size + 1 개를 조회하여 다음 페이지 존재 여부를 판단한다.
+     */
+    public List<PropertyJpaEntity> findByPartnerId(Long partnerId, int size, Long cursor) {
+        return queryFactory
+                .selectFrom(property)
+                .where(
+                        property.partnerId.eq(partnerId),
+                        property.deleted.isFalse(),
+                        cursorCondition(cursor)
+                )
+                .orderBy(property.id.asc())
+                .limit(size + 1)
+                .fetch();
+    }
+
+    private BooleanExpression cursorCondition(Long cursor) {
+        if (cursor == null) {
+            return null;
+        }
+        return property.id.gt(cursor);
     }
 }

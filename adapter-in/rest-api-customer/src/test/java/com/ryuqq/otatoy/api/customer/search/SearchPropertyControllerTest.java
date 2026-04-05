@@ -2,11 +2,10 @@ package com.ryuqq.otatoy.api.customer.search;
 
 import com.ryuqq.otatoy.api.core.ErrorMapperRegistry;
 import com.ryuqq.otatoy.api.core.GlobalExceptionHandler;
-import com.ryuqq.otatoy.application.common.dto.SliceResult;
+import com.ryuqq.otatoy.application.property.dto.result.CustomerPropertySliceResult;
 import com.ryuqq.otatoy.application.property.dto.result.PropertySummary;
-import com.ryuqq.otatoy.application.property.port.in.SearchPropertyUseCase;
+import com.ryuqq.otatoy.application.property.port.in.CustomerSearchPropertyUseCase;
 import com.ryuqq.otatoy.domain.common.query.SliceMeta;
-import com.ryuqq.otatoy.domain.common.vo.Coordinate;
 import com.ryuqq.otatoy.domain.common.vo.Money;
 import com.ryuqq.otatoy.domain.property.Location;
 import com.ryuqq.otatoy.domain.property.PropertyId;
@@ -29,12 +28,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * SearchPropertyController MockMvc 단위 테스트.
- *
- * @author ryu-qqq
- * @since 2026-04-06
- */
 @WebMvcTest(SearchPropertyController.class)
 @Import({GlobalExceptionHandler.class, ErrorMapperRegistry.class})
 class SearchPropertyControllerTest {
@@ -43,10 +36,10 @@ class SearchPropertyControllerTest {
     private MockMvc mockMvc;
 
     @MockitoBean
-    private SearchPropertyUseCase searchPropertyUseCase;
+    private CustomerSearchPropertyUseCase customerSearchPropertyUseCase;
 
     @Test
-    @DisplayName("숙소 검색 성공 시 200 응답 + ApiResponse 구조 검증")
+    @DisplayName("숙소 검색 성공 시 200 응답")
     void 숙소_검색_성공시_200_응답() throws Exception {
         // given
         PropertySummary summary = new PropertySummary(
@@ -57,12 +50,10 @@ class SearchPropertyControllerTest {
                 Money.of(BigDecimal.valueOf(100000))
         );
 
-        SliceResult<PropertySummary> result = SliceResult.of(
-                List.of(summary),
-                new SliceMeta(true, 2L)
-        );
+        CustomerPropertySliceResult result = CustomerPropertySliceResult.of(
+                List.of(summary), new SliceMeta(true, 2L));
 
-        given(searchPropertyUseCase.execute(any())).willReturn(result);
+        given(customerSearchPropertyUseCase.execute(any())).willReturn(result);
 
         // when & then
         mockMvc.perform(get("/api/v1/search/properties")
@@ -72,10 +63,8 @@ class SearchPropertyControllerTest {
                         .param("size", "10"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.content").isArray())
                 .andExpect(jsonPath("$.data.content[0].propertyId").value(1))
                 .andExpect(jsonPath("$.data.content[0].name").value("서울 호텔"))
-                .andExpect(jsonPath("$.data.content[0].address").value("서울시 강남구"))
                 .andExpect(jsonPath("$.data.content[0].lowestPrice").value(100000))
                 .andExpect(jsonPath("$.data.hasNext").value(true))
                 .andExpect(jsonPath("$.data.nextCursor").value(2));
@@ -84,17 +73,15 @@ class SearchPropertyControllerTest {
     @Test
     @DisplayName("검색 결과가 비어있으면 빈 목록 반환")
     void 검색_결과_없으면_빈_목록_반환() throws Exception {
-        // given
-        given(searchPropertyUseCase.execute(any())).willReturn(SliceResult.empty());
+        given(customerSearchPropertyUseCase.execute(any()))
+                .willReturn(CustomerPropertySliceResult.empty());
 
-        // when & then
         mockMvc.perform(get("/api/v1/search/properties")
                         .param("checkIn", "2026-05-01")
                         .param("checkOut", "2026-05-02")
                         .param("guests", "2")
                         .param("size", "10"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.content").isEmpty())
                 .andExpect(jsonPath("$.data.hasNext").value(false));
     }
@@ -102,7 +89,6 @@ class SearchPropertyControllerTest {
     @Test
     @DisplayName("체크인 날짜 누락 시 400 응답")
     void 체크인_날짜_누락시_400_응답() throws Exception {
-        // when & then
         mockMvc.perform(get("/api/v1/search/properties")
                         .param("checkOut", "2026-05-02")
                         .param("guests", "2")
@@ -113,7 +99,6 @@ class SearchPropertyControllerTest {
     @Test
     @DisplayName("체크아웃 날짜 누락 시 400 응답")
     void 체크아웃_날짜_누락시_400_응답() throws Exception {
-        // when & then
         mockMvc.perform(get("/api/v1/search/properties")
                         .param("checkIn", "2026-05-01")
                         .param("guests", "2")

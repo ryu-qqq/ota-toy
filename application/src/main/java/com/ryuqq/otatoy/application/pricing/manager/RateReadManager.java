@@ -35,4 +35,15 @@ public class RateReadManager {
                                                      LocalDate endDate) {
         return rateQueryPort.findByRatePlanIdsAndDateRange(ratePlanIds, startDate, endDate);
     }
+
+    /**
+     * 단일 요금 정책의 날짜 범위에 해당하는 요금 목록을 조회한다.
+     * RateCacheManager에서 캐시 미스 시 DB 폴백용으로 사용한다.
+     */
+    @Transactional(readOnly = true)
+    public List<Rate> findByRatePlanIdAndDateRange(RatePlanId ratePlanId,
+                                                    LocalDate startDate,
+                                                    LocalDate endDate) {
+        return rateQueryPort.findByRatePlanIdsAndDateRange(List.of(ratePlanId), startDate, endDate);
+    }
 }

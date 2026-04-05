@@ -12,12 +12,12 @@ import java.util.List;
 /**
  * 고객 숙소 검색 UseCase 입력 DTO.
  * Controller(ApiMapper)에서 변환하여 전달한다 (APP-DTO-001).
- * 인스턴스 메서드 금지 -- 순수 데이터 컨테이너 역할만 한다.
+ * 인스턴스 메서드 금지 — 순수 데이터 컨테이너 역할만 한다.
  *
  * @author ryu-qqq
  * @since 2026-04-06
  */
-public record SearchPropertyQuery(
+public record CustomerSearchPropertyQuery(
         String keyword,
         String region,
         PropertyTypeId propertyTypeId,

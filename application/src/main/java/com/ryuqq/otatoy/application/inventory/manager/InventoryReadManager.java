@@ -1,7 +1,7 @@
 package com.ryuqq.otatoy.application.inventory.manager;
 
 import com.ryuqq.otatoy.application.inventory.port.out.InventoryQueryPort;
-import com.ryuqq.otatoy.domain.inventory.Inventory;
+import com.ryuqq.otatoy.domain.inventory.Inventories;
 import com.ryuqq.otatoy.domain.roomtype.RoomTypeId;
 
 import org.springframework.stereotype.Component;
@@ -30,9 +30,9 @@ public class InventoryReadManager {
      * 특정 객실 유형들의 날짜 범위에 해당하는 재고 목록을 조회한다.
      */
     @Transactional(readOnly = true)
-    public List<Inventory> findByRoomTypeIdsAndDateRange(List<RoomTypeId> roomTypeIds,
-                                                          LocalDate startDate,
-                                                          LocalDate endDate) {
-        return inventoryQueryPort.findByRoomTypeIdsAndDateRange(roomTypeIds, startDate, endDate);
+    public Inventories findByRoomTypeIdsAndDateRange(List<RoomTypeId> roomTypeIds,
+                                                      LocalDate startDate,
+                                                      LocalDate endDate) {
+        return Inventories.of(inventoryQueryPort.findByRoomTypeIdsAndDateRange(roomTypeIds, startDate, endDate));
     }
 }

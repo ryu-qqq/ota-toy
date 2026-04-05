@@ -5,6 +5,7 @@ import com.ryuqq.otatoy.domain.property.PropertyId;
 import com.ryuqq.otatoy.domain.roomtype.RoomType;
 import com.ryuqq.otatoy.domain.roomtype.RoomTypeId;
 import com.ryuqq.otatoy.domain.roomtype.RoomTypeNotFoundException;
+import com.ryuqq.otatoy.domain.roomtype.RoomTypes;
 
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,5 +47,14 @@ public class RoomTypeReadManager {
     @Transactional(readOnly = true)
     public List<RoomType> findByPropertyId(PropertyId propertyId) {
         return roomTypeQueryPort.findByPropertyId(propertyId);
+    }
+
+    /**
+     * 특정 숙소의 활성 객실 유형 중 최소 인원 이상 수용 가능한 목록을 조회한다.
+     * DB에서 필터링하여 불필요한 데이터 전송을 방지한다.
+     */
+    @Transactional(readOnly = true)
+    public RoomTypes findActiveByPropertyIdAndMinOccupancy(PropertyId propertyId, int minOccupancy) {
+        return RoomTypes.of(roomTypeQueryPort.findActiveByPropertyIdAndMinOccupancy(propertyId, minOccupancy));
     }
 }

@@ -3,14 +3,34 @@ package com.ryuqq.otatoy.api.extranet.property;
 import com.ryuqq.otatoy.api.core.ErrorMapperRegistry;
 import com.ryuqq.otatoy.api.core.GlobalExceptionHandler;
 import com.ryuqq.otatoy.api.extranet.common.error.ExtranetPropertyErrorMapper;
+import com.ryuqq.otatoy.application.property.dto.result.ExtranetPropertySliceResult;
+import com.ryuqq.otatoy.application.property.dto.result.PropertyDetail;
+import com.ryuqq.otatoy.application.property.dto.result.PropertySummary;
+import com.ryuqq.otatoy.application.property.port.in.ExtranetSearchPropertyUseCase;
+import com.ryuqq.otatoy.application.property.port.in.GetPropertyDetailUseCase;
 import com.ryuqq.otatoy.application.property.port.in.RegisterPropertyUseCase;
 import com.ryuqq.otatoy.application.property.port.in.SetPropertyAmenitiesUseCase;
 import com.ryuqq.otatoy.application.property.port.in.SetPropertyAttributesUseCase;
 import com.ryuqq.otatoy.application.property.port.in.SetPropertyPhotosUseCase;
+import com.ryuqq.otatoy.domain.brand.BrandId;
+import com.ryuqq.otatoy.domain.common.query.SliceMeta;
+import com.ryuqq.otatoy.domain.common.vo.Money;
+import com.ryuqq.otatoy.domain.partner.PartnerId;
 import com.ryuqq.otatoy.domain.partner.PartnerNotFoundException;
+import com.ryuqq.otatoy.domain.property.Location;
+import com.ryuqq.otatoy.domain.property.Property;
+import com.ryuqq.otatoy.domain.property.PropertyAmenities;
+import com.ryuqq.otatoy.domain.property.PropertyAttributeValues;
+import com.ryuqq.otatoy.domain.property.PropertyDescription;
+import com.ryuqq.otatoy.domain.property.PropertyId;
+import com.ryuqq.otatoy.domain.property.PropertyName;
 import com.ryuqq.otatoy.domain.property.PropertyNotFoundException;
+import com.ryuqq.otatoy.domain.property.PropertyPhotos;
+import com.ryuqq.otatoy.domain.property.PropertyStatus;
+import com.ryuqq.otatoy.domain.roomtype.RoomTypes;
 import com.ryuqq.otatoy.domain.property.RequiredPropertyAttributeMissingException;
 import com.ryuqq.otatoy.domain.propertytype.PropertyTypeAttributeId;
+import com.ryuqq.otatoy.domain.propertytype.PropertyTypeId;
 import com.ryuqq.otatoy.domain.propertytype.PropertyTypeNotFoundException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -21,6 +41,9 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+
+import java.time.Instant;
+import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
@@ -34,6 +57,7 @@ import static org.springframework.restdocs.operation.preprocess.Preprocessors.pr
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -66,6 +90,12 @@ class ExtranetPropertyControllerTest {
 
     @MockitoBean
     SetPropertyAttributesUseCase setPropertyAttributesUseCase;
+
+    @MockitoBean
+    ExtranetSearchPropertyUseCase extranetSearchPropertyUseCase;
+
+    @MockitoBean
+    GetPropertyDetailUseCase getPropertyDetailUseCase;
 
     private static final String BASE_URL = ExtranetPropertyEndpoints.PROPERTIES;
 
@@ -827,6 +857,167 @@ class ExtranetPropertyControllerTest {
                     .andExpect(jsonPath("$.success").value(false))
                     .andExpect(jsonPath("$.error.code").value("ACC-006"))
                     .andExpect(jsonPath("$.error.userMessage").value("필수 속성이 누락되었습니다"));
+            }
+        }
+    }
+
+    // =====================================================================
+    // GET /api/v1/extranet/properties — 숙소 목록 조회
+    // =====================================================================
+
+    @Nested
+    @DisplayName("GET /api/v1/extranet/properties")
+    class SearchProperties {
+
+        @Nested
+        @DisplayName("AIT-1: 정상 요청")
+        class Success {
+
+            @Test
+            @DisplayName("partnerId로 숙소 목록 조회 시 200 OK와 결과를 반환한다")
+            void shouldReturnOkWithPropertyList() throws Exception {
+                // given
+                PropertySummary summary = new PropertySummary(
+                        PropertyId.of(1L),
+                        PropertyName.of("테스트 호텔"),
+                        PropertyTypeId.of(1L),
+                        Location.of("서울시 강남구", 37.5665, 126.978, "강남", "서울"),
+                        Money.of(0)
+                );
+                ExtranetPropertySliceResult result = ExtranetPropertySliceResult.of(
+                        List.of(summary), new SliceMeta(false, null));
+
+                given(extranetSearchPropertyUseCase.execute(any()))
+                    .willReturn(result);
+
+                // when & then
+                mockMvc.perform(get(BASE_URL)
+                        .param("partnerId", "1")
+                        .param("size", "20"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success").value(true))
+                    .andExpect(jsonPath("$.data.content").isArray())
+                    .andExpect(jsonPath("$.data.content[0].propertyId.value").value(1))
+                    .andExpect(jsonPath("$.data.sliceMeta.hasNext").value(false))
+                    .andDo(document("extranet-property-search",
+                        preprocessRequest(prettyPrint()),
+                        preprocessResponse(prettyPrint())));
+            }
+
+            @Test
+            @DisplayName("커서를 포함한 다음 페이지 요청도 정상 처리한다")
+            void shouldHandleCursorPagination() throws Exception {
+                // given
+                given(extranetSearchPropertyUseCase.execute(any()))
+                    .willReturn(ExtranetPropertySliceResult.empty());
+
+                // when & then
+                mockMvc.perform(get(BASE_URL)
+                        .param("partnerId", "1")
+                        .param("size", "10")
+                        .param("cursor", "100"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success").value(true))
+                    .andExpect(jsonPath("$.data.content").isEmpty());
+            }
+
+            @Test
+            @DisplayName("size 기본값은 20이다")
+            void shouldUseDefaultSize() throws Exception {
+                // given
+                given(extranetSearchPropertyUseCase.execute(any()))
+                    .willReturn(ExtranetPropertySliceResult.empty());
+
+                // when & then
+                mockMvc.perform(get(BASE_URL)
+                        .param("partnerId", "1"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success").value(true));
+            }
+        }
+
+        @Nested
+        @DisplayName("AIT-2: 파라미터 누락")
+        class MissingParam {
+
+            @Test
+            @DisplayName("partnerId 누락 시 에러 응답을 반환한다")
+            void shouldReturnErrorWhenPartnerIdMissing() throws Exception {
+                mockMvc.perform(get(BASE_URL))
+                    .andExpect(jsonPath("$.success").value(false));
+            }
+        }
+    }
+
+    // =====================================================================
+    // GET /api/v1/extranet/properties/{propertyId} — 숙소 상세 조회
+    // =====================================================================
+
+    @Nested
+    @DisplayName("GET /api/v1/extranet/properties/{propertyId}")
+    class GetPropertyDetail {
+
+        @Nested
+        @DisplayName("AIT-1: 정상 요청")
+        class Success {
+
+            @Test
+            @DisplayName("유효한 propertyId로 상세 조회 시 200 OK와 상세 정보를 반환한다")
+            void shouldReturnOkWithPropertyDetail() throws Exception {
+                // given
+                Property property = Property.reconstitute(
+                        PropertyId.of(1L),
+                        PartnerId.of(1L),
+                        BrandId.of(10L),
+                        PropertyTypeId.of(1L),
+                        PropertyName.of("테스트 호텔"),
+                        PropertyDescription.of("테스트 설명"),
+                        Location.of("서울시 강남구", 37.5665, 126.978, "강남", "서울"),
+                        null,
+                        PropertyStatus.ACTIVE,
+                        Instant.now(),
+                        Instant.now()
+                );
+                PropertyDetail detail = PropertyDetail.of(
+                        property,
+                        PropertyPhotos.reconstitute(List.of()),
+                        PropertyAmenities.reconstitute(List.of()),
+                        PropertyAttributeValues.reconstitute(List.of()),
+                        RoomTypes.of(List.of())
+                );
+
+                given(getPropertyDetailUseCase.execute(any()))
+                    .willReturn(detail);
+
+                // when & then
+                mockMvc.perform(get(BASE_URL + "/1"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success").value(true))
+                    .andExpect(jsonPath("$.data.property").exists())
+                    .andExpect(jsonPath("$.data.roomTypes").exists())
+                    .andDo(document("extranet-property-detail",
+                        preprocessRequest(prettyPrint()),
+                        preprocessResponse(prettyPrint())));
+            }
+        }
+
+        @Nested
+        @DisplayName("AIT-2: 존재하지 않는 리소스")
+        class NotFound {
+
+            @Test
+            @DisplayName("PropertyNotFoundException 발생 시 404 Not Found를 반환한다")
+            void shouldReturn404WhenPropertyNotFound() throws Exception {
+                // given
+                given(getPropertyDetailUseCase.execute(any()))
+                    .willThrow(new PropertyNotFoundException());
+
+                // when & then
+                mockMvc.perform(get(BASE_URL + "/999"))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.success").value(false))
+                    .andExpect(jsonPath("$.error.code").value("ACC-001"))
+                    .andExpect(jsonPath("$.error.userMessage").value("숙소를 찾을 수 없습니다"));
             }
         }
     }

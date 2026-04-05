@@ -4,6 +4,7 @@ import com.ryuqq.otatoy.application.pricing.port.out.RatePlanQueryPort;
 import com.ryuqq.otatoy.domain.pricing.RatePlan;
 import com.ryuqq.otatoy.domain.pricing.RatePlanId;
 import com.ryuqq.otatoy.domain.pricing.RatePlanNotFoundException;
+import com.ryuqq.otatoy.domain.pricing.RatePlans;
 import com.ryuqq.otatoy.domain.roomtype.RoomTypeId;
 
 import org.springframework.stereotype.Component;
@@ -50,7 +51,7 @@ public class RatePlanReadManager {
      * 특정 객실 유형들에 연결된 요금 정책 목록을 조회한다.
      */
     @Transactional(readOnly = true)
-    public List<RatePlan> findByRoomTypeIds(List<RoomTypeId> roomTypeIds) {
-        return ratePlanQueryPort.findByRoomTypeIds(roomTypeIds);
+    public RatePlans findByRoomTypeIds(List<RoomTypeId> roomTypeIds) {
+        return RatePlans.of(ratePlanQueryPort.findByRoomTypeIds(roomTypeIds));
     }
 }
