@@ -1,9 +1,11 @@
 package com.ryuqq.otatoy.application.property.manager;
 
+import com.ryuqq.otatoy.application.common.dto.SliceResult;
 import com.ryuqq.otatoy.application.property.port.out.PropertyQueryPort;
 import com.ryuqq.otatoy.domain.property.Property;
 import com.ryuqq.otatoy.domain.property.PropertyId;
 import com.ryuqq.otatoy.domain.property.PropertyNotFoundException;
+import com.ryuqq.otatoy.domain.property.PropertySliceCriteria;
 
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,5 +37,13 @@ public class PropertyReadManager {
         if (!propertyQueryPort.existsById(id)) {
             throw new PropertyNotFoundException();
         }
+    }
+
+    /**
+     * 고객 검색 조건에 맞는 숙소 목록을 커서 기반으로 조회한다.
+     */
+    @Transactional(readOnly = true)
+    public SliceResult<Property> findByCondition(PropertySliceCriteria criteria) {
+        return propertyQueryPort.findByCondition(criteria);
     }
 }

@@ -1,5 +1,6 @@
 package com.ryuqq.otatoy.persistence.entity;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.MappedSuperclass;
 
 import java.time.Instant;
@@ -7,6 +8,7 @@ import java.time.Instant;
 @MappedSuperclass
 public abstract class SoftDeletableEntity extends BaseAuditEntity {
 
+    @Column(nullable = false)
     private boolean deleted;
 
     private Instant deletedAt;

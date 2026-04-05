@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * Extranet 숙소 관련 DomainException을 HTTP 응답으로 매핑하는 구현체.
- * ACC-(숙소), PTN-(파트너), PT-(숙소유형) 접두사 에러 코드를 처리한다.
+ * ACC-(숙소), PTN-(파트너), PT-(숙소유형), PRC-(요금정책) 접두사 에러 코드를 처리한다.
  * ErrorCategory 기반으로 HTTP 상태를 결정한다.
  *
  * @author ryu-qqq
@@ -20,7 +20,8 @@ public class ExtranetPropertyErrorMapper implements ErrorMapper {
     @Override
     public boolean supports(DomainException ex) {
         String code = ex.getErrorCode().getCode();
-        return code.startsWith("ACC-") || code.startsWith("PTN-") || code.startsWith("PT-");
+        return code.startsWith("ACC-") || code.startsWith("PTN-") || code.startsWith("PT-")
+            || code.startsWith("PRC-");
     }
 
     @Override

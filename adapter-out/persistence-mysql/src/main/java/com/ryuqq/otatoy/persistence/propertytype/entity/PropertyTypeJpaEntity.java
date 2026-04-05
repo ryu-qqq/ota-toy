@@ -1,6 +1,7 @@
 package com.ryuqq.otatoy.persistence.propertytype.entity;
 
 import com.ryuqq.otatoy.persistence.entity.SoftDeletableEntity;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -23,8 +24,14 @@ public class PropertyTypeJpaEntity extends SoftDeletableEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(nullable = false, length = 50)
     private String code;
+
+    @Column(nullable = false, length = 100)
     private String name;
+
+    @Column(length = 500)
     private String description;
 
     protected PropertyTypeJpaEntity() {

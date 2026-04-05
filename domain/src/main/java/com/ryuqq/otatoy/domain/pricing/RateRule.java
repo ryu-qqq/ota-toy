@@ -134,6 +134,19 @@ public class RateRule {
         this.updatedAt = now;
     }
 
+    /**
+     * 기간 내 모든 날짜의 Rate 스냅샷을 생성한다.
+     * 각 날짜의 요일에 따른 가격을 계산하고, RateOverride가 있으면 override 가격을 적용한다.
+     */
+    public List<Rate> generateRates(List<RateOverride> overrides, Instant now) {
+        List<Rate> rates = new java.util.ArrayList<>();
+        for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
+            BigDecimal price = resolvePrice(date, overrides);
+            rates.add(Rate.forNew(ratePlanId, date, price, now));
+        }
+        return rates;
+    }
+
     public boolean covers(LocalDate date) {
         return !date.isBefore(startDate) && !date.isAfter(endDate);
     }

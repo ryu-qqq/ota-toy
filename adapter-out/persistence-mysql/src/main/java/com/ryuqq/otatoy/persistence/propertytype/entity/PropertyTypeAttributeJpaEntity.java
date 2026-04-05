@@ -24,12 +24,23 @@ public class PropertyTypeAttributeJpaEntity extends SoftDeletableEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(nullable = false)
     private Long propertyTypeId;
+
+    @Column(nullable = false, length = 100)
     private String attributeKey;
+
+    @Column(nullable = false, length = 200)
     private String attributeName;
+
+    @Column(nullable = false, length = 50)
     private String valueType;
-    @Column(name = "is_required")
+
+    @Column(name = "is_required", nullable = false)
     private boolean required;
+
+    @Column(nullable = false)
     private int sortOrder;
 
     protected PropertyTypeAttributeJpaEntity() {

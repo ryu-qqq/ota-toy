@@ -53,6 +53,24 @@ public class RateOverride {
         }
     }
 
+    /**
+     * 부모(RateRule) ID가 아직 할당되지 않은 상태로 생성한다.
+     * PersistenceFacade에서 RateRule 저장 후 withRateRuleId()로 ID를 할당한다.
+     */
+    public static RateOverride forPending(LocalDate ruleStartDate, LocalDate ruleEndDate,
+                                           LocalDate overrideDate, BigDecimal price, String reason, Instant now) {
+        validate(overrideDate, price, ruleStartDate, ruleEndDate);
+        return new RateOverride(RateOverrideId.of(null), null, overrideDate, price, reason, now, now);
+    }
+
+    /**
+     * rateRuleId를 할당한 새 객체를 반환한다.
+     * 원본은 변경되지 않는다 (불변 복사).
+     */
+    public RateOverride withRateRuleId(RateRuleId rateRuleId) {
+        return new RateOverride(this.id, rateRuleId, this.overrideDate, this.price, this.reason, this.createdAt, this.updatedAt);
+    }
+
     public static RateOverride reconstitute(RateOverrideId id, RateRuleId rateRuleId, LocalDate overrideDate,
                                              BigDecimal price, String reason, Instant createdAt, Instant updatedAt) {
         return new RateOverride(id, rateRuleId, overrideDate, price, reason, createdAt, updatedAt);

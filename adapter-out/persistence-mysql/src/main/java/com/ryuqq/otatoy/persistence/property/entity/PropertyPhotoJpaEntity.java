@@ -1,6 +1,7 @@
 package com.ryuqq.otatoy.persistence.property.entity;
 
 import com.ryuqq.otatoy.persistence.entity.SoftDeletableEntity;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -23,10 +24,20 @@ public class PropertyPhotoJpaEntity extends SoftDeletableEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(nullable = false)
     private Long propertyId;
+
+    @Column(nullable = false, length = 50)
     private String photoType;
+
+    @Column(nullable = false, length = 1000)
     private String originUrl;
+
+    @Column(length = 1000)
     private String cdnUrl;
+
+    @Column(nullable = false)
     private int sortOrder;
 
     protected PropertyPhotoJpaEntity() {

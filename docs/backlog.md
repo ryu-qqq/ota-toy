@@ -1,11 +1,12 @@
 # 백로그
 
 > 생성일: 2026-04-04
-> 최종 갱신: 2026-04-05 (STORY-103 분할 — 단계별 별도 저장 구조 반영)
+> 최종 갱신: 2026-04-05 (STORY-107 분할 — RatePlan 등록과 요금/재고 설정을 분리)
 > 기준: 요구사항 필수 6개 + 선택 확장 + 권장 확장
 > 현재 상태: Domain 모델 일부 구현 (accommodation, pricing, location, partner), Application/Adapter 전체 미구현
 
 ### 갱신 이력
+- **2026-04-05**: STORY-107 분할 — RatePlan 등록(107a)과 요금/재고 설정(107b)을 분리. RatePlan이 먼저 존재해야 요금/재고를 설정할 수 있으므로 선행 의존성 반영. 기존 Redis 관련 AC(AC-5, AC-6)는 STORY-601에서 처리. STORY-201/202/302의 의존성을 107b로 변경
 - **2026-04-05**: STORY-103 분할 — OTA 리서치 근거로 숙소 등록을 단계별 별도 저장 구조로 분리 (기본정보/사진/편의시설/속성값/객실). STORY-103a~103d 신규 생성. STORY-106을 STORY-103d로 통합
 - **2026-04-04**: Phase 2 수용기준 재확인 (STORY-103/104/105). 현재 도메인 코드(property 패키지 세분화, 일급 컬렉션, VO) 기준으로 수용기준 보강. Application/Persistence/API 컨벤션 규칙 번호 매핑 추가. 하위 엔티티(PropertyAmenity, PropertyPhoto, PropertyAttributeValue) 저장 전략, CQRS 분리, ErrorMapper/ApiMapper 패턴, PropertyTypeReadManager 검증 등 누락 항목 보완
 - **2026-04-02**: ERD v2 반영 (PropertyLandmark, RateRule/RateOverride, Supplier 재설계), 동시성 제어 전략 변경 (비관적 락 → Redis 원자적 카운터), 요금 캐싱 3단 레이어 반영, Spring Event 금지 → Outbox 패턴 전환, Manager 레이어 컨벤션 반영, 도메인 컨텍스트 분리 (accommodation, pricing, location, partner) 반영
@@ -197,19 +198,45 @@
 - **담당 팀**: rest-api-team
 - **추정 규모**: L
 
-### STORY-107: 재고/요금 설정 API (Extranet)
+### STORY-107a: RatePlan 등록 UseCase 구현
 - **우선순위**: P0
-- **구현 상태**: 미구현 (RatePlan, RateRule, RateOverride, Rate 도메인 모델 존재 — pricing 패키지)
+- **구현 상태**: 미구현 (RatePlan 도메인 모델 존재 — pricing 패키지)
+- **분할 근거**: RatePlan이 먼저 존재해야 요금(RateRule/Rate)과 재고(Inventory)를 설정할 수 있음. RatePlan 등록과 요금/재고 설정은 생명주기가 다르므로 분리
 - **수용기준**:
-  - [ ] AC-1: PUT /api/v1/extranet/inventory 요청 시 RateRule 저장 + 해당 기간의 Rate 스냅샷 자동 생성
-  - [ ] AC-2: 기간(startDate~endDate) 내 요일별 가격이 Rate 테이블에 정확히 반영 (weekdayPrice, fridayPrice, saturdayPrice, sundayPrice 기반 계산)
-  - [ ] AC-3: RateOverride가 있으면 해당 날짜의 Rate가 override 가격으로 갱신
-  - [ ] AC-4: Inventory가 해당 기간에 대해 base_inventory 값으로 생성
-  - [ ] AC-5: Redis 캐시에 rate:{ratePlanId}:{date} 키로 캐싱
-  - [ ] AC-6: Redis 재고 카운터 초기화 (SET inventory:{roomTypeId}:{date} {base_inventory})
-  - [ ] AC-7: Rate 스냅샷 생성은 Outbox를 통해 비동기 처리 가능 (또는 동기 처리)
-- **관련 레이어**: Domain → Application → Adapter-out:mysql → Adapter-out:redis → Adapter-in:rest-api
+  - [ ] AC-1: POST /api/v1/extranet/properties/{propertyId}/rooms/{roomTypeId}/rate-plans 요청 시 201 응답 + ApiResponse 래핑 + data에 ratePlanId 반환
+  - [ ] AC-2: RegisterRatePlanUseCase 호출 시 roomTypeId가 존재하지 않으면 RoomTypeNotFoundException 발생 (RoomTypeReadManager.getById 경유)
+  - [ ] AC-3: RatePlan 생성 시 이름(name), 취소정책(cancellationPolicy), 결제정책(paymentPolicy), 소스유형(sourceType) 설정
+  - [ ] AC-4: RatePlan.sourceType이 DIRECT로 설정 (Extranet을 통한 파트너 직접 등록)
+  - [ ] AC-5: RegisterRatePlanCommand는 record로 선언. propertyId + roomTypeId + 요금제 기본정보(name, cancellationPolicy, paymentPolicy) 구조 (APP-DTO-001)
+  - [ ] AC-6: RatePlanFactory가 TimeProvider를 주입받아 RatePlan.forNew() 호출로 도메인 객체 생성 (APP-FAC-001)
+  - [ ] AC-7: RatePlanCommandPort, RatePlanQueryPort 인터페이스가 Application 레이어에 정의됨 (APP-PRT-001)
+  - [ ] AC-8: RatePlanPersistenceAdapter가 RatePlan을 저장하고 생성된 ratePlanId를 반환
+  - [ ] AC-9: Port 직접 호출 금지 — Service는 Manager/Factory/Facade만 의존 (APP-BC-001)
+  - [ ] AC-10: Swagger UI에서 API 명세 확인 가능 (API-DOC-001)
+- **관련 레이어**: Domain → Application → Adapter-out:mysql → Adapter-in:rest-api
 - **의존성**: STORY-103d, STORY-106
+- **담당 팀**: application-team
+- **추정 규모**: M
+
+### STORY-107b: 요금/재고 설정 UseCase 구현
+- **우선순위**: P0
+- **구현 상태**: 미구현 (RateRule, RateOverride, Rate, Inventory 도메인 모델 존재 — pricing/inventory 패키지)
+- **분할 근거**: STORY-107a에서 생성된 RatePlan을 기반으로 기간별 요금 규칙 + 재고를 한번에 설정하는 핵심 UseCase
+- **수용기준**:
+  - [ ] AC-1: PUT /api/v1/extranet/rate-plans/{ratePlanId}/rates 요청 시 200 응답. SetRateAndInventoryUseCase 의존
+  - [ ] AC-2: ratePlanId가 존재하지 않으면 RatePlanNotFoundException 발생 (RatePlanReadManager.getById 경유)
+  - [ ] AC-3: RateRule 저장 — 기간(startDate~endDate) + 요일별 가격(weekdayPrice, fridayPrice, saturdayPrice, sundayPrice). 기간 겹침 시 기존 RateRule을 분할(diff) 처리
+  - [ ] AC-4: Rate 스냅샷 생성 — RateRule 기반으로 기간 내 각 날짜의 요일에 따라 해당 요일 가격을 Rate 테이블에 저장
+  - [ ] AC-5: RateOverride 적용 — 요청에 특정 날짜 가격 덮어쓰기(overrides) 목록이 포함된 경우, 해당 날짜의 Rate가 override 가격으로 갱신
+  - [ ] AC-6: Inventory 생성/업데이트 — 기간 내 날짜별로 baseInventory 값으로 Inventory 레코드 생성. 이미 존재하는 날짜는 baseInventory 업데이트
+  - [ ] AC-7: SetRateAndInventoryCommand는 record로 선언. ratePlanId + 기간(startDate, endDate) + 요일별 가격 + baseInventory + List<OverrideItem>(date, price) 구조 (APP-DTO-001)
+  - [ ] AC-8: RateSnapshotFactory가 RateRule + RateOverride를 받아 날짜별 Rate 목록을 생성 (APP-FAC-001)
+  - [ ] AC-9: RateAndInventoryPersistenceFacade가 RateRule + Rate 목록 + Inventory 목록을 하나의 @Transactional에서 원자적으로 저장 (APP-FCD-001)
+  - [ ] AC-10: Redis 캐시 초기화 및 Redis 재고 카운터 초기화는 이 Story에서 제외 — STORY-601에서 처리
+  - [ ] AC-11: Port 직접 호출 금지 — Service는 Manager/Factory/Facade만 의존 (APP-BC-001)
+  - [ ] AC-12: Swagger UI에서 API 명세 확인 가능 (API-DOC-001)
+- **관련 레이어**: Domain → Application → Adapter-out:mysql → Adapter-in:rest-api
+- **의존성**: STORY-107a
 - **담당 팀**: application-team
 - **추정 규모**: L
 
@@ -230,7 +257,7 @@
   - [ ] AC-4: 커서 기반 페이지네이션 지원 (size, cursor 파라미터) — CursorPageRequest 사용
   - [ ] AC-5: 응답에 숙소 기본 정보 + 최저 가격이 포함
 - **관련 레이어**: Domain → Application → Adapter-out:mysql → Adapter-out:redis → Adapter-in:rest-api
-- **의존성**: STORY-107
+- **의존성**: STORY-107b
 - **담당 팀**: application-team
 - **추정 규모**: L
 
@@ -245,7 +272,7 @@
   - [ ] AC-5: 100개 동시 요금 조회 요청 시 DB 쿼리 수가 10 이하 (캐시 효과 검증)
   - [ ] AC-6: RateCacheClientManager를 통한 Redis 캐시 접근 (ClientManager 패턴)
 - **관련 레이어**: Domain → Application → Adapter-out:mysql → Adapter-out:redis → Adapter-in:rest-api
-- **의존성**: STORY-107
+- **의존성**: STORY-107b
 - **담당 팀**: application-team
 - **추정 규모**: L
 
@@ -286,7 +313,7 @@
   - [ ] AC-7: InventoryClientManager를 통한 Redis 재고 접근 (ClientManager 패턴)
   - [ ] AC-8: CreateReservationService는 @Transactional 없이 Redis 차감 → DB 저장 → 실패 시 INCR 복구 흐름
 - **관련 레이어**: Domain → Application → Adapter-out:mysql → Adapter-out:redis → Adapter-in:rest-api
-- **의존성**: STORY-301, STORY-107
+- **의존성**: STORY-301, STORY-107b
 - **담당 팀**: application-team
 - **추정 규모**: L
 
@@ -422,7 +449,7 @@
   - [ ] AC-3: 임시 홀드(hold:{reservationId}) TTL 만료 시 재고 자동 복구 처리
   - [ ] AC-4: 홀드 만료 복구 스케줄러 또는 Redis Keyspace Notification 기반 구현
 - **관련 레이어**: Application → Adapter-out:redis
-- **의존성**: STORY-107, STORY-301
+- **의존성**: STORY-107b, STORY-301
 - **담당 팀**: application-team
 - **추정 규모**: M
 
@@ -661,15 +688,16 @@
 | 14 | STORY-104 | 숙소 Persistence Adapter | L |
 | 15 | STORY-105 | 숙소 기본정보 등록 API (Extranet) | M |
 | 16 | STORY-106 | 숙소 부속 정보 API (사진/편의시설/속성값/객실) | L |
-| 17 | STORY-107 | 재고/요금 설정 API + Redis 초기화 | L |
-| 18 | STORY-601 | Redis 재고 초기화 + 홀드 만료 처리 | M |
-| 19 | STORY-201 | 숙소 검색 API (Customer) | L |
-| 20 | STORY-202 | 요금 조회 API + 3단 캐싱 | L |
-| 21 | STORY-302 | 예약 생성 + Redis 동시성 제어 | L |
-| 22 | STORY-303 | 예약 취소 API | M |
-| 23 | STORY-304 | 동시성 제어 통합 테스트 | M |
-| 24 | STORY-402 | Supplier ACL 구현 | L |
-| 25 | STORY-403 | Supplier Diff 동기화 | L |
+| 17 | STORY-107a | RatePlan 등록 UseCase | M |
+| 18 | STORY-107b | 요금/재고 설정 UseCase | L |
+| 19 | STORY-601 | Redis 재고 초기화 + 홀드 만료 처리 | M |
+| 20 | STORY-201 | 숙소 검색 API (Customer) | L |
+| 21 | STORY-202 | 요금 조회 API + 3단 캐싱 | L |
+| 22 | STORY-302 | 예약 생성 + Redis 동시성 제어 | L |
+| 23 | STORY-303 | 예약 취소 API | M |
+| 24 | STORY-304 | 동시성 제어 통합 테스트 | M |
+| 25 | STORY-402 | Supplier ACL 구현 | L |
+| 26 | STORY-403 | Supplier Diff 동기화 | L |
 
 ### P1 (확장-높음 — 차별화 요소)
 | 스토리 | 핵심 | 규모 |
@@ -717,7 +745,10 @@ STORY-701 (Gradle 세팅)
         │   STORY-106 (부속 정보 API)          │                            │
         │       │                              │                            │
         │       ▼                              │                            │
-        │   STORY-107 (재고/요금 설정)         │                            │
+        │   STORY-107a (RatePlan 등록)         │                            │
+        │       │                              │                            │
+        │       ▼                              │                            │
+        │   STORY-107b (요금/재고 설정)        │                            │
         │       │                              │                            │
         │       ├──────────────────────────────┤                            │
         │       ▼                              ▼                            ▼
@@ -731,7 +762,7 @@ STORY-701 (Gradle 세팅)
                 │
                 └── STORY-502 (예약 Outbox 연동)
         
-        └── STORY-601 (Redis 재고 초기화)
+        └── STORY-601 (Redis 재고 초기화) ← STORY-107b 의존
                 │
                 └── STORY-602 (Redis-DB 정합성 배치)
 ```
