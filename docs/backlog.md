@@ -1,11 +1,12 @@
 # 백로그
 
 > 생성일: 2026-04-04
-> 최종 갱신: 2026-04-02 (ERD v2, 설계 결정 반영)
+> 최종 갱신: 2026-04-05 (STORY-103 분할 — 단계별 별도 저장 구조 반영)
 > 기준: 요구사항 필수 6개 + 선택 확장 + 권장 확장
 > 현재 상태: Domain 모델 일부 구현 (accommodation, pricing, location, partner), Application/Adapter 전체 미구현
 
 ### 갱신 이력
+- **2026-04-05**: STORY-103 분할 — OTA 리서치 근거로 숙소 등록을 단계별 별도 저장 구조로 분리 (기본정보/사진/편의시설/속성값/객실). STORY-103a~103d 신규 생성. STORY-106을 STORY-103d로 통합
 - **2026-04-04**: Phase 2 수용기준 재확인 (STORY-103/104/105). 현재 도메인 코드(property 패키지 세분화, 일급 컬렉션, VO) 기준으로 수용기준 보강. Application/Persistence/API 컨벤션 규칙 번호 매핑 추가. 하위 엔티티(PropertyAmenity, PropertyPhoto, PropertyAttributeValue) 저장 전략, CQRS 분리, ErrorMapper/ApiMapper 패턴, PropertyTypeReadManager 검증 등 누락 항목 보완
 - **2026-04-02**: ERD v2 반영 (PropertyLandmark, RateRule/RateOverride, Supplier 재설계), 동시성 제어 전략 변경 (비관적 락 → Redis 원자적 카운터), 요금 캐싱 3단 레이어 반영, Spring Event 금지 → Outbox 패턴 전환, Manager 레이어 컨벤션 반영, 도메인 컨텍스트 분리 (accommodation, pricing, location, partner) 반영
 
@@ -48,23 +49,91 @@
 - **담당 팀**: domain-team
 - **추정 규모**: M
 
-### STORY-103: 숙소 등록 UseCase 구현
+### STORY-103: 숙소 기본정보 등록 UseCase 구현
 - **우선순위**: P0
 - **구현 상태**: 미구현
+- **분할 근거**: OTA 리서치 결과 Booking.com/야놀자 모두 기본정보/사진/편의시설/속성값/객실을 단계별 별도 저장. 각각 독립 API, 독립 생명주기 (`docs/research/ota-extranet-registration-flow.md` 참조)
 - **수용기준**:
-  - [ ] AC-1: RegisterPropertyUseCase 호출 시 Property가 저장되고 PropertyId(Long)가 반환됨
+  - [ ] AC-1: RegisterPropertyUseCase 호출 시 Property 기본정보만 저장되고 PropertyId(Long)가 반환됨
   - [ ] AC-2: partnerId가 존재하지 않으면 PartnerNotFoundException 발생 (PartnerReadManager.getById 경유)
   - [ ] AC-3: propertyTypeId가 존재하지 않으면 PropertyTypeNotFoundException 발생 (PropertyTypeReadManager.getById 경유)
   - [ ] AC-4: PropertyCommandPort, PropertyQueryPort 인터페이스가 Application 레이어(port/out/persistence/)에 정의됨. CommandPort는 persist/persistAll만 선언, QueryPort는 findById/findByCondition만 선언 (APP-PRT-001)
   - [ ] AC-5: PropertyFactory가 TimeProvider를 주입받아 Property.forNew() 호출로 도메인 객체 생성 (APP-FAC-001). Service/Manager에서 TimeProvider 직접 주입 금지
   - [ ] AC-6: RegisterPropertyService는 @Transactional 없이 Manager/Factory/Facade 조합으로 동작 (APP-SVC-001)
   - [ ] AC-7: PartnerReadManager를 통해 파트너 존재 확인 — 다른 BC ReadManager 호출 패턴 (APP-BC-001)
-  - [ ] AC-8: PropertyPersistenceFacade가 Property + 하위 엔티티(PropertyAmenity, PropertyPhoto, PropertyAttributeValue)를 하나의 @Transactional에서 원자적으로 저장 (APP-FCD-001). Property 저장 후 PropertyId를 하위 엔티티에 세팅하는 흐름
-  - [ ] AC-9: RegisterPropertyCommand는 record로 선언. 편의시설/사진/속성값 리스트를 포함하는 중첩 record 구조 (APP-DTO-001)
-  - [ ] AC-10: PropertyFactory가 Command를 받아 Property + PropertyAmenities(일급 컬렉션) + PropertyPhotos(일급 컬렉션) + PropertyAttributeValues(일급 컬렉션)를 함께 생성. 하위 엔티티의 PropertyId는 저장 전이므로 null 가능
-  - [ ] AC-11: Port 직접 호출 금지 — Service는 Manager/Factory/Facade만 의존 (APP-BC-001)
+  - [ ] AC-8: PropertyPersistenceFacade가 Property만 @Transactional에서 저장 (APP-FCD-001). 사진/편의시설/속성값은 별도 UseCase에서 독립 저장
+  - [ ] AC-9: RegisterPropertyCommand는 record로 선언. Property 기본정보 필드만 포함 (name, propertyTypeId, partnerId, brandId, address, latitude, longitude 등). 사진/편의시설/속성값 리스트 미포함 (APP-DTO-001)
+  - [ ] AC-10: Port 직접 호출 금지 — Service는 Manager/Factory/Facade만 의존 (APP-BC-001)
+  - [ ] AC-11: 초기 Property 상태는 DRAFT — 사진/편의시설/객실 등록 전까지 ACTIVE로 전환 불가
 - **관련 레이어**: Domain → Application
 - **의존성**: STORY-101, STORY-102
+- **담당 팀**: application-team
+- **추정 규모**: M
+
+### STORY-103a: 숙소 사진 관리 UseCase 구현
+- **우선순위**: P0
+- **구현 상태**: 미구현
+- **수용기준**:
+  - [ ] AC-1: AddPropertyPhotosUseCase 호출 시 PropertyPhoto 리스트가 저장되고 저장된 건수가 반환됨
+  - [ ] AC-2: propertyId가 존재하지 않으면 PropertyNotFoundException 발생 (PropertyReadManager.getById 경유)
+  - [ ] AC-3: PropertyPhotoCommandPort, PropertyPhotoQueryPort 인터페이스가 Application 레이어에 정의됨 (APP-PRT-001)
+  - [ ] AC-4: AddPropertyPhotosCommand는 record로 선언. propertyId + List<PhotoItem>(photoType, originUrl, cdnUrl, sortOrder) 구조 (APP-DTO-001)
+  - [ ] AC-5: PropertyPhotoFactory가 Command를 받아 PropertyPhotos(일급 컬렉션)를 생성 (APP-FAC-001)
+  - [ ] AC-6: 사진 추가는 기존 사진에 append — 기존 사진을 삭제하지 않음
+  - [ ] AC-7: sortOrder 중복 시 기존 사진의 sortOrder를 자동 재정렬
+  - [ ] AC-8: Port 직접 호출 금지 — Service는 Manager/Factory/Facade만 의존 (APP-BC-001)
+- **관련 레이어**: Domain → Application
+- **의존성**: STORY-103
+- **담당 팀**: application-team
+- **추정 규모**: S
+
+### STORY-103b: 숙소 편의시설 설정 UseCase 구현
+- **우선순위**: P0
+- **구현 상태**: 미구현
+- **수용기준**:
+  - [ ] AC-1: SetPropertyAmenitiesUseCase 호출 시 PropertyAmenity 리스트가 전체 교체(replace) 방식으로 저장됨
+  - [ ] AC-2: propertyId가 존재하지 않으면 PropertyNotFoundException 발생 (PropertyReadManager.getById 경유)
+  - [ ] AC-3: PropertyAmenityCommandPort, PropertyAmenityQueryPort 인터페이스가 Application 레이어에 정의됨 (APP-PRT-001)
+  - [ ] AC-4: SetPropertyAmenitiesCommand는 record로 선언. propertyId + List<AmenityItem>(amenityType, name, additionalPrice, sortOrder) 구조 (APP-DTO-001)
+  - [ ] AC-5: PropertyAmenityFactory가 Command를 받아 PropertyAmenities(일급 컬렉션)를 생성 (APP-FAC-001)
+  - [ ] AC-6: 편의시설 설정은 전체 교체(replace) — 기존 편의시설 soft delete 후 신규 목록으로 교체
+  - [ ] AC-7: Port 직접 호출 금지 — Service는 Manager/Factory/Facade만 의존 (APP-BC-001)
+- **관련 레이어**: Domain → Application
+- **의존성**: STORY-103
+- **담당 팀**: application-team
+- **추정 규모**: S
+
+### STORY-103c: 숙소 속성값 설정 UseCase 구현
+- **우선순위**: P0
+- **구현 상태**: 미구현
+- **수용기준**:
+  - [ ] AC-1: SetPropertyAttributesUseCase 호출 시 PropertyAttributeValue 리스트가 전체 교체(replace) 방식으로 저장됨
+  - [ ] AC-2: propertyId가 존재하지 않으면 PropertyNotFoundException 발생 (PropertyReadManager.getById 경유)
+  - [ ] AC-3: propertyTypeId에 정의된 PropertyTypeAttribute 기준으로 필수(isRequired=true) 속성 누락 시 예외 발생
+  - [ ] AC-4: PropertyAttributeValueCommandPort, PropertyAttributeValueQueryPort 인터페이스가 Application 레이어에 정의됨 (APP-PRT-001)
+  - [ ] AC-5: SetPropertyAttributesCommand는 record로 선언. propertyId + List<AttributeItem>(propertyTypeAttributeId, value) 구조 (APP-DTO-001)
+  - [ ] AC-6: PropertyAttributeValueFactory가 Command를 받아 PropertyAttributeValues(일급 컬렉션)를 생성 (APP-FAC-001)
+  - [ ] AC-7: 속성값 설정은 전체 교체(replace) — 기존 속성값 soft delete 후 신규 목록으로 교체
+  - [ ] AC-8: Port 직접 호출 금지 — Service는 Manager/Factory/Facade만 의존 (APP-BC-001)
+- **관련 레이어**: Domain → Application
+- **의존성**: STORY-103
+- **담당 팀**: application-team
+- **추정 규모**: S
+
+### STORY-103d: 객실 등록 UseCase 구현
+- **우선순위**: P0
+- **구현 상태**: 미구현 (도메인 모델 RoomType은 존재)
+- **수용기준**:
+  - [ ] AC-1: RegisterRoomTypeUseCase 호출 시 RoomType이 저장되고 RoomTypeId(Long)가 반환됨
+  - [ ] AC-2: propertyId가 존재하지 않으면 PropertyNotFoundException 발생 (PropertyReadManager.getById 경유)
+  - [ ] AC-3: baseOccupancy > maxOccupancy이면 도메인 검증 예외 발생
+  - [ ] AC-4: RoomTypeCommandPort, RoomTypeQueryPort 인터페이스가 Application 레이어에 정의됨 (APP-PRT-001)
+  - [ ] AC-5: RegisterRoomTypeCommand는 record로 선언. propertyId + 객실 기본정보(name, description, areaSqm, baseOccupancy, maxOccupancy, baseInventory, checkInTime, checkOutTime) + List<BedItem>(bedTypeId, quantity) + List<ViewItem>(viewTypeId) 구조 (APP-DTO-001)
+  - [ ] AC-6: RoomTypeFactory가 Command를 받아 RoomType + RoomTypeBed 목록 + RoomTypeView 목록을 생성 (APP-FAC-001)
+  - [ ] AC-7: RoomTypePersistenceFacade가 RoomType + RoomTypeBed + RoomTypeView를 하나의 @Transactional에서 원자적으로 저장 (APP-FCD-001)
+  - [ ] AC-8: Port 직접 호출 금지 — Service는 Manager/Factory/Facade만 의존 (APP-BC-001)
+- **관련 레이어**: Domain → Application
+- **의존성**: STORY-103
 - **담당 팀**: application-team
 - **추정 규모**: M
 
@@ -90,14 +159,14 @@
 - **담당 팀**: persistence-mysql-team
 - **추정 규모**: L
 
-### STORY-105: 숙소 등록 REST API (Extranet)
+### STORY-105: 숙소 기본정보 등록 REST API (Extranet)
 - **우선순위**: P0
 - **구현 상태**: 미구현
 - **수용기준**:
   - [ ] AC-1: POST /api/v1/extranet/properties 요청 시 201 응답 + ApiResponse 래핑 + data에 propertyId 반환 (API-CTR-002)
-  - [ ] AC-2: 필수 필드(name, propertyTypeCode, partnerId, address) 누락 시 400 응답 + error.code="VALIDATION_ERROR" + error.userMessage + error.debugMessage 포함 (API-ERR-001)
+  - [ ] AC-2: 필수 필드(name, propertyTypeId, partnerId, address) 누락 시 400 응답 + error.code="VALIDATION_ERROR" + error.userMessage + error.debugMessage 포함 (API-ERR-001)
   - [ ] AC-3: ExtranetPropertyController는 RegisterPropertyUseCase 인터페이스만 의존. 구체 Service 직접 주입 금지 (API-CTR-001)
-  - [ ] AC-4: RegisterPropertyApiRequest는 record로 선언. Jakarta Validation(@NotNull, @NotBlank 등) 적용 (API-DTO-001, API-DTO-002)
+  - [ ] AC-4: RegisterPropertyApiRequest는 record로 선언. Property 기본정보 필드만 포함 (사진/편의시설/속성값 미포함). Jakarta Validation(@NotNull, @NotBlank 등) 적용 (API-DTO-001, API-DTO-002)
   - [ ] AC-5: PropertyApiMapper.toCommand()로 Request → Command 변환. Controller에 인라인 변환 로직 금지 (API-DTO-001)
   - [ ] AC-6: DomainException 발생 시 GlobalExceptionHandler + ErrorMapper가 errorCode/userMessage/debugMessage로 변환하여 적절한 HTTP 상태 코드 반환 (API-ERR-001)
   - [ ] AC-7: @DeleteMapping 사용 금지 — soft delete는 PATCH로 처리 (API-CTR-001)
@@ -109,18 +178,24 @@
 - **담당 팀**: rest-api-team
 - **추정 규모**: M
 
-### STORY-106: 객실(RoomType) 등록 API (Extranet)
+### STORY-106: 숙소 부속 정보 REST API (Extranet — 사진/편의시설/속성값/객실)
 - **우선순위**: P0
-- **구현 상태**: 미구현 (도메인 모델 RoomType은 존재)
+- **구현 상태**: 미구현
 - **수용기준**:
-  - [ ] AC-1: POST /api/v1/extranet/properties/{propertyId}/rooms 요청 시 201 응답 + roomTypeId 필드 존재
-  - [ ] AC-2: propertyId가 존재하지 않으면 404 응답
-  - [ ] AC-3: baseOccupancy > maxOccupancy이면 400 응답
-  - [ ] AC-4: BedType, ViewType 매핑 포함 (RoomTypeBed, RoomTypeView)
-- **관련 레이어**: Domain → Application → Adapter-out:mysql → Adapter-in:rest-api
-- **의존성**: STORY-105
+  - [ ] AC-1: POST /api/v1/extranet/properties/{propertyId}/photos 요청 시 201 응답 + 저장 건수 반환. AddPropertyPhotosUseCase 의존 (API-CTR-001)
+  - [ ] AC-2: PUT /api/v1/extranet/properties/{propertyId}/amenities 요청 시 200 응답. SetPropertyAmenitiesUseCase 의존. 전체 교체(replace) 방식 (API-CTR-001)
+  - [ ] AC-3: PUT /api/v1/extranet/properties/{propertyId}/attributes 요청 시 200 응답. SetPropertyAttributesUseCase 의존. 필수 속성 누락 시 400 응답 (API-CTR-001)
+  - [ ] AC-4: POST /api/v1/extranet/properties/{propertyId}/rooms 요청 시 201 응답 + roomTypeId 반환. RegisterRoomTypeUseCase 의존 (API-CTR-001)
+  - [ ] AC-5: propertyId가 존재하지 않으면 모든 엔드포인트에서 404 응답
+  - [ ] AC-6: baseOccupancy > maxOccupancy이면 객실 등록 시 400 응답
+  - [ ] AC-7: 각 Request는 record로 선언. Jakarta Validation 적용 (API-DTO-001, API-DTO-002)
+  - [ ] AC-8: 각 ApiMapper.toCommand()로 Request → Command 변환 (API-DTO-001)
+  - [ ] AC-9: Swagger UI에서 모든 엔드포인트 명세 확인 가능 (API-DOC-001)
+  - [ ] AC-10: Controller에 @Transactional 사용 금지. 비즈니스 로직 금지 (API-CTR-001)
+- **관련 레이어**: Application → Adapter-in:rest-api
+- **의존성**: STORY-103a, STORY-103b, STORY-103c, STORY-103d, STORY-105
 - **담당 팀**: rest-api-team
-- **추정 규모**: M
+- **추정 규모**: L
 
 ### STORY-107: 재고/요금 설정 API (Extranet)
 - **우선순위**: P0
@@ -134,7 +209,7 @@
   - [ ] AC-6: Redis 재고 카운터 초기화 (SET inventory:{roomTypeId}:{date} {base_inventory})
   - [ ] AC-7: Rate 스냅샷 생성은 Outbox를 통해 비동기 처리 가능 (또는 동기 처리)
 - **관련 레이어**: Domain → Application → Adapter-out:mysql → Adapter-out:redis → Adapter-in:rest-api
-- **의존성**: STORY-106
+- **의존성**: STORY-103d, STORY-106
 - **담당 팀**: application-team
 - **추정 규모**: L
 
@@ -578,19 +653,23 @@
 | 6 | STORY-301 | 예약/재고 도메인 모델 | M |
 | 7 | STORY-401 | Supplier 도메인 모델 | M |
 | 8 | STORY-501 | Outbox 도메인 + 스케줄러 | L |
-| 9 | STORY-103 | 숙소 등록 UseCase | M |
-| 10 | STORY-104 | 숙소 Persistence Adapter | L |
-| 11 | STORY-105 | 숙소 등록 API (Extranet) | M |
-| 12 | STORY-106 | 객실 등록 API (Extranet) | M |
-| 13 | STORY-107 | 재고/요금 설정 API + Redis 초기화 | L |
-| 14 | STORY-601 | Redis 재고 초기화 + 홀드 만료 처리 | M |
-| 15 | STORY-201 | 숙소 검색 API (Customer) | L |
-| 16 | STORY-202 | 요금 조회 API + 3단 캐싱 | L |
-| 17 | STORY-302 | 예약 생성 + Redis 동시성 제어 | L |
-| 18 | STORY-303 | 예약 취소 API | M |
-| 19 | STORY-304 | 동시성 제어 통합 테스트 | M |
-| 20 | STORY-402 | Supplier ACL 구현 | L |
-| 21 | STORY-403 | Supplier Diff 동기화 | L |
+| 9 | STORY-103 | 숙소 기본정보 등록 UseCase | M |
+| 10 | STORY-103a | 숙소 사진 관리 UseCase | S |
+| 11 | STORY-103b | 숙소 편의시설 설정 UseCase | S |
+| 12 | STORY-103c | 숙소 속성값 설정 UseCase | S |
+| 13 | STORY-103d | 객실 등록 UseCase | M |
+| 14 | STORY-104 | 숙소 Persistence Adapter | L |
+| 15 | STORY-105 | 숙소 기본정보 등록 API (Extranet) | M |
+| 16 | STORY-106 | 숙소 부속 정보 API (사진/편의시설/속성값/객실) | L |
+| 17 | STORY-107 | 재고/요금 설정 API + Redis 초기화 | L |
+| 18 | STORY-601 | Redis 재고 초기화 + 홀드 만료 처리 | M |
+| 19 | STORY-201 | 숙소 검색 API (Customer) | L |
+| 20 | STORY-202 | 요금 조회 API + 3단 캐싱 | L |
+| 21 | STORY-302 | 예약 생성 + Redis 동시성 제어 | L |
+| 22 | STORY-303 | 예약 취소 API | M |
+| 23 | STORY-304 | 동시성 제어 통합 테스트 | M |
+| 24 | STORY-402 | Supplier ACL 구현 | L |
+| 25 | STORY-403 | Supplier Diff 동기화 | L |
 
 ### P1 (확장-높음 — 차별화 요소)
 | 스토리 | 핵심 | 규모 |
@@ -624,16 +703,18 @@ STORY-701 (Gradle 세팅)
         ├── STORY-101 (숙소 도메인) ─── STORY-301 (예약 도메인) ─── STORY-401 (Supplier 도메인)
         │       │                              │                            │
         │       ▼                              │                            │
-        │   STORY-103 (숙소 UseCase)           │                            │
+        │   STORY-103 (기본정보 UseCase)       │                            │
+        │       ├── STORY-103a (사진 UseCase)  │                            │
+        │       ├── STORY-103b (편의시설 UseCase)                           │
+        │       ├── STORY-103c (속성값 UseCase)│                            │
+        │       └── STORY-103d (객실 UseCase)  │                            │
         │       │                              │                            │
         │       ▼                              │                            │
         │   STORY-104 (Persistence)            │                            │
         │       │                              │                            │
         │       ▼                              │                            │
-        │   STORY-105 (숙소 등록 API)          │                            │
-        │       │                              │                            │
-        │       ▼                              │                            │
-        │   STORY-106 (객실 등록 API)          │                            │
+        │   STORY-105 (기본정보 등록 API)      │                            │
+        │   STORY-106 (부속 정보 API)          │                            │
         │       │                              │                            │
         │       ▼                              │                            │
         │   STORY-107 (재고/요금 설정)         │                            │

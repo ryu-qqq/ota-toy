@@ -26,25 +26,18 @@ class InventoryTest {
     class Creation {
 
         @Test
-        @DisplayName("정상 생성 시 id는 null이고 stopSell은 false이다")
-        void shouldCreateWithNullIdAndStopSellFalse() {
+        @DisplayName("정상 생성 시 availableCount는 totalInventory와 동일하다")
+        void shouldCreateWithAvailableCountEqualToTotal() {
             Inventory inventory = Inventory.forNew(ROOM_TYPE_ID, INVENTORY_DATE, 10, NOW);
 
             assertThat(inventory.id()).isNull();
             assertThat(inventory.roomTypeId()).isEqualTo(ROOM_TYPE_ID);
             assertThat(inventory.inventoryDate()).isEqualTo(INVENTORY_DATE);
+            assertThat(inventory.totalInventory()).isEqualTo(10);
             assertThat(inventory.availableCount()).isEqualTo(10);
+            assertThat(inventory.totalReserved()).isZero();
             assertThat(inventory.isStopSell()).isFalse();
             assertThat(inventory.version()).isZero();
-        }
-
-        @Test
-        @DisplayName("가용 재고 0으로 생성 가능하다")
-        void shouldAllowZeroAvailableCount() {
-            Inventory inventory = Inventory.forNew(ROOM_TYPE_ID, INVENTORY_DATE, 0, NOW);
-
-            assertThat(inventory.availableCount()).isZero();
-            assertThat(inventory.isAvailable()).isFalse();
         }
 
         @Test
@@ -64,11 +57,19 @@ class InventoryTest {
         }
 
         @Test
-        @DisplayName("availableCount가 음수이면 예외 발생")
-        void shouldThrowWhenAvailableCountIsNegative() {
+        @DisplayName("totalInventory가 0이면 예외 발생")
+        void shouldThrowWhenTotalInventoryIsZero() {
+            assertThatThrownBy(() -> Inventory.forNew(ROOM_TYPE_ID, INVENTORY_DATE, 0, NOW))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("1 이상");
+        }
+
+        @Test
+        @DisplayName("totalInventory가 음수이면 예외 발생")
+        void shouldThrowWhenTotalInventoryIsNegative() {
             assertThatThrownBy(() -> Inventory.forNew(ROOM_TYPE_ID, INVENTORY_DATE, -1, NOW))
                     .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("0 이상");
+                    .hasMessageContaining("1 이상");
         }
     }
 
@@ -84,12 +85,14 @@ class InventoryTest {
         @DisplayName("모든 필드가 그대로 복원된다")
         void shouldReconstitueAllFields() {
             InventoryId inventoryId = InventoryId.of(1L);
-            Inventory inventory = Inventory.reconstitute(inventoryId, ROOM_TYPE_ID, INVENTORY_DATE, 5, true, 3, NOW, NOW);
+            Inventory inventory = Inventory.reconstitute(inventoryId, ROOM_TYPE_ID, INVENTORY_DATE, 10, 5, true, 3, NOW, NOW);
 
             assertThat(inventory.id()).isEqualTo(inventoryId);
             assertThat(inventory.roomTypeId()).isEqualTo(ROOM_TYPE_ID);
             assertThat(inventory.inventoryDate()).isEqualTo(INVENTORY_DATE);
+            assertThat(inventory.totalInventory()).isEqualTo(10);
             assertThat(inventory.availableCount()).isEqualTo(5);
+            assertThat(inventory.totalReserved()).isEqualTo(5);
             assertThat(inventory.isStopSell()).isTrue();
             assertThat(inventory.version()).isEqualTo(3);
         }
@@ -97,9 +100,8 @@ class InventoryTest {
         @Test
         @DisplayName("비즈니스 검증을 수행하지 않는다 (음수 재고도 복원 가능)")
         void shouldNotValidateOnReconstitute() {
-            // reconstitute는 DB 데이터를 그대로 복원하므로 검증하지 않아야 한다
             Inventory inventory = Inventory.reconstitute(
-                    InventoryId.of(1L), ROOM_TYPE_ID, INVENTORY_DATE, -1, false, 1, NOW, NOW
+                    InventoryId.of(1L), ROOM_TYPE_ID, INVENTORY_DATE, 10, -1, false, 1, NOW, NOW
             );
             assertThat(inventory.availableCount()).isEqualTo(-1);
         }
@@ -114,12 +116,13 @@ class InventoryTest {
     class Decrease {
 
         @Test
-        @DisplayName("1개 차감 시 availableCount가 1 감소한다")
+        @DisplayName("1개 차감 시 availableCount가 1 감소하고 totalReserved가 1 증가한다")
         void shouldDecreaseByOne() {
             Inventory inventory = Inventory.forNew(ROOM_TYPE_ID, INVENTORY_DATE, 10, NOW);
             inventory.decrease();
 
             assertThat(inventory.availableCount()).isEqualTo(9);
+            assertThat(inventory.totalReserved()).isEqualTo(1);
         }
 
         @Test
@@ -129,6 +132,7 @@ class InventoryTest {
             inventory.decrease(3);
 
             assertThat(inventory.availableCount()).isEqualTo(7);
+            assertThat(inventory.totalReserved()).isEqualTo(3);
         }
 
         @Test
@@ -138,6 +142,7 @@ class InventoryTest {
             inventory.decrease(5);
 
             assertThat(inventory.availableCount()).isZero();
+            assertThat(inventory.totalReserved()).isEqualTo(5);
             assertThat(inventory.isAvailable()).isFalse();
         }
 
@@ -151,9 +156,11 @@ class InventoryTest {
         }
 
         @Test
-        @DisplayName("재고 0에서 차감하면 InventoryExhaustedException 발생")
+        @DisplayName("재고 소진 상태에서 차감하면 InventoryExhaustedException 발생")
         void shouldThrowWhenZeroStock() {
-            Inventory inventory = Inventory.forNew(ROOM_TYPE_ID, INVENTORY_DATE, 0, NOW);
+            Inventory inventory = Inventory.reconstitute(
+                    InventoryId.of(1L), ROOM_TYPE_ID, INVENTORY_DATE, 5, 0, false, 1, NOW, NOW
+            );
 
             assertThatThrownBy(() -> inventory.decrease())
                     .isInstanceOf(InventoryExhaustedException.class);
@@ -163,7 +170,7 @@ class InventoryTest {
         @DisplayName("판매 중지 상태에서 차감하면 InventoryStopSellException 발생")
         void shouldThrowWhenStopSell() {
             Inventory inventory = Inventory.reconstitute(
-                    InventoryId.of(1L), ROOM_TYPE_ID, INVENTORY_DATE, 10, true, 1, NOW, NOW
+                    InventoryId.of(1L), ROOM_TYPE_ID, INVENTORY_DATE, 10, 10, true, 1, NOW, NOW
             );
 
             assertThatThrownBy(() -> inventory.decrease())
@@ -202,26 +209,32 @@ class InventoryTest {
         @Test
         @DisplayName("1개 복구 시 availableCount가 1 증가한다")
         void shouldRestoreByOne() {
-            Inventory inventory = Inventory.forNew(ROOM_TYPE_ID, INVENTORY_DATE, 5, NOW);
+            Inventory inventory = Inventory.reconstitute(
+                    InventoryId.of(1L), ROOM_TYPE_ID, INVENTORY_DATE, 10, 5, false, 1, NOW, NOW
+            );
             inventory.restore();
 
             assertThat(inventory.availableCount()).isEqualTo(6);
+            assertThat(inventory.totalReserved()).isEqualTo(4);
         }
 
         @Test
         @DisplayName("N개 복구 시 availableCount가 N 증가한다")
         void shouldRestoreByCount() {
-            Inventory inventory = Inventory.forNew(ROOM_TYPE_ID, INVENTORY_DATE, 5, NOW);
+            Inventory inventory = Inventory.reconstitute(
+                    InventoryId.of(1L), ROOM_TYPE_ID, INVENTORY_DATE, 10, 5, false, 1, NOW, NOW
+            );
             inventory.restore(3);
 
             assertThat(inventory.availableCount()).isEqualTo(8);
+            assertThat(inventory.totalReserved()).isEqualTo(2);
         }
 
         @Test
         @DisplayName("판매 중지 상태에서도 복구 가능하다 (재고 정합성 우선)")
         void shouldRestoreEvenWhenStopSell() {
             Inventory inventory = Inventory.reconstitute(
-                    InventoryId.of(1L), ROOM_TYPE_ID, INVENTORY_DATE, 5, true, 1, NOW, NOW
+                    InventoryId.of(1L), ROOM_TYPE_ID, INVENTORY_DATE, 10, 5, true, 1, NOW, NOW
             );
             inventory.restore(2);
 
@@ -230,9 +243,11 @@ class InventoryTest {
         }
 
         @Test
-        @DisplayName("재고 0에서 복구하면 다시 가용 상태가 된다")
+        @DisplayName("재고 소진 상태에서 복구하면 다시 가용 상태가 된다")
         void shouldBecomeAvailableAfterRestore() {
-            Inventory inventory = Inventory.forNew(ROOM_TYPE_ID, INVENTORY_DATE, 0, NOW);
+            Inventory inventory = Inventory.reconstitute(
+                    InventoryId.of(1L), ROOM_TYPE_ID, INVENTORY_DATE, 10, 0, false, 1, NOW, NOW
+            );
             assertThat(inventory.isAvailable()).isFalse();
 
             inventory.restore();
@@ -241,9 +256,32 @@ class InventoryTest {
         }
 
         @Test
+        @DisplayName("totalInventory를 초과하면 InventoryOverflowException 발생")
+        void shouldThrowWhenExceedsTotalInventory() {
+            Inventory inventory = Inventory.reconstitute(
+                    InventoryId.of(1L), ROOM_TYPE_ID, INVENTORY_DATE, 10, 9, false, 1, NOW, NOW
+            );
+
+            assertThatThrownBy(() -> inventory.restore(2))
+                    .isInstanceOf(InventoryOverflowException.class);
+        }
+
+        @Test
+        @DisplayName("전체 수량까지 정확히 복구하면 성공한다")
+        void shouldRestoreToExactTotal() {
+            Inventory inventory = Inventory.reconstitute(
+                    InventoryId.of(1L), ROOM_TYPE_ID, INVENTORY_DATE, 10, 8, false, 1, NOW, NOW
+            );
+            inventory.restore(2);
+
+            assertThat(inventory.availableCount()).isEqualTo(10);
+            assertThat(inventory.totalReserved()).isZero();
+        }
+
+        @Test
         @DisplayName("복구 수량이 0이면 예외 발생")
         void shouldThrowWhenCountIsZero() {
-            Inventory inventory = Inventory.forNew(ROOM_TYPE_ID, INVENTORY_DATE, 5, NOW);
+            Inventory inventory = Inventory.forNew(ROOM_TYPE_ID, INVENTORY_DATE, 10, NOW);
 
             assertThatThrownBy(() -> inventory.restore(0))
                     .isInstanceOf(IllegalArgumentException.class)
@@ -253,7 +291,7 @@ class InventoryTest {
         @Test
         @DisplayName("복구 수량이 음수이면 예외 발생")
         void shouldThrowWhenCountIsNegative() {
-            Inventory inventory = Inventory.forNew(ROOM_TYPE_ID, INVENTORY_DATE, 5, NOW);
+            Inventory inventory = Inventory.forNew(ROOM_TYPE_ID, INVENTORY_DATE, 10, NOW);
 
             assertThatThrownBy(() -> inventory.restore(-1))
                     .isInstanceOf(IllegalArgumentException.class)
@@ -272,10 +310,12 @@ class InventoryTest {
         @Test
         @DisplayName("새로운 수량으로 설정된다")
         void shouldUpdateCount() {
-            Inventory inventory = Inventory.forNew(ROOM_TYPE_ID, INVENTORY_DATE, 10, NOW);
-            inventory.updateAvailableCount(20);
+            Inventory inventory = Inventory.reconstitute(
+                    InventoryId.of(1L), ROOM_TYPE_ID, INVENTORY_DATE, 20, 10, false, 1, NOW, NOW
+            );
+            inventory.updateAvailableCount(15);
 
-            assertThat(inventory.availableCount()).isEqualTo(20);
+            assertThat(inventory.availableCount()).isEqualTo(15);
         }
 
         @Test
@@ -289,6 +329,16 @@ class InventoryTest {
         }
 
         @Test
+        @DisplayName("totalInventory를 초과하면 예외 발생")
+        void shouldThrowWhenExceedsTotal() {
+            Inventory inventory = Inventory.forNew(ROOM_TYPE_ID, INVENTORY_DATE, 10, NOW);
+
+            assertThatThrownBy(() -> inventory.updateAvailableCount(11))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("전체 수량");
+        }
+
+        @Test
         @DisplayName("음수로 설정하면 예외 발생")
         void shouldThrowWhenNegative() {
             Inventory inventory = Inventory.forNew(ROOM_TYPE_ID, INVENTORY_DATE, 10, NOW);
@@ -296,6 +346,63 @@ class InventoryTest {
             assertThatThrownBy(() -> inventory.updateAvailableCount(-1))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("0 이상");
+        }
+    }
+
+    // ========================================
+    // T-5b: updateTotalInventory() 전체 수량 변경
+    // ========================================
+
+    @Nested
+    @DisplayName("T-5b: 전체 수량 변경 -- updateTotalInventory()")
+    class UpdateTotalInventory {
+
+        @Test
+        @DisplayName("전체 수량 증가 시 가용 수량도 같이 증가한다")
+        void shouldIncreaseAvailableWhenTotalIncreases() {
+            Inventory inventory = Inventory.reconstitute(
+                    InventoryId.of(1L), ROOM_TYPE_ID, INVENTORY_DATE, 10, 7, false, 1, NOW, NOW
+            );
+            inventory.updateTotalInventory(15);
+
+            assertThat(inventory.totalInventory()).isEqualTo(15);
+            assertThat(inventory.availableCount()).isEqualTo(12);
+            assertThat(inventory.totalReserved()).isEqualTo(3);
+        }
+
+        @Test
+        @DisplayName("전체 수량 감소 시 가용 수량도 같이 감소한다")
+        void shouldDecreaseAvailableWhenTotalDecreases() {
+            Inventory inventory = Inventory.reconstitute(
+                    InventoryId.of(1L), ROOM_TYPE_ID, INVENTORY_DATE, 10, 7, false, 1, NOW, NOW
+            );
+            inventory.updateTotalInventory(8);
+
+            assertThat(inventory.totalInventory()).isEqualTo(8);
+            assertThat(inventory.availableCount()).isEqualTo(5);
+            assertThat(inventory.totalReserved()).isEqualTo(3);
+        }
+
+        @Test
+        @DisplayName("예약된 수량보다 작게 설정하면 예외 발생")
+        void shouldThrowWhenLessThanReserved() {
+            Inventory inventory = Inventory.reconstitute(
+                    InventoryId.of(1L), ROOM_TYPE_ID, INVENTORY_DATE, 10, 3, false, 1, NOW, NOW
+            );
+
+            assertThatThrownBy(() -> inventory.updateTotalInventory(5))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("예약된 수량");
+        }
+
+        @Test
+        @DisplayName("전체 수량이 0이면 예외 발생")
+        void shouldThrowWhenZero() {
+            Inventory inventory = Inventory.forNew(ROOM_TYPE_ID, INVENTORY_DATE, 10, NOW);
+
+            assertThatThrownBy(() -> inventory.updateTotalInventory(0))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("1 이상");
         }
     }
 
@@ -321,7 +428,7 @@ class InventoryTest {
         @DisplayName("resumeSell 후 isStopSell은 false이고 재고가 있으면 isAvailable은 true이다")
         void shouldResumeSell() {
             Inventory inventory = Inventory.reconstitute(
-                    InventoryId.of(1L), ROOM_TYPE_ID, INVENTORY_DATE, 10, true, 1, NOW, NOW
+                    InventoryId.of(1L), ROOM_TYPE_ID, INVENTORY_DATE, 10, 10, true, 1, NOW, NOW
             );
             inventory.resumeSell();
 
@@ -333,7 +440,7 @@ class InventoryTest {
         @DisplayName("재고 0에서 resumeSell해도 isAvailable은 false이다")
         void shouldNotBeAvailableWithZeroStockAfterResume() {
             Inventory inventory = Inventory.reconstitute(
-                    InventoryId.of(1L), ROOM_TYPE_ID, INVENTORY_DATE, 0, true, 1, NOW, NOW
+                    InventoryId.of(1L), ROOM_TYPE_ID, INVENTORY_DATE, 10, 0, true, 1, NOW, NOW
             );
             inventory.resumeSell();
 
@@ -358,9 +465,11 @@ class InventoryTest {
         }
 
         @Test
-        @DisplayName("재고 0이면 false")
-        void shouldNotBeAvailableWhenZeroStock() {
-            Inventory inventory = Inventory.forNew(ROOM_TYPE_ID, INVENTORY_DATE, 0, NOW);
+        @DisplayName("재고 소진이면 false")
+        void shouldNotBeAvailableWhenExhausted() {
+            Inventory inventory = Inventory.reconstitute(
+                    InventoryId.of(1L), ROOM_TYPE_ID, INVENTORY_DATE, 10, 0, false, 1, NOW, NOW
+            );
             assertThat(inventory.isAvailable()).isFalse();
         }
 
@@ -368,25 +477,54 @@ class InventoryTest {
         @DisplayName("판매 중지이면 재고 있어도 false")
         void shouldNotBeAvailableWhenStopSell() {
             Inventory inventory = Inventory.reconstitute(
-                    InventoryId.of(1L), ROOM_TYPE_ID, INVENTORY_DATE, 10, true, 1, NOW, NOW
+                    InventoryId.of(1L), ROOM_TYPE_ID, INVENTORY_DATE, 10, 10, true, 1, NOW, NOW
             );
             assertThat(inventory.isAvailable()).isFalse();
         }
     }
 
     // ========================================
-    // T-8: equals/hashCode
+    // T-8: totalReserved() 파생 메서드
     // ========================================
 
     @Nested
-    @DisplayName("T-8: 동등성 -- equals() / hashCode()")
+    @DisplayName("T-8: 예약 수량 -- totalReserved()")
+    class TotalReserved {
+
+        @Test
+        @DisplayName("차감 후 totalReserved가 정확하다")
+        void shouldCalculateReservedAfterDecrease() {
+            Inventory inventory = Inventory.forNew(ROOM_TYPE_ID, INVENTORY_DATE, 10, NOW);
+            inventory.decrease(3);
+
+            assertThat(inventory.totalReserved()).isEqualTo(3);
+            assertThat(inventory.availableCount()).isEqualTo(7);
+        }
+
+        @Test
+        @DisplayName("전체 예약 시 totalReserved == totalInventory")
+        void shouldMatchTotalWhenFullyBooked() {
+            Inventory inventory = Inventory.forNew(ROOM_TYPE_ID, INVENTORY_DATE, 5, NOW);
+            inventory.decrease(5);
+
+            assertThat(inventory.totalReserved()).isEqualTo(5);
+            assertThat(inventory.totalInventory()).isEqualTo(5);
+        }
+    }
+
+    // ========================================
+    // T-9: equals/hashCode
+    // ========================================
+
+    @Nested
+    @DisplayName("T-9: 동등성 -- equals() / hashCode()")
     class Equality {
 
         @Test
         @DisplayName("같은 id를 가진 두 객체는 동등하다")
         void shouldBeEqualWithSameId() {
-            Inventory a = Inventory.reconstitute(InventoryId.of(1L), ROOM_TYPE_ID, INVENTORY_DATE, 10, false, 1, NOW, NOW);
-            Inventory b = Inventory.reconstitute(InventoryId.of(1L), RoomTypeId.of(2L), INVENTORY_DATE.plusDays(1), 5, true, 2, NOW, NOW);
+            Inventory a = Inventory.reconstitute(InventoryId.of(1L), ROOM_TYPE_ID, INVENTORY_DATE, 10, 10, false, 1, NOW, NOW);
+            Inventory b = Inventory.reconstitute(InventoryId.of(1L), RoomTypeId.of(2L), INVENTORY_DATE.plusDays(1), 20, 5, true, 2, NOW, NOW);
 
             assertThat(a).isEqualTo(b);
             assertThat(a.hashCode()).isEqualTo(b.hashCode());
@@ -395,8 +533,8 @@ class InventoryTest {
         @Test
         @DisplayName("다른 id를 가진 두 객체는 동등하지 않다")
         void shouldNotBeEqualWithDifferentId() {
-            Inventory a = Inventory.reconstitute(InventoryId.of(1L), ROOM_TYPE_ID, INVENTORY_DATE, 10, false, 1, NOW, NOW);
-            Inventory b = Inventory.reconstitute(InventoryId.of(2L), ROOM_TYPE_ID, INVENTORY_DATE, 10, false, 1, NOW, NOW);
+            Inventory a = Inventory.reconstitute(InventoryId.of(1L), ROOM_TYPE_ID, INVENTORY_DATE, 10, 10, false, 1, NOW, NOW);
+            Inventory b = Inventory.reconstitute(InventoryId.of(2L), ROOM_TYPE_ID, INVENTORY_DATE, 10, 10, false, 1, NOW, NOW);
 
             assertThat(a).isNotEqualTo(b);
         }
@@ -412,11 +550,11 @@ class InventoryTest {
     }
 
     // ========================================
-    // T-9: 복합 시나리오
+    // T-10: 복합 시나리오
     // ========================================
 
     @Nested
-    @DisplayName("T-9: 복합 시나리오")
+    @DisplayName("T-10: 복합 시나리오")
     class ComplexScenarios {
 
         @Test
@@ -426,21 +564,26 @@ class InventoryTest {
 
             inventory.decrease(2);
             assertThat(inventory.availableCount()).isEqualTo(1);
+            assertThat(inventory.totalReserved()).isEqualTo(2);
             assertThat(inventory.isAvailable()).isTrue();
 
             inventory.decrease();
             assertThat(inventory.availableCount()).isZero();
+            assertThat(inventory.totalReserved()).isEqualTo(3);
             assertThat(inventory.isAvailable()).isFalse();
 
             inventory.restore(2);
             assertThat(inventory.availableCount()).isEqualTo(2);
+            assertThat(inventory.totalReserved()).isEqualTo(1);
             assertThat(inventory.isAvailable()).isTrue();
         }
 
         @Test
         @DisplayName("판매 중지 -> 복구 -> 재개 시나리오")
         void stopSellThenRestoreThenResumeShouldWork() {
-            Inventory inventory = Inventory.forNew(ROOM_TYPE_ID, INVENTORY_DATE, 5, NOW);
+            Inventory inventory = Inventory.reconstitute(
+                    InventoryId.of(1L), ROOM_TYPE_ID, INVENTORY_DATE, 10, 5, false, 1, NOW, NOW
+            );
 
             // 판매 중지
             inventory.stopSell();
@@ -458,16 +601,23 @@ class InventoryTest {
         }
 
         @Test
-        @DisplayName("파트너 수량 업데이트 후 차감 시나리오")
-        void updateCountThenDecreaseShouldWork() {
-            Inventory inventory = Inventory.forNew(ROOM_TYPE_ID, INVENTORY_DATE, 0, NOW);
-            assertThat(inventory.isAvailable()).isFalse();
+        @DisplayName("전체 수량 증가 후 차감 시나리오")
+        void updateTotalThenDecreaseShouldWork() {
+            Inventory inventory = Inventory.reconstitute(
+                    InventoryId.of(1L), ROOM_TYPE_ID, INVENTORY_DATE, 5, 2, false, 1, NOW, NOW
+            );
+            assertThat(inventory.totalReserved()).isEqualTo(3);
 
-            inventory.updateAvailableCount(5);
-            assertThat(inventory.isAvailable()).isTrue();
+            // 객실 5개 추가 (5 → 10)
+            inventory.updateTotalInventory(10);
+            assertThat(inventory.totalInventory()).isEqualTo(10);
+            assertThat(inventory.availableCount()).isEqualTo(7);
+            assertThat(inventory.totalReserved()).isEqualTo(3);
 
-            inventory.decrease(3);
+            // 추가된 객실 차감
+            inventory.decrease(5);
             assertThat(inventory.availableCount()).isEqualTo(2);
+            assertThat(inventory.totalReserved()).isEqualTo(8);
         }
     }
 }

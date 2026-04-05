@@ -11,7 +11,7 @@ import java.util.List;
 
 /**
  * Reservation BC 테스트용 Fixture.
- * 다양한 상태의 Reservation, ReservationItem, GuestInfo 등을 생성한다.
+ * 다양한 상태의 Reservation, ReservationLine, ReservationItem, GuestInfo 등을 생성한다.
  */
 public final class ReservationFixture {
 
@@ -20,11 +20,15 @@ public final class ReservationFixture {
     // === 기본 상수 ===
     public static final LocalDate DEFAULT_TODAY = LocalDate.of(2026, 4, 4);
     public static final Instant DEFAULT_NOW = Instant.parse("2026-04-04T00:00:00Z");
+    public static final long DEFAULT_CUSTOMER_ID = 1L;
     public static final RatePlanId DEFAULT_RATE_PLAN_ID = RatePlanId.of(1L);
     public static final ReservationNo DEFAULT_RESERVATION_NO = ReservationNo.of("RSV-20260404-001");
     public static final GuestInfo DEFAULT_GUEST_INFO = GuestInfo.of("홍길동", "010-1234-5678", "hong@test.com");
     public static final DateRange DEFAULT_STAY_PERIOD = new DateRange(LocalDate.of(2026, 4, 10), LocalDate.of(2026, 4, 12));
     public static final int DEFAULT_GUEST_COUNT = 2;
+    public static final int DEFAULT_ROOM_COUNT = 1;
+    public static final Money DEFAULT_NIGHTLY_RATE = Money.of(100_000);
+    public static final Money DEFAULT_SUBTOTAL_AMOUNT = Money.of(200_000);
     public static final Money DEFAULT_TOTAL_AMOUNT = Money.of(200_000);
     public static final String DEFAULT_BOOKING_SNAPSHOT = "{\"roomType\":\"deluxe\"}";
 
@@ -35,8 +39,8 @@ public final class ReservationFixture {
      */
     public static List<ReservationItem> defaultItems() {
         return List.of(
-                ReservationItem.forNew(null, InventoryId.of(100L), LocalDate.of(2026, 4, 10), DEFAULT_NOW),
-                ReservationItem.forNew(null, InventoryId.of(101L), LocalDate.of(2026, 4, 11), DEFAULT_NOW)
+                ReservationItem.forNew(InventoryId.of(100L), LocalDate.of(2026, 4, 10), DEFAULT_NIGHTLY_RATE, DEFAULT_NOW),
+                ReservationItem.forNew(InventoryId.of(101L), LocalDate.of(2026, 4, 11), DEFAULT_NIGHTLY_RATE, DEFAULT_NOW)
         );
     }
 
@@ -44,19 +48,54 @@ public final class ReservationFixture {
      * 단일 예약 항목 (1박)
      */
     public static ReservationItem singleItem(LocalDate stayDate, long inventoryIdValue) {
-        return ReservationItem.forNew(null, InventoryId.of(inventoryIdValue), stayDate, DEFAULT_NOW);
+        return ReservationItem.forNew(InventoryId.of(inventoryIdValue), stayDate, DEFAULT_NIGHTLY_RATE, DEFAULT_NOW);
     }
 
     /**
      * DB 복원된 예약 항목
      */
-    public static ReservationItem reconstitutedItem(long id, long reservationId, long inventoryId, LocalDate stayDate) {
+    public static ReservationItem reconstitutedItem(long id, long inventoryId, LocalDate stayDate) {
         return ReservationItem.reconstitute(
-                ReservationItemId.of(id),
-                ReservationId.of(reservationId),
-                InventoryId.of(inventoryId),
-                stayDate, DEFAULT_NOW, DEFAULT_NOW
+                ReservationItemId.of(id), InventoryId.of(inventoryId),
+                stayDate, DEFAULT_NIGHTLY_RATE, DEFAULT_NOW, DEFAULT_NOW
         );
+    }
+
+    // === ReservationLine Fixture ===
+
+    /**
+     * 기본 예약 라인 (디럭스 1실, 2박)
+     */
+    public static ReservationLine defaultLine() {
+        return ReservationLine.forNew(null, DEFAULT_RATE_PLAN_ID, DEFAULT_ROOM_COUNT,
+                DEFAULT_SUBTOTAL_AMOUNT, defaultItems(), DEFAULT_NOW);
+    }
+
+    /**
+     * 다객실 예약 라인 (같은 유형 N실)
+     */
+    public static ReservationLine multiRoomLine(int roomCount) {
+        Money subtotal = DEFAULT_SUBTOTAL_AMOUNT.multiply(roomCount);
+        return ReservationLine.forNew(null, DEFAULT_RATE_PLAN_ID, roomCount,
+                subtotal, defaultItems(), DEFAULT_NOW);
+    }
+
+    /**
+     * DB 복원된 예약 라인
+     */
+    public static ReservationLine reconstitutedLine(long id, long reservationId) {
+        return ReservationLine.reconstitute(
+                ReservationLineId.of(id), ReservationId.of(reservationId),
+                DEFAULT_RATE_PLAN_ID, DEFAULT_ROOM_COUNT, DEFAULT_SUBTOTAL_AMOUNT,
+                DEFAULT_NOW, DEFAULT_NOW, defaultItems()
+        );
+    }
+
+    /**
+     * 기본 예약 라인 리스트 (1개 라인)
+     */
+    public static List<ReservationLine> defaultLines() {
+        return List.of(defaultLine());
     }
 
     // === Reservation Fixture ===
@@ -66,8 +105,8 @@ public final class ReservationFixture {
      */
     public static Reservation pendingReservation() {
         return Reservation.forNew(
-                DEFAULT_RATE_PLAN_ID, DEFAULT_RESERVATION_NO, DEFAULT_GUEST_INFO, DEFAULT_STAY_PERIOD,
-                DEFAULT_GUEST_COUNT, DEFAULT_TOTAL_AMOUNT, DEFAULT_BOOKING_SNAPSHOT, defaultItems(),
+                DEFAULT_CUSTOMER_ID, DEFAULT_RESERVATION_NO, DEFAULT_GUEST_INFO, DEFAULT_STAY_PERIOD,
+                DEFAULT_GUEST_COUNT, DEFAULT_TOTAL_AMOUNT, DEFAULT_BOOKING_SNAPSHOT, defaultLines(),
                 DEFAULT_TODAY, DEFAULT_NOW
         );
     }
@@ -77,9 +116,9 @@ public final class ReservationFixture {
      */
     public static Reservation reservationWithStatus(ReservationStatus status) {
         return Reservation.reconstitute(
-                ReservationId.of(1L), DEFAULT_RATE_PLAN_ID, DEFAULT_RESERVATION_NO, DEFAULT_GUEST_INFO,
+                ReservationId.of(1L), DEFAULT_CUSTOMER_ID, DEFAULT_RESERVATION_NO, DEFAULT_GUEST_INFO,
                 DEFAULT_STAY_PERIOD, DEFAULT_GUEST_COUNT, DEFAULT_TOTAL_AMOUNT, status, null,
-                DEFAULT_BOOKING_SNAPSHOT, DEFAULT_NOW, DEFAULT_NOW, null, defaultItems()
+                DEFAULT_BOOKING_SNAPSHOT, DEFAULT_NOW, DEFAULT_NOW, null, defaultLines()
         );
     }
 
@@ -95,10 +134,10 @@ public final class ReservationFixture {
      */
     public static Reservation cancelledReservation() {
         return Reservation.reconstitute(
-                ReservationId.of(2L), DEFAULT_RATE_PLAN_ID, DEFAULT_RESERVATION_NO, DEFAULT_GUEST_INFO,
+                ReservationId.of(2L), DEFAULT_CUSTOMER_ID, DEFAULT_RESERVATION_NO, DEFAULT_GUEST_INFO,
                 DEFAULT_STAY_PERIOD, DEFAULT_GUEST_COUNT, DEFAULT_TOTAL_AMOUNT, ReservationStatus.CANCELLED,
                 "고객 요청 취소", DEFAULT_BOOKING_SNAPSHOT, DEFAULT_NOW, DEFAULT_NOW,
-                Instant.parse("2026-04-05T10:00:00Z"), defaultItems()
+                Instant.parse("2026-04-05T10:00:00Z"), defaultLines()
         );
     }
 
@@ -114,6 +153,23 @@ public final class ReservationFixture {
      */
     public static Reservation noShowReservation() {
         return reservationWithStatus(ReservationStatus.NO_SHOW);
+    }
+
+    /**
+     * 다객실 조합 예약 (디럭스 2실 + 스탠다드 1실)
+     */
+    public static Reservation multiRoomReservation() {
+        RatePlanId standardRatePlanId = RatePlanId.of(2L);
+        ReservationLine deluxeLine = multiRoomLine(2);
+        ReservationLine standardLine = ReservationLine.forNew(null, standardRatePlanId, 1,
+                Money.of(160_000), defaultItems(), DEFAULT_NOW);
+
+        Money total = deluxeLine.subtotalAmount().add(standardLine.subtotalAmount());
+        return Reservation.forNew(
+                DEFAULT_CUSTOMER_ID, DEFAULT_RESERVATION_NO, DEFAULT_GUEST_INFO, DEFAULT_STAY_PERIOD,
+                4, total, DEFAULT_BOOKING_SNAPSHOT,
+                List.of(deluxeLine, standardLine), DEFAULT_TODAY, DEFAULT_NOW
+        );
     }
 
     // === GuestInfo Fixture ===

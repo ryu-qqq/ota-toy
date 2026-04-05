@@ -2,7 +2,6 @@ package com.ryuqq.otatoy.domain.reservation;
 
 import com.ryuqq.otatoy.domain.common.vo.DateRange;
 import com.ryuqq.otatoy.domain.common.vo.Money;
-import com.ryuqq.otatoy.domain.pricing.RatePlanId;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -11,19 +10,21 @@ import java.util.Objects;
 
 /**
  * 예약을 나타내는 Aggregate Root.
- * 투숙객 정보, 숙박 기간, 총 금액, 예약 상태, 예약 항목을 관리한다.
+ * 고객 식별자, 투숙객 정보, 숙박 기간, 총 금액, 예약 상태를 관리한다.
+ * 하나의 예약에 여러 ReservationLine을 포함하여 서로 다른 객실 유형을 조합 예약할 수 있다.
  * 최대 연박 제한은 30박이다.
  *
  * @author ryu-qqq
  * @since 2026-04-04
- * @see ReservationItem 예약 항목(날짜별 재고 연결)
+ * @see ReservationLine 객실 유형별 예약 단위
+ * @see ReservationItem 날짜별 재고·요금 연결
  */
 public class Reservation {
 
     private static final int MAX_STAY_NIGHTS = 30;
 
     private final ReservationId id;
-    private final RatePlanId ratePlanId;
+    private final long customerId;
     private final ReservationNo reservationNo;
     private final GuestInfo guestInfo;
     private final DateRange stayPeriod;
@@ -35,15 +36,15 @@ public class Reservation {
     private final Instant createdAt;
     private Instant updatedAt;
     private Instant cancelledAt;
-    private final List<ReservationItem> items;
+    private final List<ReservationLine> lines;
 
-    private Reservation(ReservationId id, RatePlanId ratePlanId, ReservationNo reservationNo,
+    private Reservation(ReservationId id, long customerId, ReservationNo reservationNo,
                         GuestInfo guestInfo, DateRange stayPeriod, int guestCount,
                         Money totalAmount, ReservationStatus status, String cancelReason,
                         String bookingSnapshot, Instant createdAt, Instant updatedAt,
-                        Instant cancelledAt, List<ReservationItem> items) {
+                        Instant cancelledAt, List<ReservationLine> lines) {
         this.id = id;
-        this.ratePlanId = ratePlanId;
+        this.customerId = customerId;
         this.reservationNo = reservationNo;
         this.guestInfo = guestInfo;
         this.stayPeriod = stayPeriod;
@@ -55,28 +56,25 @@ public class Reservation {
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
         this.cancelledAt = cancelledAt;
-        this.items = items;
+        this.lines = lines;
     }
 
-    public static Reservation forNew(RatePlanId ratePlanId, ReservationNo reservationNo,
+    public static Reservation forNew(long customerId, ReservationNo reservationNo,
                                       GuestInfo guestInfo, DateRange stayPeriod,
                                       int guestCount, Money totalAmount,
-                                      String bookingSnapshot, List<ReservationItem> items,
+                                      String bookingSnapshot, List<ReservationLine> lines,
                                       LocalDate today, Instant now) {
-        validateRequired(ratePlanId, guestInfo, stayPeriod, totalAmount, items);
+        validateRequired(guestInfo, stayPeriod, totalAmount, lines);
+        validateCustomerId(customerId);
         validateGuestCount(guestCount);
         validateStayPeriod(stayPeriod, today);
-        return new Reservation(null, ratePlanId, reservationNo, guestInfo, stayPeriod,
+        return new Reservation(null, customerId, reservationNo, guestInfo, stayPeriod,
                 guestCount, totalAmount, ReservationStatus.PENDING,
-                null, bookingSnapshot, now, now, null, List.copyOf(items));
+                null, bookingSnapshot, now, now, null, List.copyOf(lines));
     }
 
-    private static void validateRequired(RatePlanId ratePlanId, GuestInfo guestInfo,
-                                          DateRange stayPeriod, Money totalAmount,
-                                          List<ReservationItem> items) {
-        if (ratePlanId == null) {
-            throw new IllegalArgumentException("요금 정책 ID는 필수입니다");
-        }
+    private static void validateRequired(GuestInfo guestInfo, DateRange stayPeriod,
+                                          Money totalAmount, List<ReservationLine> lines) {
         if (guestInfo == null) {
             throw new IllegalArgumentException("투숙객 정보는 필수입니다");
         }
@@ -86,8 +84,14 @@ public class Reservation {
         if (totalAmount == null) {
             throw new IllegalArgumentException("총 금액은 필수입니다");
         }
-        if (items == null || items.isEmpty()) {
-            throw new IllegalArgumentException("예약 항목은 최소 1개 이상이어야 합니다");
+        if (lines == null || lines.isEmpty()) {
+            throw new IllegalArgumentException("예약 라인은 최소 1개 이상이어야 합니다");
+        }
+    }
+
+    private static void validateCustomerId(long customerId) {
+        if (customerId <= 0) {
+            throw new IllegalArgumentException("고객 ID는 1 이상이어야 합니다");
         }
     }
 
@@ -106,14 +110,14 @@ public class Reservation {
         }
     }
 
-    public static Reservation reconstitute(ReservationId id, RatePlanId ratePlanId, ReservationNo reservationNo,
+    public static Reservation reconstitute(ReservationId id, long customerId, ReservationNo reservationNo,
                                             GuestInfo guestInfo, DateRange stayPeriod, int guestCount,
                                             Money totalAmount, ReservationStatus status, String cancelReason,
                                             String bookingSnapshot, Instant createdAt, Instant updatedAt,
-                                            Instant cancelledAt, List<ReservationItem> items) {
-        return new Reservation(id, ratePlanId, reservationNo, guestInfo, stayPeriod,
+                                            Instant cancelledAt, List<ReservationLine> lines) {
+        return new Reservation(id, customerId, reservationNo, guestInfo, stayPeriod,
                 guestCount, totalAmount, status, cancelReason,
-                bookingSnapshot, createdAt, updatedAt, cancelledAt, List.copyOf(items));
+                bookingSnapshot, createdAt, updatedAt, cancelledAt, List.copyOf(lines));
     }
 
     public void confirm(Instant now) {
@@ -145,7 +149,7 @@ public class Reservation {
     }
 
     public ReservationId id() { return id; }
-    public RatePlanId ratePlanId() { return ratePlanId; }
+    public long customerId() { return customerId; }
     public ReservationNo reservationNo() { return reservationNo; }
     public GuestInfo guestInfo() { return guestInfo; }
     public DateRange stayPeriod() { return stayPeriod; }
@@ -157,7 +161,7 @@ public class Reservation {
     public Instant createdAt() { return createdAt; }
     public Instant updatedAt() { return updatedAt; }
     public Instant cancelledAt() { return cancelledAt; }
-    public List<ReservationItem> items() { return items; }
+    public List<ReservationLine> lines() { return lines; }
 
     @Override
     public boolean equals(Object o) {

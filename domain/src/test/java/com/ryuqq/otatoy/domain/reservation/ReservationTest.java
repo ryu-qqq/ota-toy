@@ -20,6 +20,7 @@ class ReservationTest {
     private static final LocalDate TODAY = LocalDate.of(2026, 4, 4);
     private static final Instant NOW = Instant.parse("2026-04-04T00:00:00Z");
 
+    private static final long CUSTOMER_ID = 1L;
     private static final RatePlanId RATE_PLAN_ID = RatePlanId.of(1L);
     private static final ReservationNo RESERVATION_NO = ReservationNo.of("RSV-20260404-001");
     private static final GuestInfo GUEST_INFO = GuestInfo.of("홍길동", "010-1234-5678", "hong@test.com");
@@ -28,26 +29,35 @@ class ReservationTest {
     private static final Money TOTAL_AMOUNT = Money.of(200_000);
     private static final String BOOKING_SNAPSHOT = "{\"roomType\":\"deluxe\"}";
 
+    private static final Money NIGHTLY_RATE = Money.of(100_000);
+    private static final Money SUBTOTAL_AMOUNT = Money.of(200_000);
+
     private static List<ReservationItem> defaultItems() {
         return List.of(
-                ReservationItem.forNew(null, InventoryId.of(100L), LocalDate.of(2026, 4, 10), NOW),
-                ReservationItem.forNew(null, InventoryId.of(101L), LocalDate.of(2026, 4, 11), NOW)
+                ReservationItem.forNew(InventoryId.of(100L), LocalDate.of(2026, 4, 10), NIGHTLY_RATE, NOW),
+                ReservationItem.forNew(InventoryId.of(101L), LocalDate.of(2026, 4, 11), NIGHTLY_RATE, NOW)
+        );
+    }
+
+    private static List<ReservationLine> defaultLines() {
+        return List.of(
+                ReservationLine.forNew(null, RATE_PLAN_ID, 1, SUBTOTAL_AMOUNT, defaultItems(), NOW)
         );
     }
 
     private Reservation createDefaultReservation() {
         return Reservation.forNew(
-                RATE_PLAN_ID, RESERVATION_NO, GUEST_INFO, STAY_PERIOD,
-                GUEST_COUNT, TOTAL_AMOUNT, BOOKING_SNAPSHOT, defaultItems(),
+                CUSTOMER_ID, RESERVATION_NO, GUEST_INFO, STAY_PERIOD,
+                GUEST_COUNT, TOTAL_AMOUNT, BOOKING_SNAPSHOT, defaultLines(),
                 TODAY, NOW
         );
     }
 
     private Reservation createReservationWithStatus(ReservationStatus status) {
         return Reservation.reconstitute(
-                ReservationId.of(1L), RATE_PLAN_ID, RESERVATION_NO, GUEST_INFO,
+                ReservationId.of(1L), CUSTOMER_ID, RESERVATION_NO, GUEST_INFO,
                 STAY_PERIOD, GUEST_COUNT, TOTAL_AMOUNT, status, null,
-                BOOKING_SNAPSHOT, NOW, NOW, null, defaultItems()
+                BOOKING_SNAPSHOT, NOW, NOW, null, defaultLines()
         );
     }
 
@@ -62,7 +72,7 @@ class ReservationTest {
 
             assertThat(reservation.id()).isNull();
             assertThat(reservation.status()).isEqualTo(ReservationStatus.PENDING);
-            assertThat(reservation.ratePlanId()).isEqualTo(RATE_PLAN_ID);
+            assertThat(reservation.customerId()).isEqualTo(CUSTOMER_ID);
             assertThat(reservation.reservationNo()).isEqualTo(RESERVATION_NO);
             assertThat(reservation.guestInfo()).isEqualTo(GUEST_INFO);
             assertThat(reservation.stayPeriod()).isEqualTo(STAY_PERIOD);
@@ -73,43 +83,39 @@ class ReservationTest {
             assertThat(reservation.updatedAt()).isEqualTo(NOW);
             assertThat(reservation.cancelReason()).isNull();
             assertThat(reservation.cancelledAt()).isNull();
-            assertThat(reservation.items()).hasSize(2);
+            assertThat(reservation.lines()).hasSize(1);
         }
 
         @Test
-        @DisplayName("ratePlanId가 null이면 생성 실패")
-        void shouldFailWhenRatePlanIdIsNull() {
+        @DisplayName("customerId가 0이면 생성 실패")
+        void shouldFailWhenCustomerIdIsZero() {
             assertThatThrownBy(() -> Reservation.forNew(
-                    null, RESERVATION_NO, GUEST_INFO, STAY_PERIOD,
-                    GUEST_COUNT, TOTAL_AMOUNT, BOOKING_SNAPSHOT, defaultItems(),
+                    0, RESERVATION_NO, GUEST_INFO, STAY_PERIOD,
+                    GUEST_COUNT, TOTAL_AMOUNT, BOOKING_SNAPSHOT, defaultLines(),
                     TODAY, NOW
             ))
                     .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("요금 정책 ID는 필수");
+                    .hasMessageContaining("고객 ID는 1 이상");
         }
 
         @Test
-        @DisplayName("reservationNo가 null이면 생성 실패")
-        void shouldFailWhenReservationNoIsNull() {
-            assertThatThrownBy(() -> ReservationNo.of(null))
+        @DisplayName("customerId가 음수면 생성 실패")
+        void shouldFailWhenCustomerIdIsNegative() {
+            assertThatThrownBy(() -> Reservation.forNew(
+                    -1, RESERVATION_NO, GUEST_INFO, STAY_PERIOD,
+                    GUEST_COUNT, TOTAL_AMOUNT, BOOKING_SNAPSHOT, defaultLines(),
+                    TODAY, NOW
+            ))
                     .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("예약 번호는 필수");
-        }
-
-        @Test
-        @DisplayName("reservationNo가 빈 문자열이면 생성 실패")
-        void shouldFailWhenReservationNoIsBlank() {
-            assertThatThrownBy(() -> ReservationNo.of("   "))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("예약 번호는 필수");
+                    .hasMessageContaining("고객 ID는 1 이상");
         }
 
         @Test
         @DisplayName("guestInfo가 null이면 생성 실패")
         void shouldFailWhenGuestInfoIsNull() {
             assertThatThrownBy(() -> Reservation.forNew(
-                    RATE_PLAN_ID, RESERVATION_NO, null, STAY_PERIOD,
-                    GUEST_COUNT, TOTAL_AMOUNT, BOOKING_SNAPSHOT, defaultItems(),
+                    CUSTOMER_ID, RESERVATION_NO, null, STAY_PERIOD,
+                    GUEST_COUNT, TOTAL_AMOUNT, BOOKING_SNAPSHOT, defaultLines(),
                     TODAY, NOW
             ))
                     .isInstanceOf(IllegalArgumentException.class)
@@ -120,8 +126,8 @@ class ReservationTest {
         @DisplayName("stayPeriod가 null이면 생성 실패")
         void shouldFailWhenStayPeriodIsNull() {
             assertThatThrownBy(() -> Reservation.forNew(
-                    RATE_PLAN_ID, RESERVATION_NO, GUEST_INFO, null,
-                    GUEST_COUNT, TOTAL_AMOUNT, BOOKING_SNAPSHOT, defaultItems(),
+                    CUSTOMER_ID, RESERVATION_NO, GUEST_INFO, null,
+                    GUEST_COUNT, TOTAL_AMOUNT, BOOKING_SNAPSHOT, defaultLines(),
                     TODAY, NOW
             ))
                     .isInstanceOf(IllegalArgumentException.class)
@@ -132,8 +138,8 @@ class ReservationTest {
         @DisplayName("guestCount가 0이면 생성 실패")
         void shouldFailWhenGuestCountIsZero() {
             assertThatThrownBy(() -> Reservation.forNew(
-                    RATE_PLAN_ID, RESERVATION_NO, GUEST_INFO, STAY_PERIOD,
-                    0, TOTAL_AMOUNT, BOOKING_SNAPSHOT, defaultItems(),
+                    CUSTOMER_ID, RESERVATION_NO, GUEST_INFO, STAY_PERIOD,
+                    0, TOTAL_AMOUNT, BOOKING_SNAPSHOT, defaultLines(),
                     TODAY, NOW
             ))
                     .isInstanceOf(IllegalArgumentException.class)
@@ -144,8 +150,8 @@ class ReservationTest {
         @DisplayName("guestCount가 음수면 생성 실패")
         void shouldFailWhenGuestCountIsNegative() {
             assertThatThrownBy(() -> Reservation.forNew(
-                    RATE_PLAN_ID, RESERVATION_NO, GUEST_INFO, STAY_PERIOD,
-                    -1, TOTAL_AMOUNT, BOOKING_SNAPSHOT, defaultItems(),
+                    CUSTOMER_ID, RESERVATION_NO, GUEST_INFO, STAY_PERIOD,
+                    -1, TOTAL_AMOUNT, BOOKING_SNAPSHOT, defaultLines(),
                     TODAY, NOW
             ))
                     .isInstanceOf(IllegalArgumentException.class)
@@ -156,8 +162,8 @@ class ReservationTest {
         @DisplayName("totalAmount가 null이면 생성 실패")
         void shouldFailWhenTotalAmountIsNull() {
             assertThatThrownBy(() -> Reservation.forNew(
-                    RATE_PLAN_ID, RESERVATION_NO, GUEST_INFO, STAY_PERIOD,
-                    GUEST_COUNT, null, BOOKING_SNAPSHOT, defaultItems(),
+                    CUSTOMER_ID, RESERVATION_NO, GUEST_INFO, STAY_PERIOD,
+                    GUEST_COUNT, null, BOOKING_SNAPSHOT, defaultLines(),
                     TODAY, NOW
             ))
                     .isInstanceOf(IllegalArgumentException.class)
@@ -169,13 +175,16 @@ class ReservationTest {
         void shouldFailWhenCheckInDateIsInThePast() {
             DateRange pastPeriod = new DateRange(LocalDate.of(2026, 4, 1), LocalDate.of(2026, 4, 3));
             List<ReservationItem> items = List.of(
-                    ReservationItem.forNew(null, InventoryId.of(100L), LocalDate.of(2026, 4, 1), NOW),
-                    ReservationItem.forNew(null, InventoryId.of(101L), LocalDate.of(2026, 4, 2), NOW)
+                    ReservationItem.forNew(InventoryId.of(100L), LocalDate.of(2026, 4, 1), NIGHTLY_RATE, NOW),
+                    ReservationItem.forNew(InventoryId.of(101L), LocalDate.of(2026, 4, 2), NIGHTLY_RATE, NOW)
+            );
+            List<ReservationLine> lines = List.of(
+                    ReservationLine.forNew(null, RATE_PLAN_ID, 1, SUBTOTAL_AMOUNT, items, NOW)
             );
 
             assertThatThrownBy(() -> Reservation.forNew(
-                    RATE_PLAN_ID, RESERVATION_NO, GUEST_INFO, pastPeriod,
-                    GUEST_COUNT, TOTAL_AMOUNT, BOOKING_SNAPSHOT, items,
+                    CUSTOMER_ID, RESERVATION_NO, GUEST_INFO, pastPeriod,
+                    GUEST_COUNT, TOTAL_AMOUNT, BOOKING_SNAPSHOT, lines,
                     TODAY, NOW
             ))
                     .isInstanceOf(IllegalArgumentException.class)
@@ -187,12 +196,15 @@ class ReservationTest {
         void shouldSucceedWhenCheckInIsToday() {
             DateRange todayPeriod = new DateRange(TODAY, TODAY.plusDays(1));
             List<ReservationItem> items = List.of(
-                    ReservationItem.forNew(null, InventoryId.of(100L), TODAY, NOW)
+                    ReservationItem.forNew(InventoryId.of(100L), TODAY, NIGHTLY_RATE, NOW)
+            );
+            List<ReservationLine> lines = List.of(
+                    ReservationLine.forNew(null, RATE_PLAN_ID, 1, Money.of(100_000), items, NOW)
             );
 
             Reservation reservation = Reservation.forNew(
-                    RATE_PLAN_ID, RESERVATION_NO, GUEST_INFO, todayPeriod,
-                    GUEST_COUNT, TOTAL_AMOUNT, BOOKING_SNAPSHOT, items,
+                    CUSTOMER_ID, RESERVATION_NO, GUEST_INFO, todayPeriod,
+                    GUEST_COUNT, TOTAL_AMOUNT, BOOKING_SNAPSHOT, lines,
                     TODAY, NOW
             );
 
@@ -204,12 +216,15 @@ class ReservationTest {
         void shouldFailWhenStayExceeds30Nights() {
             DateRange longPeriod = new DateRange(TODAY.plusDays(1), TODAY.plusDays(32));
             List<ReservationItem> items = List.of(
-                    ReservationItem.forNew(null, InventoryId.of(100L), TODAY.plusDays(1), NOW)
+                    ReservationItem.forNew(InventoryId.of(100L), TODAY.plusDays(1), NIGHTLY_RATE, NOW)
+            );
+            List<ReservationLine> lines = List.of(
+                    ReservationLine.forNew(null, RATE_PLAN_ID, 1, Money.of(100_000), items, NOW)
             );
 
             assertThatThrownBy(() -> Reservation.forNew(
-                    RATE_PLAN_ID, RESERVATION_NO, GUEST_INFO, longPeriod,
-                    GUEST_COUNT, TOTAL_AMOUNT, BOOKING_SNAPSHOT, items,
+                    CUSTOMER_ID, RESERVATION_NO, GUEST_INFO, longPeriod,
+                    GUEST_COUNT, TOTAL_AMOUNT, BOOKING_SNAPSHOT, lines,
                     TODAY, NOW
             ))
                     .isInstanceOf(IllegalArgumentException.class)
@@ -221,12 +236,15 @@ class ReservationTest {
         void shouldSucceedWhenStayIsExactly30Nights() {
             DateRange exactPeriod = new DateRange(TODAY.plusDays(1), TODAY.plusDays(31));
             List<ReservationItem> items = List.of(
-                    ReservationItem.forNew(null, InventoryId.of(100L), TODAY.plusDays(1), NOW)
+                    ReservationItem.forNew(InventoryId.of(100L), TODAY.plusDays(1), NIGHTLY_RATE, NOW)
+            );
+            List<ReservationLine> lines = List.of(
+                    ReservationLine.forNew(null, RATE_PLAN_ID, 1, Money.of(100_000), items, NOW)
             );
 
             Reservation reservation = Reservation.forNew(
-                    RATE_PLAN_ID, RESERVATION_NO, GUEST_INFO, exactPeriod,
-                    GUEST_COUNT, TOTAL_AMOUNT, BOOKING_SNAPSHOT, items,
+                    CUSTOMER_ID, RESERVATION_NO, GUEST_INFO, exactPeriod,
+                    GUEST_COUNT, TOTAL_AMOUNT, BOOKING_SNAPSHOT, lines,
                     TODAY, NOW
             );
 
@@ -234,38 +252,57 @@ class ReservationTest {
         }
 
         @Test
-        @DisplayName("items가 null이면 생성 실패")
-        void shouldFailWhenItemsIsNull() {
+        @DisplayName("lines가 null이면 생성 실패")
+        void shouldFailWhenLinesIsNull() {
             assertThatThrownBy(() -> Reservation.forNew(
-                    RATE_PLAN_ID, RESERVATION_NO, GUEST_INFO, STAY_PERIOD,
+                    CUSTOMER_ID, RESERVATION_NO, GUEST_INFO, STAY_PERIOD,
                     GUEST_COUNT, TOTAL_AMOUNT, BOOKING_SNAPSHOT, null,
                     TODAY, NOW
             ))
                     .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("예약 항목은 최소 1개 이상");
+                    .hasMessageContaining("예약 라인은 최소 1개 이상");
         }
 
         @Test
-        @DisplayName("items가 빈 리스트이면 생성 실패")
-        void shouldFailWhenItemsIsEmpty() {
+        @DisplayName("lines가 빈 리스트이면 생성 실패")
+        void shouldFailWhenLinesIsEmpty() {
             assertThatThrownBy(() -> Reservation.forNew(
-                    RATE_PLAN_ID, RESERVATION_NO, GUEST_INFO, STAY_PERIOD,
+                    CUSTOMER_ID, RESERVATION_NO, GUEST_INFO, STAY_PERIOD,
                     GUEST_COUNT, TOTAL_AMOUNT, BOOKING_SNAPSHOT, List.of(),
                     TODAY, NOW
             ))
                     .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("예약 항목은 최소 1개 이상");
+                    .hasMessageContaining("예약 라인은 최소 1개 이상");
         }
 
         @Test
-        @DisplayName("items 리스트는 불변 복사본으로 저장된다")
-        void shouldStoreItemsAsUnmodifiableCopy() {
+        @DisplayName("lines 리스트는 불변 복사본으로 저장된다")
+        void shouldStoreLinesAsUnmodifiableCopy() {
             Reservation reservation = createDefaultReservation();
 
-            assertThatThrownBy(() -> reservation.items().add(
-                    ReservationItem.forNew(null, InventoryId.of(999L), LocalDate.of(2026, 4, 12), NOW)
+            assertThatThrownBy(() -> reservation.lines().add(
+                    ReservationLine.forNew(null, RATE_PLAN_ID, 1, SUBTOTAL_AMOUNT, defaultItems(), NOW)
             ))
                     .isInstanceOf(UnsupportedOperationException.class);
+        }
+
+        @Test
+        @DisplayName("다객실 조합 예약 — 디럭스 2실 + 스탠다드 1실")
+        void shouldCreateMultiRoomReservation() {
+            RatePlanId standardPlanId = RatePlanId.of(2L);
+            ReservationLine deluxeLine = ReservationLine.forNew(null, RATE_PLAN_ID, 2, Money.of(400_000), defaultItems(), NOW);
+            ReservationLine standardLine = ReservationLine.forNew(null, standardPlanId, 1, Money.of(160_000), defaultItems(), NOW);
+
+            Reservation reservation = Reservation.forNew(
+                    CUSTOMER_ID, RESERVATION_NO, GUEST_INFO, STAY_PERIOD,
+                    4, Money.of(560_000), BOOKING_SNAPSHOT,
+                    List.of(deluxeLine, standardLine), TODAY, NOW
+            );
+
+            assertThat(reservation.lines()).hasSize(2);
+            assertThat(reservation.lines().getFirst().roomCount()).isEqualTo(2);
+            assertThat(reservation.lines().get(1).roomCount()).isEqualTo(1);
+            assertThat(reservation.totalAmount()).isEqualTo(Money.of(560_000));
         }
     }
 
@@ -474,13 +511,13 @@ class ReservationTest {
             Instant cancelledAt = Instant.parse("2026-04-03T12:00:00Z");
 
             Reservation reservation = Reservation.reconstitute(
-                    id, RATE_PLAN_ID, RESERVATION_NO, GUEST_INFO, STAY_PERIOD,
+                    id, CUSTOMER_ID, RESERVATION_NO, GUEST_INFO, STAY_PERIOD,
                     GUEST_COUNT, TOTAL_AMOUNT, ReservationStatus.CANCELLED, "환불 요청",
-                    BOOKING_SNAPSHOT, createdAt, updatedAt, cancelledAt, defaultItems()
+                    BOOKING_SNAPSHOT, createdAt, updatedAt, cancelledAt, defaultLines()
             );
 
             assertThat(reservation.id()).isEqualTo(id);
-            assertThat(reservation.ratePlanId()).isEqualTo(RATE_PLAN_ID);
+            assertThat(reservation.customerId()).isEqualTo(CUSTOMER_ID);
             assertThat(reservation.reservationNo()).isEqualTo(RESERVATION_NO);
             assertThat(reservation.guestInfo()).isEqualTo(GUEST_INFO);
             assertThat(reservation.stayPeriod()).isEqualTo(STAY_PERIOD);
@@ -492,7 +529,7 @@ class ReservationTest {
             assertThat(reservation.createdAt()).isEqualTo(createdAt);
             assertThat(reservation.updatedAt()).isEqualTo(updatedAt);
             assertThat(reservation.cancelledAt()).isEqualTo(cancelledAt);
-            assertThat(reservation.items()).hasSize(2);
+            assertThat(reservation.lines()).hasSize(1);
         }
     }
 

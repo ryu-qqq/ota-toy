@@ -1,52 +1,130 @@
 # Phase 2 구현 가이드 — 숙소 등록 E2E
 
-> 작성일: 2026-04-04
+> 작성일: 2026-04-05
 > 작성자: project-lead
 > 대상: STORY-103, STORY-104, STORY-105
 > 전제: STORY-101(Partner 도메인), STORY-102(공통 VO) 완료 상태
+> 이전 버전 대비 변경 사유: OTA 리서치(`docs/research/ota-extranet-registration-flow.md`)에 근거하여 UseCase를 단일 책임으로 분리
+
+---
+
+## 이전 버전의 문제점과 수정 근거
+
+### 문제: "기본정보 + 편의시설 + 사진 + 속성값을 한번에 저장" 구조
+
+이전 구현 가이드는 `RegisterPropertyCommand`에 편의시설/사진/속성값 리스트를 모두 포함하고, `PropertyPersistenceFacade`에서 원자적으로 저장하는 구조였다. 이 설계에는 세 가지 문제가 있다.
+
+**1. 실제 OTA 등록 플로우와 불일치**
+
+Booking.com, 야놀자 모두 숙소 등록은 **단계별 별도 저장**이다. 기본정보, 사진, 편의시설, 객실이 각각 독립 API로 관리되며, 등록 후에도 독립적으로 수정된다. 사진 업로드가 숙소 기본정보 트랜잭션에 묶여야 할 이유가 없다.
+
+| 항목 | 생명주기 | 변경 빈도 | 행위자 |
+|------|---------|----------|-------|
+| 기본정보 | 거의 안 바뀜 | 낮음 | 계약 담당 |
+| 사진 | 수시 업로드/삭제/재정렬 | 높음 | 마케팅 |
+| 편의시설 | 토글 on/off | 중간 | 운영 |
+| 속성값 | 간헐적 변경 | 낮음 | 운영 |
+
+**2. PersistenceFacade 오용**
+
+Application 컨벤션(APP-FCD-001)에 따르면, PersistenceFacade는 "여러 Aggregate를 하나의 트랜잭션에서 원자적으로 저장해야 할 때" 사용한다. Property 기본정보 저장은 단일 Aggregate이므로 CommandManager로 충분하다. PersistenceFacade가 필요한 예시는 "예약 생성 + Outbox 저장"처럼 서로 다른 Aggregate가 반드시 같은 트랜잭션에 있어야 하는 경우다.
+
+**3. Command에 불필요한 결합**
+
+편의시설/사진/속성값을 RegisterPropertyCommand에 중첩하면, "숙소 기본정보 등록"이라는 단일 유스케이스에 관계없는 데이터가 끼어든다. 숙소 기본정보만 등록하고 싶어도 빈 리스트를 전달해야 한다.
+
+---
+
+## 수정된 UseCase 설계
+
+### 원칙: 독립 생명주기를 가진 데이터는 독립 UseCase로 분리
+
+```
+RegisterPropertyUseCase       — Property 기본정보만 저장
+AddPropertyPhotosUseCase      — 사진 독립 업로드
+SetPropertyAmenitiesUseCase   — 편의시설 독립 설정
+SetPropertyAttributesUseCase  — 속성값 독립 설정
+RegisterRoomTypeUseCase       — 객실 독립 등록 (STORY-106)
+```
+
+### PersistenceFacade vs CommandManager 사용 기준
+
+| 상황 | 사용 컴포넌트 | 예시 |
+|------|-------------|------|
+| 단일 Aggregate 저장 | CommandManager | Property 기본정보 저장, 사진 업로드 |
+| 여러 Aggregate 원자적 저장 | PersistenceFacade | 예약 생성 + Outbox 저장, 예약 생성 + 재고 기록 |
 
 ---
 
 ## 개요
 
 Phase 2는 Domain -> Application -> Persistence -> REST API 전 레이어를 관통하는 **첫 번째 E2E 흐름**이다.
-파트너가 숙소를 등록하면 Property + 하위 엔티티(편의시설, 사진, 속성값)가 원자적으로 저장되고, PropertyId가 반환되는 흐름을 완성한다.
+파트너가 숙소를 단계별로 등록하는 플로우를 완성한다:
 
-구현 순서는 반드시 **STORY-103 -> STORY-104 -> STORY-105** 순서를 따른다. Application 레이어(Port 정의)가 먼저 완성되어야 Adapter가 구현할 수 있고, API는 UseCase가 정의된 후에야 Controller를 작성할 수 있다.
+1. **기본정보 등록** (POST /api/v1/extranet/properties) -> PropertyId 반환
+2. **사진 업로드** (POST /api/v1/extranet/properties/{id}/photos) -> 독립 저장
+3. **편의시설 설정** (POST /api/v1/extranet/properties/{id}/amenities) -> 독립 저장
+4. **속성값 설정** (POST /api/v1/extranet/properties/{id}/attributes) -> 독립 저장
+
+구현 순서는 반드시 **STORY-103 -> STORY-104 -> STORY-105** 순서를 따른다.
 
 ---
 
 ## STORY-103: 숙소 등록 UseCase 구현
 
+### 수용기준 재정의
+
+기존 수용기준 AC-8(PersistenceFacade가 Property + 하위 엔티티를 원자적 저장), AC-9(Command에 편의시설/사진/속성값 리스트 포함), AC-10(Factory가 하위 엔티티를 함께 생성)은 **폐기**한다. 대신 아래의 수용기준으로 대체한다.
+
+**변경된 수용기준**:
+- AC-1: RegisterPropertyUseCase 호출 시 Property **기본정보만** 저장되고 PropertyId(Long)가 반환됨
+- AC-2: partnerId가 존재하지 않으면 PartnerNotFoundException 발생 (PropertyRegistrationValidator — PartnerReadManager.verifyExists 경유, APP-VAL-002)
+- AC-3: propertyTypeId가 존재하지 않으면 PropertyTypeNotFoundException 발생 (PropertyRegistrationValidator — PropertyTypeReadManager.verifyExists 경유, APP-VAL-002)
+- AC-4: PropertyCommandPort, PropertyQueryPort가 Application 레이어에 정의됨 (APP-PRT-001)
+- AC-5: PropertyFactory가 TimeProvider를 주입받아 Property.forNew() 호출로 도메인 객체 생성 (APP-FAC-001)
+- AC-6: RegisterPropertyService는 @Transactional 없이 Manager/Factory 조합으로 동작 (APP-SVC-001)
+- AC-7: PropertyRegistrationValidator를 통해 파트너/숙소유형 존재 확인 (APP-VAL-002)
+- AC-8: Property 저장은 PropertyCommandManager를 사용 (단일 Aggregate이므로 PersistenceFacade 불필요)
+- AC-9: RegisterPropertyCommand는 record로 선언. **기본정보 필드만 포함**, 필드 타입은 Domain VO 사용 (APP-DTO-001)
+- AC-10: 사진/편의시설/속성값은 각각 독립 UseCase로 분리하여 별도 구현
+
+**추가 UseCase 수용기준**:
+- AC-11: AddPropertyPhotosUseCase 호출 시 해당 Property에 사진이 독립 저장됨
+- AC-12: SetPropertyAmenitiesUseCase 호출 시 해당 Property의 편의시설이 독립 설정됨
+- AC-13: SetPropertyAttributesUseCase 호출 시 해당 Property의 속성값이 독립 설정됨
+- AC-14: AC-11~13 모두 PropertyExistenceValidator(PropertyReadManager.verifyExists)로 Property 존재 확인 후 실행 (APP-VAL-002)
+
 ### 구현 순서
 
 ```
-1. Port-Out 인터페이스 (Persistence/외부 시스템과의 계약)
+1. Port-Out 인터페이스 (Persistence와의 계약)
 2. Command DTO (record)
 3. Factory (도메인 객체 생성)
 4. Manager (트랜잭션 경계)
-5. PersistenceFacade (원자적 저장)
-6. Port-In 인터페이스 (UseCase)
-7. Service (오케스트레이션)
+5. Port-In 인터페이스 (UseCase)
+6. Service (오케스트레이션)
 ```
 
 ### 1단계: Port-Out 인터페이스 정의
 
-패키지: `application/src/main/java/com/ryuqq/otatoy/application/port/out/persistence/`
+패키지:
+- Property 관련 Port: `application/src/main/java/com/ryuqq/otatoy/application/property/port/out/`
+- Partner 관련 Port: `application/src/main/java/com/ryuqq/otatoy/application/partner/port/out/`
+- PropertyType 관련 Port: `application/src/main/java/com/ryuqq/otatoy/application/propertytype/port/out/`
 
-| 클래스명 | 역할 | 적용 컨벤션 |
-|---------|------|-----------|
-| `PropertyCommandPort` | Property 저장 (persist/persistAll) | APP-PRT-001 |
-| `PropertyQueryPort` | Property 조회 (findById/findByCondition) | APP-PRT-001 |
-| `PropertyAmenityCommandPort` | PropertyAmenity 벌크 저장 | APP-PRT-001 |
-| `PropertyPhotoCommandPort` | PropertyPhoto 벌크 저장 | APP-PRT-001 |
-| `PropertyAttributeValueCommandPort` | PropertyAttributeValue 벌크 저장 | APP-PRT-001 |
-| `PartnerQueryPort` | Partner 조회 (findById) | APP-PRT-001 |
-| `PropertyTypeQueryPort` | PropertyType 조회 (findById) | APP-PRT-001 |
+| 클래스명 | 패키지 (BC) | 역할 | 적용 컨벤션 |
+|---------|-----------|------|-----------|
+| `PropertyCommandPort` | `property/port/out/` | Property 저장 (persist/persistAll) | APP-PRT-001 |
+| `PropertyQueryPort` | `property/port/out/` | Property 조회 (findById/findByCondition) | APP-PRT-001 |
+| `PropertyAmenityCommandPort` | `property/port/out/` | PropertyAmenity 벌크 저장 | APP-PRT-001 |
+| `PropertyPhotoCommandPort` | `property/port/out/` | PropertyPhoto 벌크 저장 | APP-PRT-001 |
+| `PropertyAttributeValueCommandPort` | `property/port/out/` | PropertyAttributeValue 벌크 저장 | APP-PRT-001 |
+| `PartnerQueryPort` | `partner/port/out/` | Partner 조회 (findById) | APP-PRT-001 |
+| `PropertyTypeQueryPort` | `propertytype/port/out/` | PropertyType 조회 (findById) | APP-PRT-001 |
 
 ```java
 // PropertyCommandPort.java
-package com.ryuqq.otatoy.application.port.out.persistence;
+package com.ryuqq.otatoy.application.property.port.out;
 
 import com.ryuqq.otatoy.domain.property.Property;
 import java.util.List;
@@ -57,7 +135,7 @@ public interface PropertyCommandPort {
 }
 
 // PropertyQueryPort.java
-package com.ryuqq.otatoy.application.port.out.persistence;
+package com.ryuqq.otatoy.application.property.port.out;
 
 import com.ryuqq.otatoy.domain.property.Property;
 import com.ryuqq.otatoy.domain.property.PropertyId;
@@ -65,10 +143,11 @@ import java.util.Optional;
 
 public interface PropertyQueryPort {
     Optional<Property> findById(PropertyId id);
+    boolean existsById(PropertyId id);
 }
 
 // PropertyAmenityCommandPort.java
-package com.ryuqq.otatoy.application.port.out.persistence;
+package com.ryuqq.otatoy.application.property.port.out;
 
 import com.ryuqq.otatoy.domain.property.PropertyAmenity;
 import java.util.List;
@@ -78,7 +157,7 @@ public interface PropertyAmenityCommandPort {
 }
 
 // PropertyPhotoCommandPort.java
-package com.ryuqq.otatoy.application.port.out.persistence;
+package com.ryuqq.otatoy.application.property.port.out;
 
 import com.ryuqq.otatoy.domain.property.PropertyPhoto;
 import java.util.List;
@@ -88,7 +167,7 @@ public interface PropertyPhotoCommandPort {
 }
 
 // PropertyAttributeValueCommandPort.java
-package com.ryuqq.otatoy.application.port.out.persistence;
+package com.ryuqq.otatoy.application.property.port.out;
 
 import com.ryuqq.otatoy.domain.property.PropertyAttributeValue;
 import java.util.List;
@@ -98,7 +177,7 @@ public interface PropertyAttributeValueCommandPort {
 }
 
 // PartnerQueryPort.java
-package com.ryuqq.otatoy.application.port.out.persistence;
+package com.ryuqq.otatoy.application.partner.port.out;
 
 import com.ryuqq.otatoy.domain.partner.Partner;
 import com.ryuqq.otatoy.domain.partner.PartnerId;
@@ -106,10 +185,11 @@ import java.util.Optional;
 
 public interface PartnerQueryPort {
     Optional<Partner> findById(PartnerId id);
+    boolean existsById(PartnerId id);
 }
 
 // PropertyTypeQueryPort.java
-package com.ryuqq.otatoy.application.port.out.persistence;
+package com.ryuqq.otatoy.application.propertytype.port.out;
 
 import com.ryuqq.otatoy.domain.propertytype.PropertyType;
 import com.ryuqq.otatoy.domain.propertytype.PropertyTypeId;
@@ -117,6 +197,7 @@ import java.util.Optional;
 
 public interface PropertyTypeQueryPort {
     Optional<PropertyType> findById(PropertyTypeId id);
+    boolean existsById(PropertyTypeId id);
 }
 ```
 
@@ -124,68 +205,105 @@ public interface PropertyTypeQueryPort {
 - Port 파라미터는 Domain 객체(Aggregate, VO)만 사용한다 (APP-PRT-002)
 - CommandPort에 delete 메서드 금지 (APP-PRT-001)
 - QueryPort에 findAll() 금지 (APP-PRT-001)
-- 하위 엔티티(Amenity, Photo, AttributeValue) Port를 독립으로 분리하는 이유: PersistenceFacade에서 Property 저장 후 생성된 PropertyId를 하위 엔티티에 세팅해야 하므로, 별도 Port로 순차 호출한다
+- 하위 엔티티(Amenity, Photo, AttributeValue) Port를 독립으로 분리하는 이유: 각각 독립 UseCase에서 호출되고, 생명주기가 다르다
 
 ### 2단계: Command DTO
 
-패키지: `application/src/main/java/com/ryuqq/otatoy/application/dto/command/`
+패키지: `application/src/main/java/com/ryuqq/otatoy/application/property/dto/command/`
 
 | 클래스명 | 역할 | 적용 컨벤션 |
 |---------|------|-----------|
-| `RegisterPropertyCommand` | 숙소 등록 요청 데이터 | APP-DTO-001 |
+| `RegisterPropertyCommand` | 숙소 기본정보 등록 요청 | APP-DTO-001 |
+| `AddPropertyPhotosCommand` | 사진 업로드 요청 | APP-DTO-001 |
+| `SetPropertyAmenitiesCommand` | 편의시설 설정 요청 | APP-DTO-001 |
+| `SetPropertyAttributesCommand` | 속성값 설정 요청 | APP-DTO-001 |
 
 ```java
-// RegisterPropertyCommand.java
-package com.ryuqq.otatoy.application.dto.command;
+// RegisterPropertyCommand.java — 기본정보만 포함 (필드에 Domain VO 사용, APP-DTO-001)
+package com.ryuqq.otatoy.application.property.dto.command;
 
-import java.util.List;
+import com.ryuqq.otatoy.domain.partner.PartnerId;
+import com.ryuqq.otatoy.domain.brand.BrandId;
+import com.ryuqq.otatoy.domain.propertytype.PropertyTypeId;
+import com.ryuqq.otatoy.domain.property.*;
 
 public record RegisterPropertyCommand(
-    Long partnerId,
-    Long brandId,            // nullable
-    Long propertyTypeId,
-    String name,
-    String description,      // nullable
-    String address,
-    double latitude,
-    double longitude,
-    String neighborhood,     // nullable
-    String region,           // nullable
-    String promotionText,    // nullable
-    List<AmenityItem> amenities,
-    List<PhotoItem> photos,
-    List<AttributeValueItem> attributeValues
+    PartnerId partnerId,
+    BrandId brandId,              // nullable
+    PropertyTypeId propertyTypeId,
+    PropertyName name,
+    PropertyDescription description, // nullable
+    Location location,
+    PromotionText promotionText   // nullable
 ) {
-    public static RegisterPropertyCommand of(Long partnerId, Long brandId, Long propertyTypeId,
-                                              String name, String description,
-                                              String address, double latitude, double longitude,
-                                              String neighborhood, String region, String promotionText,
-                                              List<AmenityItem> amenities, List<PhotoItem> photos,
-                                              List<AttributeValueItem> attributeValues) {
+    public static RegisterPropertyCommand of(PartnerId partnerId, BrandId brandId,
+                                              PropertyTypeId propertyTypeId,
+                                              PropertyName name, PropertyDescription description,
+                                              Location location, PromotionText promotionText) {
         return new RegisterPropertyCommand(partnerId, brandId, propertyTypeId, name, description,
-            address, latitude, longitude, neighborhood, region, promotionText,
-            amenities != null ? amenities : List.of(),
-            photos != null ? photos : List.of(),
-            attributeValues != null ? attributeValues : List.of());
+            location, promotionText);
+    }
+}
+
+// AddPropertyPhotosCommand.java — 사진 독립 업로드 (propertyId는 Domain VO)
+package com.ryuqq.otatoy.application.property.dto.command;
+
+import com.ryuqq.otatoy.domain.property.PropertyId;
+import java.util.List;
+
+public record AddPropertyPhotosCommand(
+    PropertyId propertyId,
+    List<PhotoItem> photos
+) {
+    public static AddPropertyPhotosCommand of(PropertyId propertyId, List<PhotoItem> photos) {
+        return new AddPropertyPhotosCommand(propertyId, photos != null ? photos : List.of());
     }
 
-    // 중첩 record — 편의시설 항목
-    public record AmenityItem(
-        String amenityType,
-        String name,
-        int additionalPrice,   // Money(int) 기반
-        int sortOrder
-    ) {}
-
-    // 중첩 record — 사진 항목
     public record PhotoItem(
         String photoType,
         String originUrl,
         String cdnUrl,         // nullable
         int sortOrder
     ) {}
+}
 
-    // 중첩 record — 속성값 항목
+// SetPropertyAmenitiesCommand.java — 편의시설 독립 설정 (propertyId는 Domain VO)
+package com.ryuqq.otatoy.application.property.dto.command;
+
+import com.ryuqq.otatoy.domain.property.PropertyId;
+import java.util.List;
+
+public record SetPropertyAmenitiesCommand(
+    PropertyId propertyId,
+    List<AmenityItem> amenities
+) {
+    public static SetPropertyAmenitiesCommand of(PropertyId propertyId, List<AmenityItem> amenities) {
+        return new SetPropertyAmenitiesCommand(propertyId, amenities != null ? amenities : List.of());
+    }
+
+    public record AmenityItem(
+        String amenityType,
+        String name,
+        int additionalPrice,   // Money(int) 기반
+        int sortOrder
+    ) {}
+}
+
+// SetPropertyAttributesCommand.java — 속성값 독립 설정 (propertyId는 Domain VO)
+package com.ryuqq.otatoy.application.property.dto.command;
+
+import com.ryuqq.otatoy.domain.property.PropertyId;
+import java.util.List;
+
+public record SetPropertyAttributesCommand(
+    PropertyId propertyId,
+    List<AttributeValueItem> attributeValues
+) {
+    public static SetPropertyAttributesCommand of(PropertyId propertyId, List<AttributeValueItem> attributeValues) {
+        return new SetPropertyAttributesCommand(propertyId,
+            attributeValues != null ? attributeValues : List.of());
+    }
+
     public record AttributeValueItem(
         Long propertyTypeAttributeId,
         String value
@@ -193,24 +311,26 @@ public record RegisterPropertyCommand(
 }
 ```
 
-**주의사항**:
-- record로 선언하여 불변성 보장 (APP-DTO-001)
-- 인스턴스 메서드 금지, 정적 팩토리 of()만 허용 (APP-DTO-001)
-- 편의시설/사진/속성값은 중첩 record로 포함
+**변경 포인트**:
+1. 이전에는 `RegisterPropertyCommand` 하나에 편의시설/사진/속성값이 중첩 record로 포함되었다. 이제 각각 독립 Command로 분리하여 단일 책임 원칙을 준수한다.
+2. Command 필드가 `Long`, `String` 같은 원시 타입에서 Domain VO(`PartnerId`, `PropertyTypeId`, `PropertyName`, `Location` 등)로 변경되었다 (APP-DTO-001). VO 변환은 Adapter-in의 ApiMapper에서 한 번만 수행한다.
 
 ### 3단계: Factory
 
-패키지: `application/src/main/java/com/ryuqq/otatoy/application/factory/`
+패키지: `application/src/main/java/com/ryuqq/otatoy/application/property/factory/`
 
 | 클래스명 | 의존성 | 적용 컨벤션 |
 |---------|-------|-----------|
 | `PropertyFactory` | `TimeProvider` | APP-FAC-001 |
 
 ```java
-// PropertyFactory.java
-package com.ryuqq.otatoy.application.factory;
+// PropertyFactory.java — Property 기본정보 생성만 담당
+package com.ryuqq.otatoy.application.property.factory;
 
-import com.ryuqq.otatoy.application.dto.command.RegisterPropertyCommand;
+import com.ryuqq.otatoy.application.property.dto.command.RegisterPropertyCommand;
+import com.ryuqq.otatoy.application.property.dto.command.AddPropertyPhotosCommand;
+import com.ryuqq.otatoy.application.property.dto.command.SetPropertyAmenitiesCommand;
+import com.ryuqq.otatoy.application.property.dto.command.SetPropertyAttributesCommand;
 import com.ryuqq.otatoy.domain.accommodation.AmenityName;
 import com.ryuqq.otatoy.domain.accommodation.AmenityType;
 import com.ryuqq.otatoy.domain.accommodation.PhotoType;
@@ -222,7 +342,6 @@ import com.ryuqq.otatoy.domain.partner.PartnerId;
 import com.ryuqq.otatoy.domain.property.*;
 import com.ryuqq.otatoy.domain.propertytype.PropertyTypeAttributeId;
 import com.ryuqq.otatoy.domain.propertytype.PropertyTypeId;
-// TimeProvider import (core 모듈)
 
 import org.springframework.stereotype.Component;
 import java.time.Instant;
@@ -237,67 +356,81 @@ public class PropertyFactory {
         this.timeProvider = timeProvider;
     }
 
-    public PropertyCreateResult create(RegisterPropertyCommand command) {
+    /**
+     * Property 기본정보 도메인 객체를 생성한다.
+     * 편의시설/사진/속성값은 별도 UseCase에서 처리하므로 여기서 생성하지 않는다.
+     * Command 필드가 이미 Domain VO이므로 변환 없이 직접 전달한다 (APP-DTO-001).
+     */
+    public Property createProperty(RegisterPropertyCommand command) {
         Instant now = timeProvider.now();
 
-        // 1. Property 생성 (PropertyId는 null — 저장 전)
-        Property property = Property.forNew(
-            PartnerId.of(command.partnerId()),
-            command.brandId() != null ? BrandId.of(command.brandId()) : null,
-            PropertyTypeId.of(command.propertyTypeId()),
-            PropertyName.of(command.name()),
-            command.description() != null ? PropertyDescription.of(command.description()) : null,
-            Location.of(command.address(), command.latitude(), command.longitude(),
-                        command.neighborhood(), command.region()),
-            command.promotionText() != null ? PromotionText.of(command.promotionText()) : null,
+        return Property.forNew(
+            command.partnerId(),
+            command.brandId(),
+            command.propertyTypeId(),
+            command.name(),
+            command.description(),
+            command.location(),
+            command.promotionText(),
             now
         );
+    }
 
-        // 2. 하위 엔티티 생성 (PropertyId는 null — 저장 후 세팅)
-        List<PropertyAmenity> amenities = command.amenities().stream()
-            .map(a -> PropertyAmenity.forNew(
-                null, // propertyId — 저장 후 세팅
-                AmenityType.valueOf(a.amenityType()),
-                AmenityName.of(a.name()),
-                Money.of(a.additionalPrice()),
-                a.sortOrder()))
-            .toList();
+    /**
+     * 사진 도메인 객체 리스트를 생성한다.
+     * command.propertyId()가 이미 PropertyId VO이므로 변환 불필요.
+     */
+    public List<PropertyPhoto> createPhotos(AddPropertyPhotosCommand command) {
+        PropertyId propertyId = command.propertyId();
+        Instant now = timeProvider.now();
 
-        List<PropertyPhoto> photos = command.photos().stream()
+        return command.photos().stream()
             .map(p -> PropertyPhoto.forNew(
-                null, // propertyId — 저장 후 세팅
+                propertyId,
                 PhotoType.valueOf(p.photoType()),
                 OriginUrl.of(p.originUrl()),
                 p.cdnUrl() != null ? CdnUrl.of(p.cdnUrl()) : null,
                 p.sortOrder(),
                 now))
             .toList();
+    }
 
-        List<PropertyAttributeValue> attributeValues = command.attributeValues().stream()
+    /**
+     * 편의시설 도메인 객체 리스트를 생성한다.
+     * command.propertyId()가 이미 PropertyId VO이므로 변환 불필요.
+     */
+    public List<PropertyAmenity> createAmenities(SetPropertyAmenitiesCommand command) {
+        PropertyId propertyId = command.propertyId();
+        return command.amenities().stream()
+            .map(a -> PropertyAmenity.forNew(
+                propertyId,
+                AmenityType.valueOf(a.amenityType()),
+                AmenityName.of(a.name()),
+                Money.of(a.additionalPrice()),
+                a.sortOrder()))
+            .toList();
+    }
+
+    /**
+     * 속성값 도메인 객체 리스트를 생성한다.
+     * command.propertyId()가 이미 PropertyId VO이므로 변환 불필요.
+     */
+    public List<PropertyAttributeValue> createAttributeValues(SetPropertyAttributesCommand command) {
+        PropertyId propertyId = command.propertyId();
+        Instant now = timeProvider.now();
+
+        return command.attributeValues().stream()
             .map(av -> PropertyAttributeValue.forNew(
-                null, // propertyId — 저장 후 세팅
+                propertyId,
                 PropertyTypeAttributeId.of(av.propertyTypeAttributeId()),
                 av.value(),
                 now))
             .toList();
-
-        return new PropertyCreateResult(property, amenities, photos, attributeValues);
     }
-
-    // Factory 내부 결과 객체 — 여러 도메인 객체를 한번에 전달
-    public record PropertyCreateResult(
-        Property property,
-        List<PropertyAmenity> amenities,
-        List<PropertyPhoto> photos,
-        List<PropertyAttributeValue> attributeValues
-    ) {}
 }
 ```
 
-**주의사항**:
-- TimeProvider는 Factory에만 주입한다 (APP-FAC-001). Service/Manager에서 TimeProvider 직접 사용 금지
-- PropertyAmenity.forNew()의 propertyId 파라미터가 null인 이유: Property가 아직 저장되지 않아 ID가 없다. PersistenceFacade에서 Property 저장 후 PropertyId를 세팅한다
-- TimeProvider 인터페이스는 core 모듈(또는 application 내)에 정의, 구현체(SystemTimeProvider)는 infra 모듈에 둔다
+**변경 포인트**: 이전에는 Factory가 `PropertyCreateResult(Property, List<Amenity>, List<Photo>, List<AttributeValue>)`를 한번에 반환했다. 이제 각 도메인 객체 생성 메서드가 독립적이다. PropertyId가 null인 채로 하위 엔티티를 생성할 필요가 없어졌다 -- 사진/편의시설/속성값은 Property가 이미 저장된 후에 호출되므로 PropertyId가 항상 존재한다.
 
 **TimeProvider 정의 (core 또는 application):**
 ```java
@@ -309,19 +442,134 @@ public interface TimeProvider {
 
 ### 4단계: Manager (트랜잭션 경계)
 
-패키지: `application/src/main/java/com/ryuqq/otatoy/application/manager/`
+패키지:
+- Property 관련 Manager: `application/src/main/java/com/ryuqq/otatoy/application/property/manager/`
+- Partner 관련 Manager: `application/src/main/java/com/ryuqq/otatoy/application/partner/manager/`
+- PropertyType 관련 Manager: `application/src/main/java/com/ryuqq/otatoy/application/propertytype/manager/`
 
-| 클래스명 | 유형 | 의존성 | @Transactional | 적용 컨벤션 |
-|---------|------|-------|:--------------:|-----------|
-| `PropertyReadManager` | ReadManager | `PropertyQueryPort` | readOnly=true | APP-MGR-001 |
-| `PartnerReadManager` | ReadManager | `PartnerQueryPort` | readOnly=true | APP-MGR-001, APP-BC-001 |
-| `PropertyTypeReadManager` | ReadManager | `PropertyTypeQueryPort` | readOnly=true | APP-MGR-001, APP-BC-001 |
+> manager 하위에 `command/`, `read/` 서브패키지를 두지 않는다. 네이밍 컨벤션으로 역할이 구분된다.
+
+| 클래스명 | 패키지 (BC) | 유형 | 의존성 | @Transactional | 적용 컨벤션 |
+|---------|-----------|------|-------|:--------------:|-----------|
+| `PropertyCommandManager` | `property/manager/` | CommandManager | `PropertyCommandPort` | 메서드 단위 필수 | APP-MGR-001 |
+| `PropertyAmenityCommandManager` | `property/manager/` | CommandManager | `PropertyAmenityCommandPort` | 메서드 단위 필수 | APP-MGR-001 |
+| `PropertyPhotoCommandManager` | `property/manager/` | CommandManager | `PropertyPhotoCommandPort` | 메서드 단위 필수 | APP-MGR-001 |
+| `PropertyAttributeValueCommandManager` | `property/manager/` | CommandManager | `PropertyAttributeValueCommandPort` | 메서드 단위 필수 | APP-MGR-001 |
+| `PropertyReadManager` | `property/manager/` | ReadManager | `PropertyQueryPort` | 메서드 단위 readOnly=true | APP-MGR-001 |
+| `PartnerReadManager` | `partner/manager/` | ReadManager | `PartnerQueryPort` | 메서드 단위 readOnly=true | APP-MGR-001, APP-BC-001 |
+| `PropertyTypeReadManager` | `propertytype/manager/` | ReadManager | `PropertyTypeQueryPort` | 메서드 단위 readOnly=true | APP-MGR-001, APP-BC-001 |
 
 ```java
-// PartnerReadManager.java
-package com.ryuqq.otatoy.application.manager.read;
+// PropertyCommandManager.java — 단일 Aggregate 저장, @Transactional 메서드 단위 (APP-MGR-001)
+package com.ryuqq.otatoy.application.property.manager;
 
-import com.ryuqq.otatoy.application.port.out.persistence.PartnerQueryPort;
+import com.ryuqq.otatoy.application.property.port.out.PropertyCommandPort;
+import com.ryuqq.otatoy.domain.property.Property;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+@Component
+public class PropertyCommandManager {
+
+    private final PropertyCommandPort propertyCommandPort;
+
+    public PropertyCommandManager(PropertyCommandPort propertyCommandPort) {
+        this.propertyCommandPort = propertyCommandPort;
+    }
+
+    @Transactional
+    public Long persist(Property property) {
+        return propertyCommandPort.persist(property);
+    }
+
+    @Transactional
+    public void persistAll(List<Property> properties) {
+        propertyCommandPort.persistAll(properties);
+    }
+}
+
+// PropertyPhotoCommandManager.java
+package com.ryuqq.otatoy.application.property.manager;
+
+import com.ryuqq.otatoy.application.property.port.out.PropertyPhotoCommandPort;
+import com.ryuqq.otatoy.domain.property.PropertyPhoto;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+@Component
+public class PropertyPhotoCommandManager {
+
+    private final PropertyPhotoCommandPort propertyPhotoCommandPort;
+
+    public PropertyPhotoCommandManager(PropertyPhotoCommandPort propertyPhotoCommandPort) {
+        this.propertyPhotoCommandPort = propertyPhotoCommandPort;
+    }
+
+    @Transactional
+    public void persistAll(List<PropertyPhoto> photos) {
+        propertyPhotoCommandPort.persistAll(photos);
+    }
+}
+
+// PropertyAmenityCommandManager.java
+package com.ryuqq.otatoy.application.property.manager;
+
+import com.ryuqq.otatoy.application.property.port.out.PropertyAmenityCommandPort;
+import com.ryuqq.otatoy.domain.property.PropertyAmenity;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+@Component
+public class PropertyAmenityCommandManager {
+
+    private final PropertyAmenityCommandPort propertyAmenityCommandPort;
+
+    public PropertyAmenityCommandManager(PropertyAmenityCommandPort propertyAmenityCommandPort) {
+        this.propertyAmenityCommandPort = propertyAmenityCommandPort;
+    }
+
+    @Transactional
+    public void persistAll(List<PropertyAmenity> amenities) {
+        propertyAmenityCommandPort.persistAll(amenities);
+    }
+}
+
+// PropertyAttributeValueCommandManager.java
+package com.ryuqq.otatoy.application.property.manager;
+
+import com.ryuqq.otatoy.application.property.port.out.PropertyAttributeValueCommandPort;
+import com.ryuqq.otatoy.domain.property.PropertyAttributeValue;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+@Component
+public class PropertyAttributeValueCommandManager {
+
+    private final PropertyAttributeValueCommandPort propertyAttributeValueCommandPort;
+
+    public PropertyAttributeValueCommandManager(
+            PropertyAttributeValueCommandPort propertyAttributeValueCommandPort) {
+        this.propertyAttributeValueCommandPort = propertyAttributeValueCommandPort;
+    }
+
+    @Transactional
+    public void persistAll(List<PropertyAttributeValue> attributeValues) {
+        propertyAttributeValueCommandPort.persistAll(attributeValues);
+    }
+}
+
+// PartnerReadManager.java
+package com.ryuqq.otatoy.application.partner.manager;
+
+import com.ryuqq.otatoy.application.partner.port.out.PartnerQueryPort;
 import com.ryuqq.otatoy.domain.partner.Partner;
 import com.ryuqq.otatoy.domain.partner.PartnerId;
 import com.ryuqq.otatoy.domain.partner.PartnerNotFoundException;
@@ -329,7 +577,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 @Component
-@Transactional(readOnly = true)
 public class PartnerReadManager {
 
     private final PartnerQueryPort partnerQueryPort;
@@ -338,24 +585,30 @@ public class PartnerReadManager {
         this.partnerQueryPort = partnerQueryPort;
     }
 
+    @Transactional(readOnly = true)
     public Partner getById(PartnerId id) {
         return partnerQueryPort.findById(id)
             .orElseThrow(PartnerNotFoundException::new);
     }
+
+    @Transactional(readOnly = true)
+    public void verifyExists(PartnerId id) {
+        if (!partnerQueryPort.existsById(id)) {
+            throw new PartnerNotFoundException();
+        }
+    }
 }
 
 // PropertyTypeReadManager.java
-package com.ryuqq.otatoy.application.manager.read;
+package com.ryuqq.otatoy.application.propertytype.manager;
 
-import com.ryuqq.otatoy.application.port.out.persistence.PropertyTypeQueryPort;
+import com.ryuqq.otatoy.application.propertytype.port.out.PropertyTypeQueryPort;
 import com.ryuqq.otatoy.domain.propertytype.PropertyType;
 import com.ryuqq.otatoy.domain.propertytype.PropertyTypeId;
-// PropertyTypeNotFoundException은 propertytype BC에 정의 필요
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 @Component
-@Transactional(readOnly = true)
 public class PropertyTypeReadManager {
 
     private final PropertyTypeQueryPort propertyTypeQueryPort;
@@ -364,16 +617,24 @@ public class PropertyTypeReadManager {
         this.propertyTypeQueryPort = propertyTypeQueryPort;
     }
 
+    @Transactional(readOnly = true)
     public PropertyType getById(PropertyTypeId id) {
         return propertyTypeQueryPort.findById(id)
             .orElseThrow(() -> new PropertyTypeNotFoundException());
     }
+
+    @Transactional(readOnly = true)
+    public void verifyExists(PropertyTypeId id) {
+        if (!propertyTypeQueryPort.existsById(id)) {
+            throw new PropertyTypeNotFoundException();
+        }
+    }
 }
 
 // PropertyReadManager.java
-package com.ryuqq.otatoy.application.manager.read;
+package com.ryuqq.otatoy.application.property.manager;
 
-import com.ryuqq.otatoy.application.port.out.persistence.PropertyQueryPort;
+import com.ryuqq.otatoy.application.property.port.out.PropertyQueryPort;
 import com.ryuqq.otatoy.domain.property.Property;
 import com.ryuqq.otatoy.domain.property.PropertyId;
 import com.ryuqq.otatoy.domain.property.PropertyNotFoundException;
@@ -381,7 +642,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 @Component
-@Transactional(readOnly = true)
 public class PropertyReadManager {
 
     private final PropertyQueryPort propertyQueryPort;
@@ -390,192 +650,297 @@ public class PropertyReadManager {
         this.propertyQueryPort = propertyQueryPort;
     }
 
+    @Transactional(readOnly = true)
     public Property getById(PropertyId id) {
         return propertyQueryPort.findById(id)
             .orElseThrow(PropertyNotFoundException::new);
     }
-}
-```
 
-**주의사항**:
-- ReadManager는 반드시 `@Transactional(readOnly = true)` (APP-MGR-001)
-- 다른 BC의 ReadManager는 Service에서 자유롭게 호출 가능 (APP-BC-001)
-- `PropertyTypeNotFoundException`이 현재 도메인에 없다. **선행 작업**: `domain/propertytype/` 패키지에 `PropertyTypeErrorCode`, `PropertyTypeNotFoundException` 추가 필요
-
-### 5단계: PersistenceFacade
-
-패키지: `application/src/main/java/com/ryuqq/otatoy/application/facade/`
-
-| 클래스명 | 의존성 | @Transactional | 적용 컨벤션 |
-|---------|-------|:--------------:|-----------|
-| `PropertyPersistenceFacade` | PropertyCommandPort, PropertyAmenityCommandPort, PropertyPhotoCommandPort, PropertyAttributeValueCommandPort | 필수 | APP-FCD-001 |
-
-```java
-// PropertyPersistenceFacade.java
-package com.ryuqq.otatoy.application.facade;
-
-import com.ryuqq.otatoy.application.port.out.persistence.*;
-import com.ryuqq.otatoy.domain.property.*;
-import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
-
-@Component
-@Transactional
-public class PropertyPersistenceFacade {
-
-    private final PropertyCommandPort propertyCommandPort;
-    private final PropertyAmenityCommandPort propertyAmenityCommandPort;
-    private final PropertyPhotoCommandPort propertyPhotoCommandPort;
-    private final PropertyAttributeValueCommandPort propertyAttributeValueCommandPort;
-
-    public PropertyPersistenceFacade(PropertyCommandPort propertyCommandPort,
-                                      PropertyAmenityCommandPort propertyAmenityCommandPort,
-                                      PropertyPhotoCommandPort propertyPhotoCommandPort,
-                                      PropertyAttributeValueCommandPort propertyAttributeValueCommandPort) {
-        this.propertyCommandPort = propertyCommandPort;
-        this.propertyAmenityCommandPort = propertyAmenityCommandPort;
-        this.propertyPhotoCommandPort = propertyPhotoCommandPort;
-        this.propertyAttributeValueCommandPort = propertyAttributeValueCommandPort;
-    }
-
-    /**
-     * Property + 하위 엔티티를 하나의 트랜잭션에서 원자적으로 저장한다.
-     * Property 저장 후 생성된 PropertyId를 하위 엔티티에 세팅한다.
-     */
-    public Long persist(Property property,
-                        List<PropertyAmenity> amenities,
-                        List<PropertyPhoto> photos,
-                        List<PropertyAttributeValue> attributeValues) {
-
-        // 1. Property 저장 -> PropertyId 획득
-        Long propertyId = propertyCommandPort.persist(property);
-        PropertyId pid = PropertyId.of(propertyId);
-
-        // 2. 하위 엔티티에 PropertyId 세팅 후 저장
-        // 주의: 도메인 객체가 불변이므로 새로 생성해야 한다
-        // Factory에서 propertyId=null로 생성했으므로, 여기서 propertyId를 포함해 재생성
-        if (!amenities.isEmpty()) {
-            List<PropertyAmenity> withId = amenities.stream()
-                .map(a -> PropertyAmenity.forNew(pid, a.amenityType(), a.name(),
-                    a.additionalPrice(), a.sortOrder()))
-                .toList();
-            propertyAmenityCommandPort.persistAll(withId);
+    @Transactional(readOnly = true)
+    public void verifyExists(PropertyId id) {
+        if (!propertyQueryPort.existsById(id)) {
+            throw new PropertyNotFoundException();
         }
-
-        if (!photos.isEmpty()) {
-            List<PropertyPhoto> withId = photos.stream()
-                .map(p -> PropertyPhoto.forNew(pid, p.photoType(), p.originUrl(),
-                    p.cdnUrl(), p.sortOrder(), p.createdAt()))
-                .toList();
-            propertyPhotoCommandPort.persistAll(withId);
-        }
-
-        if (!attributeValues.isEmpty()) {
-            List<PropertyAttributeValue> withId = attributeValues.stream()
-                .map(av -> PropertyAttributeValue.forNew(pid, av.propertyTypeAttributeId(),
-                    av.value(), av.createdAt()))
-                .toList();
-            propertyAttributeValueCommandPort.persistAll(withId);
-        }
-
-        return propertyId;
     }
 }
 ```
 
-**주의사항**:
-- 하나의 @Transactional에서 Property + 모든 하위 엔티티 저장 (원자성 보장)
-- 하위 엔티티는 불변이므로 PropertyId를 포함해 재생성한다
-- PersistenceFacade는 여러 CommandPort를 묶는 역할 (APP-FCD-001)
+**변경 포인트**:
+1. `PropertyCommandManager`가 신규 추가되었다. 이전에는 PropertyPersistenceFacade가 모든 저장을 담당했지만, 단일 Aggregate 저장은 CommandManager로 충분하다. 사진/편의시설/속성값도 각각 독립 CommandManager를 가진다.
+2. 모든 Manager의 `@Transactional`이 클래스 레벨에서 **메서드 레벨**로 변경되었다 (APP-MGR-001). 향후 트랜잭션이 필요 없는 메서드 추가나 전파 속성 분리에 유연하게 대응한다.
+3. `PartnerReadManager`, `PropertyTypeReadManager`에 `verifyExists()` 메서드가 추가되었다. `PropertyRegistrationValidator`는 이 ReadManager들을 주입받아 검증을 담당한다. ReadManager의 `getById()`는 조회된 엔티티를 이후 로직에서 사용해야 하는 경우에, `verifyExists()`는 존재 확인만 필요한 경우에 사용한다.
 
-### 6단계: Port-In (UseCase 인터페이스)
+### 5단계: Port-In (UseCase 인터페이스)
 
-패키지: `application/src/main/java/com/ryuqq/otatoy/application/port/in/`
+패키지: `application/src/main/java/com/ryuqq/otatoy/application/property/port/in/`
 
 | 클래스명 | 역할 | 적용 컨벤션 |
 |---------|------|-----------|
-| `RegisterPropertyUseCase` | 숙소 등록 유스케이스 | APP-UC-001 |
+| `RegisterPropertyUseCase` | 숙소 기본정보 등록 | APP-UC-001 |
+| `AddPropertyPhotosUseCase` | 사진 독립 업로드 | APP-UC-001 |
+| `SetPropertyAmenitiesUseCase` | 편의시설 독립 설정 | APP-UC-001 |
+| `SetPropertyAttributesUseCase` | 속성값 독립 설정 | APP-UC-001 |
 
 ```java
 // RegisterPropertyUseCase.java
-package com.ryuqq.otatoy.application.port.in;
+package com.ryuqq.otatoy.application.property.port.in;
 
-import com.ryuqq.otatoy.application.dto.command.RegisterPropertyCommand;
+import com.ryuqq.otatoy.application.property.dto.command.RegisterPropertyCommand;
 
 public interface RegisterPropertyUseCase {
     Long execute(RegisterPropertyCommand command);
 }
+
+// AddPropertyPhotosUseCase.java
+package com.ryuqq.otatoy.application.property.port.in;
+
+import com.ryuqq.otatoy.application.property.dto.command.AddPropertyPhotosCommand;
+
+public interface AddPropertyPhotosUseCase {
+    void execute(AddPropertyPhotosCommand command);
+}
+
+// SetPropertyAmenitiesUseCase.java
+package com.ryuqq.otatoy.application.property.port.in;
+
+import com.ryuqq.otatoy.application.property.dto.command.SetPropertyAmenitiesCommand;
+
+public interface SetPropertyAmenitiesUseCase {
+    void execute(SetPropertyAmenitiesCommand command);
+}
+
+// SetPropertyAttributesUseCase.java
+package com.ryuqq.otatoy.application.property.port.in;
+
+import com.ryuqq.otatoy.application.property.dto.command.SetPropertyAttributesCommand;
+
+public interface SetPropertyAttributesUseCase {
+    void execute(SetPropertyAttributesCommand command);
+}
 ```
 
-### 7단계: Service (오케스트레이션)
+### 6단계: Service (오케스트레이션)
 
-패키지: `application/src/main/java/com/ryuqq/otatoy/application/service/`
-
-| 클래스명 | 구현 | 의존성 | @Transactional | 적용 컨벤션 |
-|---------|------|-------|:--------------:|-----------|
-| `RegisterPropertyService` | `RegisterPropertyUseCase` | PartnerReadManager, PropertyTypeReadManager, PropertyFactory, PropertyPersistenceFacade | 금지 | APP-SVC-001, APP-BC-001 |
+패키지: `application/src/main/java/com/ryuqq/otatoy/application/property/service/`
 
 ```java
-// RegisterPropertyService.java
-package com.ryuqq.otatoy.application.service;
+// PropertyRegistrationValidator.java — 숙소 등록 검증 전용 (APP-VAL-002)
+package com.ryuqq.otatoy.application.property.validator;
 
-import com.ryuqq.otatoy.application.dto.command.RegisterPropertyCommand;
-import com.ryuqq.otatoy.application.facade.PropertyPersistenceFacade;
-import com.ryuqq.otatoy.application.factory.PropertyFactory;
-import com.ryuqq.otatoy.application.manager.read.PartnerReadManager;
-import com.ryuqq.otatoy.application.manager.read.PropertyTypeReadManager;
-import com.ryuqq.otatoy.application.port.in.RegisterPropertyUseCase;
-import com.ryuqq.otatoy.domain.partner.PartnerId;
-import com.ryuqq.otatoy.domain.propertytype.PropertyTypeId;
+import com.ryuqq.otatoy.application.property.dto.command.RegisterPropertyCommand;
+import com.ryuqq.otatoy.application.partner.manager.PartnerReadManager;
+import com.ryuqq.otatoy.application.propertytype.manager.PropertyTypeReadManager;
+import org.springframework.stereotype.Component;
+
+@Component
+public class PropertyRegistrationValidator {
+
+    private final PartnerReadManager partnerReadManager;
+    private final PropertyTypeReadManager propertyTypeReadManager;
+
+    public PropertyRegistrationValidator(PartnerReadManager partnerReadManager,
+                                          PropertyTypeReadManager propertyTypeReadManager) {
+        this.partnerReadManager = partnerReadManager;
+        this.propertyTypeReadManager = propertyTypeReadManager;
+    }
+
+    public void validate(RegisterPropertyCommand command) {
+        partnerReadManager.verifyExists(command.partnerId());
+        propertyTypeReadManager.verifyExists(command.propertyTypeId());
+    }
+}
+
+// RegisterPropertyService.java — 기본정보만 저장 (Validator 사용)
+package com.ryuqq.otatoy.application.property.service;
+
+import com.ryuqq.otatoy.application.property.dto.command.RegisterPropertyCommand;
+import com.ryuqq.otatoy.application.property.factory.PropertyFactory;
+import com.ryuqq.otatoy.application.property.manager.PropertyCommandManager;
+import com.ryuqq.otatoy.application.property.validator.PropertyRegistrationValidator;
+import com.ryuqq.otatoy.application.property.port.in.RegisterPropertyUseCase;
+import com.ryuqq.otatoy.domain.property.Property;
 import org.springframework.stereotype.Service;
 
 @Service
 public class RegisterPropertyService implements RegisterPropertyUseCase {
 
-    private final PartnerReadManager partnerReadManager;
-    private final PropertyTypeReadManager propertyTypeReadManager;
+    private final PropertyRegistrationValidator validator;
     private final PropertyFactory propertyFactory;
-    private final PropertyPersistenceFacade propertyPersistenceFacade;
+    private final PropertyCommandManager propertyCommandManager;
 
-    public RegisterPropertyService(PartnerReadManager partnerReadManager,
-                                    PropertyTypeReadManager propertyTypeReadManager,
+    public RegisterPropertyService(PropertyRegistrationValidator validator,
                                     PropertyFactory propertyFactory,
-                                    PropertyPersistenceFacade propertyPersistenceFacade) {
-        this.partnerReadManager = partnerReadManager;
-        this.propertyTypeReadManager = propertyTypeReadManager;
+                                    PropertyCommandManager propertyCommandManager) {
+        this.validator = validator;
         this.propertyFactory = propertyFactory;
-        this.propertyPersistenceFacade = propertyPersistenceFacade;
+        this.propertyCommandManager = propertyCommandManager;
     }
 
     @Override
     public Long execute(RegisterPropertyCommand command) {
-        // 1. 파트너 존재 확인 (다른 BC ReadManager) — 없으면 PartnerNotFoundException
-        partnerReadManager.getById(PartnerId.of(command.partnerId()));
+        // 1. 검증 (Validator — ReadManager.verifyExists 경유)
+        validator.validate(command);
 
-        // 2. 숙소 유형 존재 확인 (다른 BC ReadManager) — 없으면 PropertyTypeNotFoundException
-        propertyTypeReadManager.getById(PropertyTypeId.of(command.propertyTypeId()));
+        // 2. 도메인 객체 생성 (Factory — TimeProvider)
+        Property property = propertyFactory.createProperty(command);
 
-        // 3. 도메인 객체 생성 (Factory — TimeProvider 주입)
-        PropertyFactory.PropertyCreateResult result = propertyFactory.create(command);
+        // 3. 저장 (CommandManager — @Transactional 메서드 단위)
+        return propertyCommandManager.persist(property);
+    }
+}
 
-        // 4. 원자적 저장 (PersistenceFacade — @Transactional)
-        return propertyPersistenceFacade.persist(
-            result.property(),
-            result.amenities(),
-            result.photos(),
-            result.attributeValues()
-        );
+// PropertyExistenceValidator.java — Property 존재 검증 전용 (APP-VAL-002)
+package com.ryuqq.otatoy.application.property.validator;
+
+import com.ryuqq.otatoy.application.property.manager.PropertyReadManager;
+import com.ryuqq.otatoy.domain.property.PropertyId;
+import org.springframework.stereotype.Component;
+
+@Component
+public class PropertyExistenceValidator {
+
+    private final PropertyReadManager propertyReadManager;
+
+    public PropertyExistenceValidator(PropertyReadManager propertyReadManager) {
+        this.propertyReadManager = propertyReadManager;
+    }
+
+    public void validate(PropertyId propertyId) {
+        propertyReadManager.verifyExists(propertyId);
+    }
+}
+
+// AddPropertyPhotosService.java — 사진 독립 업로드 (Validator 사용)
+package com.ryuqq.otatoy.application.property.service;
+
+import com.ryuqq.otatoy.application.property.dto.command.AddPropertyPhotosCommand;
+import com.ryuqq.otatoy.application.property.factory.PropertyFactory;
+import com.ryuqq.otatoy.application.property.manager.PropertyPhotoCommandManager;
+import com.ryuqq.otatoy.application.property.validator.PropertyExistenceValidator;
+import com.ryuqq.otatoy.application.property.port.in.AddPropertyPhotosUseCase;
+import com.ryuqq.otatoy.domain.property.PropertyPhoto;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class AddPropertyPhotosService implements AddPropertyPhotosUseCase {
+
+    private final PropertyExistenceValidator validator;
+    private final PropertyFactory propertyFactory;
+    private final PropertyPhotoCommandManager propertyPhotoCommandManager;
+
+    public AddPropertyPhotosService(PropertyExistenceValidator validator,
+                                     PropertyFactory propertyFactory,
+                                     PropertyPhotoCommandManager propertyPhotoCommandManager) {
+        this.validator = validator;
+        this.propertyFactory = propertyFactory;
+        this.propertyPhotoCommandManager = propertyPhotoCommandManager;
+    }
+
+    @Override
+    public void execute(AddPropertyPhotosCommand command) {
+        // 1. Property 존재 확인 (Validator — ReadManager.verifyExists)
+        validator.validate(command.propertyId());
+
+        // 2. 도메인 객체 생성 (Factory — TimeProvider)
+        List<PropertyPhoto> photos = propertyFactory.createPhotos(command);
+
+        // 3. 저장 (CommandManager — @Transactional 메서드 단위)
+        propertyPhotoCommandManager.persistAll(photos);
+    }
+}
+
+// SetPropertyAmenitiesService.java — 편의시설 독립 설정 (PropertyExistenceValidator 재사용)
+package com.ryuqq.otatoy.application.property.service;
+
+import com.ryuqq.otatoy.application.property.dto.command.SetPropertyAmenitiesCommand;
+import com.ryuqq.otatoy.application.property.factory.PropertyFactory;
+import com.ryuqq.otatoy.application.property.manager.PropertyAmenityCommandManager;
+import com.ryuqq.otatoy.application.property.validator.PropertyExistenceValidator;
+import com.ryuqq.otatoy.application.property.port.in.SetPropertyAmenitiesUseCase;
+import com.ryuqq.otatoy.domain.property.PropertyAmenity;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class SetPropertyAmenitiesService implements SetPropertyAmenitiesUseCase {
+
+    private final PropertyExistenceValidator validator;
+    private final PropertyFactory propertyFactory;
+    private final PropertyAmenityCommandManager propertyAmenityCommandManager;
+
+    public SetPropertyAmenitiesService(PropertyExistenceValidator validator,
+                                        PropertyFactory propertyFactory,
+                                        PropertyAmenityCommandManager propertyAmenityCommandManager) {
+        this.validator = validator;
+        this.propertyFactory = propertyFactory;
+        this.propertyAmenityCommandManager = propertyAmenityCommandManager;
+    }
+
+    @Override
+    public void execute(SetPropertyAmenitiesCommand command) {
+        // 1. Property 존재 확인 (Validator — ReadManager.verifyExists)
+        validator.validate(command.propertyId());
+
+        // 2. 도메인 객체 생성 (Factory)
+        List<PropertyAmenity> amenities = propertyFactory.createAmenities(command);
+
+        // 3. 저장 (CommandManager — @Transactional 메서드 단위)
+        propertyAmenityCommandManager.persistAll(amenities);
+    }
+}
+
+// SetPropertyAttributesService.java — 속성값 독립 설정 (PropertyExistenceValidator 재사용)
+package com.ryuqq.otatoy.application.property.service;
+
+import com.ryuqq.otatoy.application.property.dto.command.SetPropertyAttributesCommand;
+import com.ryuqq.otatoy.application.property.factory.PropertyFactory;
+import com.ryuqq.otatoy.application.property.manager.PropertyAttributeValueCommandManager;
+import com.ryuqq.otatoy.application.property.validator.PropertyExistenceValidator;
+import com.ryuqq.otatoy.application.property.port.in.SetPropertyAttributesUseCase;
+import com.ryuqq.otatoy.domain.property.PropertyAttributeValue;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class SetPropertyAttributesService implements SetPropertyAttributesUseCase {
+
+    private final PropertyExistenceValidator validator;
+    private final PropertyFactory propertyFactory;
+    private final PropertyAttributeValueCommandManager propertyAttributeValueCommandManager;
+
+    public SetPropertyAttributesService(PropertyExistenceValidator validator,
+                                         PropertyFactory propertyFactory,
+                                         PropertyAttributeValueCommandManager propertyAttributeValueCommandManager) {
+        this.validator = validator;
+        this.propertyFactory = propertyFactory;
+        this.propertyAttributeValueCommandManager = propertyAttributeValueCommandManager;
+    }
+
+    @Override
+    public void execute(SetPropertyAttributesCommand command) {
+        // 1. Property 존재 확인 (Validator — ReadManager.verifyExists)
+        validator.validate(command.propertyId());
+
+        // 2. 도메인 객체 생성 (Factory — TimeProvider)
+        List<PropertyAttributeValue> attributeValues =
+            propertyFactory.createAttributeValues(command);
+
+        // 3. 저장 (CommandManager — @Transactional 메서드 단위)
+        propertyAttributeValueCommandManager.persistAll(attributeValues);
     }
 }
 ```
 
-**검증 흐름 요약**:
-1. 파트너 존재 여부 -> PartnerReadManager (readOnly 트랜잭션)
-2. 숙소 유형 존재 여부 -> PropertyTypeReadManager (readOnly 트랜잭션)
-3. 도메인 검증 -> Property.forNew() 내부 (단일 필드 검증)
-4. 원자적 저장 -> PropertyPersistenceFacade (쓰기 트랜잭션)
+**변경 포인트**:
+1. 이전에는 `RegisterPropertyService` 하나가 모든 것을 처리했다. 이제 4개의 독립 Service가 각각의 UseCase를 구현한다.
+2. 존재 확인은 Validator가 ReadManager의 `verifyExists()` 메서드를 호출하는 패턴으로 변경되었다 (APP-VAL-002). RegisterPropertyService는 `PropertyRegistrationValidator`로 파트너/숙소유형 존재를 확인하고, 나머지 Service는 `PropertyExistenceValidator`로 Property 존재를 확인한다. Validator는 @Transactional 없이 ReadManager에 트랜잭션 관리를 위임한다.
+3. 각 Service의 흐름이 단순해졌다: "검증(Validator) -> 도메인 생성(Factory) -> 저장(CommandManager)".
+
+`PropertyPersistenceFacade`는 이 Phase에서 불필요해졌다. 향후 예약 생성(STORY-302)처럼 여러 Aggregate를 원자적으로 저장해야 하는 시점에 `ReservationPersistenceFacade`를 도입한다.
 
 ### STORY-103 선행 작업 (도메인 보완)
 
@@ -594,51 +959,74 @@ public class RegisterPropertyService implements RegisterPropertyUseCase {
 
 | 규칙 코드 | 규칙 | 확인 사항 |
 |-----------|------|---------|
-| APP-UC-001 | UseCase 인터페이스 1:1 Service | RegisterPropertyUseCase <-> RegisterPropertyService |
-| APP-SVC-001 | Service에 @Transactional 금지 | RegisterPropertyService에 @Transactional 없음 |
-| APP-MGR-001 | ReadManager @Transactional(readOnly=true) | PartnerReadManager, PropertyTypeReadManager, PropertyReadManager |
-| APP-FCD-001 | PersistenceFacade에 @Transactional | PropertyPersistenceFacade |
+| APP-UC-001 | UseCase 인터페이스 1:1 Service | RegisterPropertyUseCase <-> RegisterPropertyService 등 4쌍 |
+| APP-SVC-001 | Service에 @Transactional 금지 | 4개 Service 모두 @Transactional 없음 |
+| APP-MGR-001 | CommandManager @Transactional 메서드 단위 필수 | PropertyCommandManager 등 4개, 클래스 레벨 금지 |
+| APP-MGR-001 | ReadManager @Transactional(readOnly=true) 메서드 단위 | PartnerReadManager, PropertyTypeReadManager, PropertyReadManager |
+| APP-VAL-002 | Validator — ReadManager 주입, verifyExists 경유 | PropertyRegistrationValidator, PropertyExistenceValidator |
+| APP-VAL-002 | Validator @Transactional 없음 | ReadManager가 트랜잭션 관리 |
 | APP-FAC-001 | TimeProvider는 Factory에만 주입 | PropertyFactory만 TimeProvider 의존 |
 | APP-PRT-001 | CommandPort는 persist/persistAll만 | delete 메서드 없음 |
+| APP-PRT-001 | QueryPort에 existsById 메서드 | PartnerQueryPort, PropertyTypeQueryPort, PropertyQueryPort |
 | APP-PRT-002 | Port 파라미터는 Domain 객체 | Property, PropertyAmenity 등 도메인 객체 전달 |
-| APP-DTO-001 | Command는 record | RegisterPropertyCommand + 중첩 record |
-| APP-BC-001 | 다른 BC ReadManager 호출 허용 | PartnerReadManager, PropertyTypeReadManager 호출 |
-| APP-BC-001 | Port 직접 호출 금지 | Service에서 Port 직접 의존 없음 |
+| APP-DTO-001 | Command는 record, 필드에 Domain VO 사용 | 4개 Command 모두 record, PartnerId/PropertyTypeId/PropertyName 등 VO |
+| APP-BC-001 | Port 직접 호출 금지 | Service/Validator 모두 Port 직접 의존 없음, Manager 경유 |
 
 ### STORY-103 최종 파일 목록 (생성 순서)
 
 ```
 application/src/main/java/com/ryuqq/otatoy/application/
-├── port/
-│   ├── in/
-│   │   └── RegisterPropertyUseCase.java
-│   └── out/
-│       └── persistence/
-│           ├── PropertyCommandPort.java
-│           ├── PropertyQueryPort.java
-│           ├── PropertyAmenityCommandPort.java
-│           ├── PropertyPhotoCommandPort.java
-│           ├── PropertyAttributeValueCommandPort.java
-│           ├── PartnerQueryPort.java
-│           └── PropertyTypeQueryPort.java
-├── dto/
-│   └── command/
-│       └── RegisterPropertyCommand.java
-├── factory/
-│   ├── TimeProvider.java                     (또는 core 모듈)
-│   └── PropertyFactory.java
-├── manager/
-│   └── read/
-│       ├── PartnerReadManager.java
-│       ├── PropertyTypeReadManager.java
-│       └── PropertyReadManager.java
-├── facade/
-│   └── PropertyPersistenceFacade.java
-└── service/
-    └── RegisterPropertyService.java
+├── property/                              ← Property BC
+│   ├── port/
+│   │   ├── in/
+│   │   │   ├── RegisterPropertyUseCase.java
+│   │   │   ├── AddPropertyPhotosUseCase.java
+│   │   │   ├── SetPropertyAmenitiesUseCase.java
+│   │   │   └── SetPropertyAttributesUseCase.java
+│   │   └── out/
+│   │       ├── PropertyCommandPort.java
+│   │       ├── PropertyQueryPort.java
+│   │       ├── PropertyAmenityCommandPort.java
+│   │       ├── PropertyPhotoCommandPort.java
+│   │       └── PropertyAttributeValueCommandPort.java
+│   ├── dto/
+│   │   └── command/
+│   │       ├── RegisterPropertyCommand.java
+│   │       ├── AddPropertyPhotosCommand.java
+│   │       ├── SetPropertyAmenitiesCommand.java
+│   │       └── SetPropertyAttributesCommand.java
+│   ├── factory/
+│   │   └── PropertyFactory.java
+│   ├── validator/
+│   │   ├── PropertyRegistrationValidator.java    (신규 — APP-VAL-002)
+│   │   └── PropertyExistenceValidator.java       (신규 — APP-VAL-002)
+│   ├── manager/                           ← 플랫 (command/read 나누지 않음)
+│   │   ├── PropertyCommandManager.java
+│   │   ├── PropertyReadManager.java
+│   │   ├── PropertyPhotoCommandManager.java
+│   │   ├── PropertyAmenityCommandManager.java
+│   │   └── PropertyAttributeValueCommandManager.java
+│   └── service/
+│       ├── RegisterPropertyService.java
+│       ├── AddPropertyPhotosService.java
+│       ├── SetPropertyAmenitiesService.java
+│       └── SetPropertyAttributesService.java
+├── partner/                               ← Partner BC
+│   ├── port/out/
+│   │   └── PartnerQueryPort.java
+│   └── manager/
+│       └── PartnerReadManager.java
+├── propertytype/                          ← PropertyType BC
+│   ├── port/out/
+│   │   └── PropertyTypeQueryPort.java
+│   └── manager/
+│       └── PropertyTypeReadManager.java
+└── common/                                ← 공통
+    └── factory/
+        └── TimeProvider.java              (또는 core 모듈)
 ```
 
-총 14개 파일.
+총 25개 파일 (Validator 2개 추가).
 
 ---
 
@@ -670,7 +1058,7 @@ application/src/main/java/com/ryuqq/otatoy/application/
 | `PropertyAttributeValueJpaEntity` | `SoftDeletableEntity` | property_attribute_value 테이블 | PER-ENT-001, 004, 005 |
 | `PartnerJpaEntity` | `SoftDeletableEntity` | partner 테이블 | PER-ENT-001, 004, 005 |
 | `PartnerMemberJpaEntity` | `SoftDeletableEntity` | partner_member 테이블 | PER-ENT-001, 004, 005 |
-| `PropertyTypeJpaEntity` | `BaseAuditEntity` | (기존 DDL V202604041000 brand_and_property_type) | PER-ENT-001, 004, 005 |
+| `PropertyTypeJpaEntity` | `BaseAuditEntity` | property_type 테이블 | PER-ENT-001, 004, 005 |
 
 **PropertyJpaEntity 구현 예시:**
 
@@ -791,7 +1179,6 @@ public class PropertyAmenityJpaEntity extends SoftDeletableEntity {
             additionalPrice, sortOrder, createdAt, updatedAt, deletedAt);
     }
 
-    // getter ...
     public Long getId() { return id; }
     public Long getPropertyId() { return propertyId; }
     public String getAmenityType() { return amenityType; }
@@ -956,6 +1343,22 @@ public class PropertyQueryDslRepository {
             .fetchOne();
         return Optional.ofNullable(result);
     }
+
+    /**
+     * 존재 여부만 확인한다. 엔티티 전체를 로딩하지 않고 count 쿼리로 처리.
+     * ReadManager의 verifyExists() 내부에서 사용한다 (APP-VAL-002).
+     */
+    public boolean existsById(Long id) {
+        Integer result = queryFactory
+            .selectOne()
+            .from(propertyJpaEntity)
+            .where(
+                propertyJpaEntity.id.eq(id),
+                propertyJpaEntity.deleted.isFalse()
+            )
+            .fetchFirst();
+        return result != null;
+    }
 }
 ```
 
@@ -1050,6 +1453,11 @@ public class PropertyQueryAdapter implements PropertyQueryPort {
         return queryDslRepository.findById(id.value())
             .map(mapper::toDomain);
     }
+
+    @Override
+    public boolean existsById(PropertyId id) {
+        return queryDslRepository.existsById(id.value());
+    }
 }
 ```
 
@@ -1058,7 +1466,7 @@ public class PropertyQueryAdapter implements PropertyQueryPort {
 이미 존재하는 마이그레이션 파일:
 - `V202604041001__create_property_tables.sql` -- property, property_attribute_value, property_amenity, property_photo
 - `V202604041007__create_partner_tables.sql` -- partner, partner_member
-- `V202604041000__create_brand_and_property_type_tables.sql` -- brand, property_type (확인 필요)
+- `V202604041000__create_brand_and_property_type_tables.sql` -- brand, property_type
 
 **추가 DDL 불필요** -- 이미 모든 테이블이 Flyway로 정의되어 있다. Entity 필드가 DDL과 일치하는지 반드시 검증해야 한다.
 
@@ -1134,6 +1542,22 @@ adapter-out/persistence-mysql/src/main/java/com/ryuqq/otatoy/persistence/
 
 ## STORY-105: 숙소 등록 REST API
 
+### 수용기준 재정의
+
+기존 수용기준 AC-4(RegisterPropertyApiRequest에 편의시설/사진/속성값 리스트 포함)는 폐기한다. API도 단계별 독립 엔드포인트로 분리한다.
+
+**변경된 수용기준**:
+- AC-1: POST /api/v1/extranet/properties 요청 시 201 응답 + ApiResponse 래핑 + data에 propertyId 반환
+- AC-2: 필수 필드(name, propertyTypeId, partnerId, address) 누락 시 400 응답
+- AC-3: ExtranetPropertyController는 UseCase 인터페이스만 의존
+- AC-4: RegisterPropertyApiRequest는 record로 선언. **기본정보 필드만 포함**
+- AC-5: 사진/편의시설/속성값은 각각 독립 엔드포인트로 분리
+- AC-6: POST /api/v1/extranet/properties/{id}/photos (사진 업로드)
+- AC-7: POST /api/v1/extranet/properties/{id}/amenities (편의시설 설정)
+- AC-8: POST /api/v1/extranet/properties/{id}/attributes (속성값 설정)
+- AC-9: PropertyApiMapper.toCommand()로 Request -> Command 변환
+- AC-10: DomainException 발생 시 GlobalExceptionHandler가 적절한 HTTP 상태 코드 반환
+
 ### 구현 순서
 
 ```
@@ -1148,11 +1572,6 @@ adapter-out/persistence-mysql/src/main/java/com/ryuqq/otatoy/persistence/
 ### 1단계: 공통 응답 포맷
 
 패키지: `adapter-in/rest-api/src/main/java/com/ryuqq/otatoy/api/common/`
-
-| 클래스명 | 역할 | 적용 컨벤션 |
-|---------|------|-----------|
-| `ApiResponse` | 공통 응답 래퍼 (success/data/error) | API-CTR-002 |
-| `SliceResponse` | 페이지네이션 래퍼 | API-CTR-003 |
 
 ```java
 // ApiResponse.java
@@ -1198,11 +1617,6 @@ public record SliceResponse<T>(
 
 패키지: `adapter-in/rest-api/src/main/java/com/ryuqq/otatoy/api/common/`
 
-| 클래스명 | 역할 | 적용 컨벤션 |
-|---------|------|-----------|
-| `ErrorMapper` | DomainException -> ErrorDetail 변환 | API-ERR-001 |
-| `GlobalExceptionHandler` | 전역 예외 처리 | API-ERR-001 |
-
 ```java
 // ErrorMapper.java
 @Component
@@ -1224,11 +1638,14 @@ public class ErrorMapper {
 
 // GlobalExceptionHandler.java
 @RestControllerAdvice
-@RequiredArgsConstructor
 public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
     private final ErrorMapper errorMapper;
+
+    public GlobalExceptionHandler(ErrorMapper errorMapper) {
+        this.errorMapper = errorMapper;
+    }
 
     @ExceptionHandler(DomainException.class)
     public ResponseEntity<ApiResponse<Void>> handleDomainException(DomainException e) {
@@ -1261,10 +1678,8 @@ public class GlobalExceptionHandler {
     }
 
     private HttpStatus resolveHttpStatus(DomainException e) {
-        // ErrorCode에 getHttpStatus()가 있으면 사용, 아니면 기본 매핑
         String code = e.getErrorCode().getCode();
-        if (code.contains("NOT_FOUND") || code.endsWith("-001")) {
-            // PartnerErrorCode.PARTNER_NOT_FOUND("PTN-001"), PropertyNotFoundException 등
+        if (code.contains("NOT_FOUND")) {
             return HttpStatus.NOT_FOUND;
         }
         return HttpStatus.BAD_REQUEST;
@@ -1272,30 +1687,17 @@ public class GlobalExceptionHandler {
 }
 ```
 
-**HTTP 상태 매핑 전략 결정 필요:**
-- **옵션 A (권장)**: ErrorCode 인터페이스에 `int getHttpStatus()` 추가. 각 ErrorCode enum에서 직접 선언.
-- **옵션 B**: GlobalExceptionHandler에서 ErrorCode -> HttpStatus 매핑 테이블 관리.
-- 현재 ErrorCode에 getHttpStatus()가 없으므로, 초기에는 옵션 B로 시작하고 이후 옵션 A로 리팩토링하는 것이 현실적이다.
-
 ### 3단계: Request/Response DTO
 
 패키지: `adapter-in/rest-api/src/main/java/com/ryuqq/otatoy/api/extranet/dto/`
 
-| 클래스명 | 역할 | 적용 컨벤션 |
-|---------|------|-----------|
-| `RegisterPropertyApiRequest` | 숙소 등록 요청 | API-DTO-001, API-DTO-002 |
-| `PropertyApiResponse` | 숙소 응답 | API-DTO-001 |
-
 ```java
-// RegisterPropertyApiRequest.java
+// RegisterPropertyApiRequest.java — 기본정보만 포함
 package com.ryuqq.otatoy.api.extranet.dto;
 
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-
-import java.util.List;
 
 public record RegisterPropertyApiRequest(
 
@@ -1321,16 +1723,48 @@ public record RegisterPropertyApiRequest(
 
     String neighborhood,         // nullable
     String region,               // nullable
-    String promotionText,        // nullable
+    String promotionText         // nullable
+) {}
 
-    @Valid
-    List<AmenityApiRequest> amenities,
+// AddPropertyPhotosApiRequest.java — 사진 독립 업로드
+package com.ryuqq.otatoy.api.extranet.dto;
 
-    @Valid
-    List<PhotoApiRequest> photos,
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 
+import java.util.List;
+
+public record AddPropertyPhotosApiRequest(
+
+    @NotEmpty(message = "사진은 최소 1개 이상 필요합니다")
     @Valid
-    List<AttributeValueApiRequest> attributeValues
+    List<PhotoApiRequest> photos
+) {
+    public record PhotoApiRequest(
+        @NotBlank(message = "사진 유형은 필수입니다")
+        String photoType,
+        @NotBlank(message = "원본 URL은 필수입니다")
+        String originUrl,
+        String cdnUrl,
+        int sortOrder
+    ) {}
+}
+
+// SetPropertyAmenitiesApiRequest.java — 편의시설 독립 설정
+package com.ryuqq.otatoy.api.extranet.dto;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+
+import java.util.List;
+
+public record SetPropertyAmenitiesApiRequest(
+
+    @NotEmpty(message = "편의시설은 최소 1개 이상 필요합니다")
+    @Valid
+    List<AmenityApiRequest> amenities
 ) {
     public record AmenityApiRequest(
         @NotBlank(message = "편의시설 유형은 필수입니다")
@@ -1340,16 +1774,24 @@ public record RegisterPropertyApiRequest(
         int additionalPrice,
         int sortOrder
     ) {}
+}
 
-    public record PhotoApiRequest(
-        @NotBlank(message = "사진 유형은 필수입니다")
-        String photoType,
-        @NotBlank(message = "원본 URL은 필수입니다")
-        String originUrl,
-        String cdnUrl,
-        int sortOrder
-    ) {}
+// SetPropertyAttributesApiRequest.java — 속성값 독립 설정
+package com.ryuqq.otatoy.api.extranet.dto;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+
+import java.util.List;
+
+public record SetPropertyAttributesApiRequest(
+
+    @NotEmpty(message = "속성값은 최소 1개 이상 필요합니다")
+    @Valid
+    List<AttributeValueApiRequest> attributeValues
+) {
     public record AttributeValueApiRequest(
         @NotNull(message = "속성 ID는 필수입니다")
         Long propertyTypeAttributeId,
@@ -1359,20 +1801,22 @@ public record RegisterPropertyApiRequest(
 }
 ```
 
+**변경 포인트**: 이전에는 `RegisterPropertyApiRequest` 하나에 편의시설/사진/속성값이 중첩되어 있었다. 이제 각각 독립 Request로 분리하고, propertyId는 URL path variable로 전달받는다.
+
 ### 4단계: ApiMapper
 
 패키지: `adapter-in/rest-api/src/main/java/com/ryuqq/otatoy/api/extranet/mapper/`
 
-| 클래스명 | 역할 | 적용 컨벤션 |
-|---------|------|-----------|
-| `PropertyApiMapper` | ApiRequest -> Command 변환 | API-DTO-001 |
-
 ```java
-// PropertyApiMapper.java
+// PropertyApiMapper.java — 원시 타입 -> Domain VO 변환 (APP-DTO-001)
 package com.ryuqq.otatoy.api.extranet.mapper;
 
-import com.ryuqq.otatoy.api.extranet.dto.RegisterPropertyApiRequest;
-import com.ryuqq.otatoy.application.dto.command.RegisterPropertyCommand;
+import com.ryuqq.otatoy.api.extranet.dto.*;
+import com.ryuqq.otatoy.application.property.dto.command.*;
+import com.ryuqq.otatoy.domain.brand.BrandId;
+import com.ryuqq.otatoy.domain.partner.PartnerId;
+import com.ryuqq.otatoy.domain.property.*;
+import com.ryuqq.otatoy.domain.propertytype.PropertyTypeId;
 
 import java.util.List;
 
@@ -1381,44 +1825,44 @@ public class PropertyApiMapper {
     private PropertyApiMapper() {} // 인스턴스 생성 방지
 
     public static RegisterPropertyCommand toCommand(RegisterPropertyApiRequest request) {
-        List<RegisterPropertyCommand.AmenityItem> amenities = request.amenities() != null
-            ? request.amenities().stream()
-                .map(a -> new RegisterPropertyCommand.AmenityItem(
-                    a.amenityType(), a.name(), a.additionalPrice(), a.sortOrder()))
-                .toList()
-            : List.of();
-
-        List<RegisterPropertyCommand.PhotoItem> photos = request.photos() != null
-            ? request.photos().stream()
-                .map(p -> new RegisterPropertyCommand.PhotoItem(
-                    p.photoType(), p.originUrl(), p.cdnUrl(), p.sortOrder()))
-                .toList()
-            : List.of();
-
-        List<RegisterPropertyCommand.AttributeValueItem> attributeValues =
-            request.attributeValues() != null
-                ? request.attributeValues().stream()
-                    .map(av -> new RegisterPropertyCommand.AttributeValueItem(
-                        av.propertyTypeAttributeId(), av.value()))
-                    .toList()
-                : List.of();
-
         return RegisterPropertyCommand.of(
-            request.partnerId(),
-            request.brandId(),
-            request.propertyTypeId(),
-            request.name(),
-            request.description(),
-            request.address(),
-            request.latitude(),
-            request.longitude(),
-            request.neighborhood(),
-            request.region(),
-            request.promotionText(),
-            amenities,
-            photos,
-            attributeValues
+            PartnerId.of(request.partnerId()),
+            request.brandId() != null ? BrandId.of(request.brandId()) : null,
+            PropertyTypeId.of(request.propertyTypeId()),
+            PropertyName.of(request.name()),
+            request.description() != null ? PropertyDescription.of(request.description()) : null,
+            Location.of(request.address(), request.latitude(), request.longitude(),
+                        request.neighborhood(), request.region()),
+            request.promotionText() != null ? PromotionText.of(request.promotionText()) : null
         );
+    }
+
+    public static AddPropertyPhotosCommand toCommand(Long propertyId,
+                                                       AddPropertyPhotosApiRequest request) {
+        List<AddPropertyPhotosCommand.PhotoItem> photos = request.photos().stream()
+            .map(p -> new AddPropertyPhotosCommand.PhotoItem(
+                p.photoType(), p.originUrl(), p.cdnUrl(), p.sortOrder()))
+            .toList();
+        return AddPropertyPhotosCommand.of(PropertyId.of(propertyId), photos);
+    }
+
+    public static SetPropertyAmenitiesCommand toCommand(Long propertyId,
+                                                          SetPropertyAmenitiesApiRequest request) {
+        List<SetPropertyAmenitiesCommand.AmenityItem> amenities = request.amenities().stream()
+            .map(a -> new SetPropertyAmenitiesCommand.AmenityItem(
+                a.amenityType(), a.name(), a.additionalPrice(), a.sortOrder()))
+            .toList();
+        return SetPropertyAmenitiesCommand.of(PropertyId.of(propertyId), amenities);
+    }
+
+    public static SetPropertyAttributesCommand toCommand(Long propertyId,
+                                                            SetPropertyAttributesApiRequest request) {
+        List<SetPropertyAttributesCommand.AttributeValueItem> attributeValues =
+            request.attributeValues().stream()
+                .map(av -> new SetPropertyAttributesCommand.AttributeValueItem(
+                    av.propertyTypeAttributeId(), av.value()))
+                .toList();
+        return SetPropertyAttributesCommand.of(PropertyId.of(propertyId), attributeValues);
     }
 }
 ```
@@ -1427,19 +1871,14 @@ public class PropertyApiMapper {
 
 패키지: `adapter-in/rest-api/src/main/java/com/ryuqq/otatoy/api/extranet/`
 
-| 클래스명 | 의존성 | 적용 컨벤션 |
-|---------|-------|-----------|
-| `ExtranetPropertyController` | `RegisterPropertyUseCase` | API-CTR-001, API-CTR-002, API-DOC-001 |
-
 ```java
 // ExtranetPropertyController.java
 package com.ryuqq.otatoy.api.extranet;
 
 import com.ryuqq.otatoy.api.common.ApiResponse;
-import com.ryuqq.otatoy.api.extranet.dto.RegisterPropertyApiRequest;
+import com.ryuqq.otatoy.api.extranet.dto.*;
 import com.ryuqq.otatoy.api.extranet.mapper.PropertyApiMapper;
-import com.ryuqq.otatoy.application.dto.command.RegisterPropertyCommand;
-import com.ryuqq.otatoy.application.port.in.RegisterPropertyUseCase;
+import com.ryuqq.otatoy.application.property.port.in.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -1454,12 +1893,21 @@ import org.springframework.web.bind.annotation.*;
 public class ExtranetPropertyController {
 
     private final RegisterPropertyUseCase registerPropertyUseCase;
+    private final AddPropertyPhotosUseCase addPropertyPhotosUseCase;
+    private final SetPropertyAmenitiesUseCase setPropertyAmenitiesUseCase;
+    private final SetPropertyAttributesUseCase setPropertyAttributesUseCase;
 
-    public ExtranetPropertyController(RegisterPropertyUseCase registerPropertyUseCase) {
+    public ExtranetPropertyController(RegisterPropertyUseCase registerPropertyUseCase,
+                                       AddPropertyPhotosUseCase addPropertyPhotosUseCase,
+                                       SetPropertyAmenitiesUseCase setPropertyAmenitiesUseCase,
+                                       SetPropertyAttributesUseCase setPropertyAttributesUseCase) {
         this.registerPropertyUseCase = registerPropertyUseCase;
+        this.addPropertyPhotosUseCase = addPropertyPhotosUseCase;
+        this.setPropertyAmenitiesUseCase = setPropertyAmenitiesUseCase;
+        this.setPropertyAttributesUseCase = setPropertyAttributesUseCase;
     }
 
-    @Operation(summary = "숙소 등록", description = "파트너가 새로운 숙소를 등록합니다")
+    @Operation(summary = "숙소 기본정보 등록", description = "파트너가 숙소 기본정보를 등록합니다")
     @ApiResponses({
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
             responseCode = "201", description = "등록 성공"),
@@ -1472,15 +1920,65 @@ public class ExtranetPropertyController {
     public ResponseEntity<ApiResponse<Long>> registerProperty(
             @Valid @RequestBody RegisterPropertyApiRequest request) {
 
-        // 1. Request -> Command 변환 (ApiMapper)
-        RegisterPropertyCommand command = PropertyApiMapper.toCommand(request);
+        Long propertyId = registerPropertyUseCase.execute(
+            PropertyApiMapper.toCommand(request));
 
-        // 2. UseCase 호출
-        Long propertyId = registerPropertyUseCase.execute(command);
-
-        // 3. 201 응답
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(ApiResponse.success(propertyId));
+    }
+
+    @Operation(summary = "숙소 사진 업로드", description = "등록된 숙소에 사진을 추가합니다")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200", description = "업로드 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "404", description = "숙소를 찾을 수 없음")
+    })
+    @PostMapping("/{propertyId}/photos")
+    public ResponseEntity<ApiResponse<Void>> addPhotos(
+            @PathVariable Long propertyId,
+            @Valid @RequestBody AddPropertyPhotosApiRequest request) {
+
+        addPropertyPhotosUseCase.execute(
+            PropertyApiMapper.toCommand(propertyId, request));
+
+        return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
+    @Operation(summary = "숙소 편의시설 설정", description = "등록된 숙소의 편의시설을 설정합니다")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200", description = "설정 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "404", description = "숙소를 찾을 수 없음")
+    })
+    @PostMapping("/{propertyId}/amenities")
+    public ResponseEntity<ApiResponse<Void>> setAmenities(
+            @PathVariable Long propertyId,
+            @Valid @RequestBody SetPropertyAmenitiesApiRequest request) {
+
+        setPropertyAmenitiesUseCase.execute(
+            PropertyApiMapper.toCommand(propertyId, request));
+
+        return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
+    @Operation(summary = "숙소 속성값 설정", description = "등록된 숙소의 속성값을 설정합니다")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200", description = "설정 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "404", description = "숙소를 찾을 수 없음")
+    })
+    @PostMapping("/{propertyId}/attributes")
+    public ResponseEntity<ApiResponse<Void>> setAttributes(
+            @PathVariable Long propertyId,
+            @Valid @RequestBody SetPropertyAttributesApiRequest request) {
+
+        setPropertyAttributesUseCase.execute(
+            PropertyApiMapper.toCommand(propertyId, request));
+
+        return ResponseEntity.ok(ApiResponse.success(null));
     }
 }
 ```
@@ -1488,9 +1986,8 @@ public class ExtranetPropertyController {
 **금지 사항 확인**:
 - @Transactional 없음 (API-CTR-001)
 - 비즈니스 로직 없음 (API-CTR-001)
-- UseCase 인터페이스만 의존 — 구체 Service 주입 금지 (API-CTR-001)
-- 인라인 변환 로직 없음 — ApiMapper 사용 (API-DTO-001)
-- @DeleteMapping 없음 (API-CTR-001)
+- UseCase 인터페이스만 의존 (API-CTR-001)
+- 인라인 변환 로직 없음 -- ApiMapper 사용 (API-DTO-001)
 
 ### 6단계: Swagger/SpringDoc 설정
 
@@ -1512,14 +2009,13 @@ springdoc:
 
 | 규칙 코드 | 규칙 | 확인 사항 |
 |-----------|------|---------|
-| API-CTR-001 | UseCase만 의존 | RegisterPropertyUseCase만 주입 |
+| API-CTR-001 | UseCase만 의존 | 4개 UseCase 인터페이스만 주입 |
 | API-CTR-001 | @Transactional 금지 | Controller에 없음 |
 | API-CTR-001 | @DeleteMapping 금지 | 사용 안 함 |
-| API-CTR-002 | 201 응답 + ApiResponse 래핑 | POST -> CREATED |
-| API-CTR-003 | 페이지네이션은 SliceResponse | (Phase 4에서 적용) |
-| API-DTO-001 | DTO는 record | RegisterPropertyApiRequest |
-| API-DTO-001 | ApiMapper로 변환 | PropertyApiMapper.toCommand() |
-| API-DTO-002 | Jakarta Validation | @NotNull, @NotBlank, @Size |
+| API-CTR-002 | 201 응답 + ApiResponse 래핑 | POST (기본정보 등록) -> CREATED |
+| API-DTO-001 | DTO는 record | 4개 ApiRequest 모두 record |
+| API-DTO-001 | ApiMapper로 변환 | PropertyApiMapper.toCommand() 4개 오버로드 |
+| API-DTO-002 | Jakarta Validation | @NotNull, @NotBlank, @Size, @NotEmpty |
 | API-ERR-001 | GlobalExceptionHandler | DomainException 일괄 처리 |
 | API-ERR-001 | ErrorMapper | userMessage + debugMessage 분리 |
 | API-DOC-001 | Swagger 어노테이션 | @Tag, @Operation, @ApiResponses |
@@ -1537,12 +2033,15 @@ adapter-in/rest-api/src/main/java/com/ryuqq/otatoy/api/
 └── extranet/
     ├── ExtranetPropertyController.java              (신규)
     ├── dto/
-    │   └── RegisterPropertyApiRequest.java          (신규)
+    │   ├── RegisterPropertyApiRequest.java          (신규)
+    │   ├── AddPropertyPhotosApiRequest.java         (신규)
+    │   ├── SetPropertyAmenitiesApiRequest.java      (신규)
+    │   └── SetPropertyAttributesApiRequest.java     (신규)
     └── mapper/
         └── PropertyApiMapper.java                   (신규)
 ```
 
-총 7개 파일.
+총 10개 파일.
 
 ---
 
@@ -1550,10 +2049,24 @@ adapter-in/rest-api/src/main/java/com/ryuqq/otatoy/api/
 
 | Story | 신규 파일 수 | 수정 파일 수 | 레이어 |
 |-------|:----------:|:----------:|-------|
-| STORY-103 | 14 | 0 | Application |
+| STORY-103 | 25 | 0 | Application (Validator 2개 추가) |
 | STORY-104 | 23 | 1 (JpaConfig) | Persistence |
-| STORY-105 | 7 | 0 | API |
-| **합계** | **44** | **1** | |
+| STORY-105 | 10 | 0 | API |
+| **합계** | **58** | **1** | |
+
+---
+
+## API 엔드포인트 요약
+
+| 메서드 | 엔드포인트 | UseCase | 설명 |
+|--------|----------|---------|------|
+| POST | /api/v1/extranet/properties | RegisterPropertyUseCase | 숙소 기본정보 등록 |
+| POST | /api/v1/extranet/properties/{id}/photos | AddPropertyPhotosUseCase | 사진 업로드 |
+| POST | /api/v1/extranet/properties/{id}/amenities | SetPropertyAmenitiesUseCase | 편의시설 설정 |
+| POST | /api/v1/extranet/properties/{id}/attributes | SetPropertyAttributesUseCase | 속성값 설정 |
+| POST | /api/v1/extranet/properties/{id}/rooms | RegisterRoomTypeUseCase | 객실 등록 (STORY-106) |
+
+실제 OTA 플랫폼과 동일하게, 파트너는 기본정보를 먼저 등록하여 PropertyId를 받은 뒤, 사진/편의시설/속성값/객실을 순서 상관없이 독립적으로 추가할 수 있다. 중간 저장이 자연스럽게 지원되며, 각 단계를 개별적으로 수정할 수 있다.
 
 ---
 
@@ -1580,27 +2093,50 @@ adapter-in/rest-api/src/main/java/com/ryuqq/otatoy/api/
 
 ## 트레이드오프 기록
 
-### 하위 엔티티 저장 전략: PersistenceFacade에서 재생성 vs ID 후세팅
+### UseCase 분리 vs 통합 (변경됨)
 
-**선택**: PersistenceFacade에서 PropertyId를 포함해 하위 엔티티를 재생성
+**선택**: UseCase를 독립 생명주기 단위로 분리 (RegisterProperty, AddPhotos, SetAmenities, SetAttributes)
 
-**대안**: 하위 엔티티에 `setPropertyId(PropertyId)` mutable 메서드 추가
-- 장점: 객체 재생성 비용 없음
-- 단점: 도메인 객체의 불변성이 깨짐 (컨벤션 위반)
+**대안 (이전 방식)**: RegisterPropertyUseCase 하나에 기본정보 + 편의시설 + 사진 + 속성값을 모두 포함
+- 장점: API 호출 1회로 모든 데이터 저장
+- 단점: 실제 OTA 등록 플로우와 불일치, 사진 실패가 기본정보 저장을 롤백, Command가 비대해짐, PersistenceFacade를 단일 Aggregate 저장에도 사용하게 됨
 
-**결정 이유**: 도메인 객체의 불변성을 유지하는 것이 더 중요하다. 숙소 등록은 빈번한 작업이 아니므로 객체 재생성 비용은 무시할 수 있다.
+**결정 이유**: OTA 리서치(`docs/research/ota-extranet-registration-flow.md`)에 따르면 Booking.com과 야놀자 모두 단계별 별도 저장이다. 사진/편의시설/속성값은 숙소 기본정보와 생명주기가 독립적이다. 각각의 UseCase가 단순해지고, 트랜잭션 범위가 최소화된다.
 
-### 하위 엔티티 Port 분리 vs 통합
+### PersistenceFacade 제거 (변경됨)
 
-**선택**: PropertyAmenityCommandPort, PropertyPhotoCommandPort, PropertyAttributeValueCommandPort 각각 독립
+**선택**: Phase 2에서 PropertyPersistenceFacade를 사용하지 않음
 
-**대안**: PropertySubEntityCommandPort 하나로 통합
-- 장점: Port 개수 감소
-- 단점: 하나의 Port가 여러 도메인 개념을 섞음, CQRS Adapter 분리 시 Adapter도 비대해짐
+**대안 (이전 방식)**: PropertyPersistenceFacade에서 Property + 하위 엔티티를 원자적 저장
+- 장점: 하나의 트랜잭션에서 모든 데이터 일관성 보장
+- 단점: 단일 Aggregate 저장에 PersistenceFacade를 사용하는 것은 APP-FCD-001의 취지와 다름
 
-**결정 이유**: 각 하위 엔티티가 독립 테이블이고, 향후 독립적으로 CRUD가 필요할 수 있다 (예: 사진만 추가/삭제). Port를 분리하면 각 Adapter가 단일 책임을 가진다.
+**결정 이유**: Application 컨벤션(APP-FCD-001)에 따르면 PersistenceFacade는 "여러 Aggregate를 하나의 트랜잭션에서 원자적으로 저장해야 할 때" 사용한다. Property 기본정보는 단일 Aggregate이므로 CommandManager로 충분하다. PersistenceFacade는 STORY-302(예약 생성 + Outbox)처럼 진정한 크로스 Aggregate 원자성이 필요한 시점에 도입한다.
+
+### 하위 엔티티 PropertyId 문제 해소 (변경됨)
+
+**이전 문제**: Factory에서 PropertyId가 null인 채로 하위 엔티티를 생성하고, PersistenceFacade에서 재생성해야 했다.
+
+**현재**: 사진/편의시설/속성값은 Property가 이미 저장된 후에 별도 API로 호출되므로, PropertyId가 항상 존재한다. Factory에서 PropertyId를 파라미터로 받아 정상적으로 도메인 객체를 생성한다. 불변 객체 재생성 비용이 사라졌다.
 
 ### ErrorCode HTTP 상태 매핑
 
 **현재**: GlobalExceptionHandler에서 ErrorCode 문자열 패턴으로 매핑 (임시)
 **향후**: ErrorCode 인터페이스에 `int getHttpStatus()` 추가하여 각 ErrorCode가 자신의 HTTP 상태를 선언 (Phase 1 보완 시)
+
+---
+
+## 백로그 수용기준 갱신 필요 사항
+
+이 가이드의 변경에 따라 `docs/backlog.md`의 다음 수용기준을 갱신해야 한다:
+
+### STORY-103 갱신 대상
+- **AC-8 폐기**: "PropertyPersistenceFacade가 Property + 하위 엔티티를 원자적으로 저장" -> "PropertyCommandManager가 Property 기본정보를 단독 저장"
+- **AC-9 수정**: "편의시설/사진/속성값 리스트를 포함하는 중첩 record" -> "기본정보 필드만 포함하는 record"
+- **AC-10 폐기**: "PropertyFactory가 Property + 일급 컬렉션을 함께 생성" -> "PropertyFactory.createProperty()가 Property만 생성"
+- **AC-11~14 추가**: AddPropertyPhotosUseCase, SetPropertyAmenitiesUseCase, SetPropertyAttributesUseCase, Property 존재 확인 후 실행
+
+### STORY-105 갱신 대상
+- **AC-4 수정**: "RegisterPropertyApiRequest에 편의시설/사진/속성값 포함" -> "기본정보 필드만 포함"
+- **AC-5 수정**: "PropertyApiMapper.toCommand()" -> "PropertyApiMapper.toCommand() 4개 오버로드"
+- **AC-6~8 추가**: 사진/편의시설/속성값 독립 엔드포인트

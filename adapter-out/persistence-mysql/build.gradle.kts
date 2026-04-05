@@ -31,8 +31,15 @@ dependencies {
     // 테스트
     testImplementation(rootProject.libs.spring.boot.starter.test)
     testImplementation(platform(rootProject.libs.testcontainers.bom))
+    testImplementation("org.testcontainers:testcontainers:2.0.3")
     testImplementation(rootProject.libs.bundles.testcontainers)
     testImplementation(testFixtures(project(":domain")))
+}
+
+// Testcontainers Docker 설정 (macOS Docker Desktop 호환)
+tasks.test {
+    environment("DOCKER_HOST", "unix://${System.getProperty("user.home")}/.docker/run/docker.sock")
+    environment("TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE", "/var/run/docker.sock")
 }
 
 // QueryDSL 생성 소스 설정

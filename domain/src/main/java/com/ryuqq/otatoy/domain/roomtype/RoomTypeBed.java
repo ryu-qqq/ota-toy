@@ -36,6 +36,15 @@ public class RoomTypeBed {
         return new RoomTypeBed(RoomTypeBedId.of(null), roomTypeId, bedTypeId, quantity, now, now);
     }
 
+    /**
+     * 부모(RoomType) ID가 아직 할당되지 않은 상태로 생성한다.
+     * PersistenceFacade에서 withRoomTypeId()로 ID를 할당한다.
+     */
+    public static RoomTypeBed forPending(BedTypeId bedTypeId, int quantity, Instant now) {
+        validate(bedTypeId, quantity);
+        return new RoomTypeBed(RoomTypeBedId.of(null), null, bedTypeId, quantity, now, now);
+    }
+
     private static void validate(BedTypeId bedTypeId, int quantity) {
         if (bedTypeId == null || bedTypeId.value() == null) {
             throw new IllegalArgumentException("침대 유형 ID는 필수입니다");
@@ -48,6 +57,14 @@ public class RoomTypeBed {
     public static RoomTypeBed reconstitute(RoomTypeBedId id, RoomTypeId roomTypeId, BedTypeId bedTypeId, int quantity,
                                               Instant createdAt, Instant updatedAt) {
         return new RoomTypeBed(id, roomTypeId, bedTypeId, quantity, createdAt, updatedAt);
+    }
+
+    /**
+     * roomTypeId를 할당한 새 객체를 반환한다.
+     * 원본은 변경되지 않는다 (불변 복사).
+     */
+    public RoomTypeBed withRoomTypeId(RoomTypeId roomTypeId) {
+        return new RoomTypeBed(this.id, roomTypeId, this.bedTypeId, this.quantity, this.createdAt, this.updatedAt);
     }
 
     public RoomTypeBedId id() { return id; }

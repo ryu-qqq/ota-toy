@@ -1,0 +1,55 @@
+= OTA Extranet API 문서
+:doctype: book
+:icons: font
+:source-highlighter: highlightjs
+:toc: left
+:toc-title: 목차
+:toclevels: 3
+:sectlinks:
+:operation-http-request-title: HTTP Request
+:operation-http-response-title: HTTP Response
+
+== 개요
+OTA 숙박 플랫폼의 Extranet(파트너) API 문서입니다.
+
+=== 기본 정보
+|===
+| 항목 | 내용
+| Base URL | `/api/v1/extranet`
+| Content-Type | `application/json`
+| 인증 | (추후 적용)
+|===
+
+== 숙소 관리
+
+=== POST 숙소 기본정보 등록
+include::{snippets}/register-property/http-request.adoc[]
+include::{snippets}/register-property/request-fields.adoc[]
+include::{snippets}/register-property/http-response.adoc[]
+include::{snippets}/register-property/response-fields.adoc[]
+
+=== POST 숙소 사진 추가
+include::{snippets}/extranet-property-add-photos/http-request.adoc[]
+include::{snippets}/extranet-property-add-photos/request-fields.adoc[]
+include::{snippets}/extranet-property-add-photos/http-response.adoc[]
+include::{snippets}/extranet-property-add-photos/response-fields.adoc[]
+
+=== PUT 숙소 편의시설 설정
+include::{snippets}/extranet-property-set-amenities/http-request.adoc[]
+include::{snippets}/extranet-property-set-amenities/request-fields.adoc[]
+include::{snippets}/extranet-property-set-amenities/http-response.adoc[]
+include::{snippets}/extranet-property-set-amenities/response-fields.adoc[]
+
+=== PUT 숙소 속성값 설정
+include::{snippets}/extranet-property-set-attributes/http-request.adoc[]
+include::{snippets}/extranet-property-set-attributes/request-fields.adoc[]
+include::{snippets}/extranet-property-set-attributes/http-response.adoc[]
+include::{snippets}/extranet-property-set-attributes/response-fields.adoc[]
+
+== 객실 관리
+
+=== POST 객실 유형 등록
+include::{snippets}/extranet-roomtype-register/http-request.adoc[]
+include::{snippets}/extranet-roomtype-register/request-fields.adoc[]
+include::{snippets}/extranet-roomtype-register/http-response.adoc[]
+include::{snippets}/extranet-roomtype-register/response-fields.adoc[]

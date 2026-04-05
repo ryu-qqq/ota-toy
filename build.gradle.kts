@@ -35,6 +35,7 @@ subprojects {
         // 공통 테스트 의존성
         testImplementation(platform(rootProject.libs.junit.bom))
         testImplementation(rootProject.libs.bundles.testing.basic)
+        testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     }
 
     tasks.withType<Test> {

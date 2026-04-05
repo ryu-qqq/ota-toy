@@ -155,6 +155,56 @@ public final class PricingFixtures {
         );
     }
 
+    // --- RateRules 겹침 검증용 ---
+
+    /** 겹치지 않는 두 RateRule: 4/1~4/15, 5/1~5/31 */
+    public static List<RateRule> nonOverlappingRateRules() {
+        return List.of(
+                RateRule.forNew(RATE_PLAN_ID,
+                        LocalDate.of(2026, 4, 1), LocalDate.of(2026, 4, 15),
+                        BigDecimal.valueOf(100_000), null, null, null, null, NOW),
+                RateRule.forNew(RATE_PLAN_ID,
+                        LocalDate.of(2026, 5, 1), LocalDate.of(2026, 5, 31),
+                        BigDecimal.valueOf(110_000), null, null, null, null, NOW)
+        );
+    }
+
+    /** 완전히 겹치는 두 RateRule: 둘 다 4/1~4/30 */
+    public static List<RateRule> fullyOverlappingRateRules() {
+        return List.of(
+                RateRule.forNew(RATE_PLAN_ID,
+                        LocalDate.of(2026, 4, 1), LocalDate.of(2026, 4, 30),
+                        BigDecimal.valueOf(100_000), null, null, null, null, NOW),
+                RateRule.forNew(RATE_PLAN_ID,
+                        LocalDate.of(2026, 4, 1), LocalDate.of(2026, 4, 30),
+                        BigDecimal.valueOf(110_000), null, null, null, null, NOW)
+        );
+    }
+
+    /** 부분 겹치는 두 RateRule: 4/1~4/15, 4/10~4/30 */
+    public static List<RateRule> partiallyOverlappingRateRules() {
+        return List.of(
+                RateRule.forNew(RATE_PLAN_ID,
+                        LocalDate.of(2026, 4, 1), LocalDate.of(2026, 4, 15),
+                        BigDecimal.valueOf(100_000), null, null, null, null, NOW),
+                RateRule.forNew(RATE_PLAN_ID,
+                        LocalDate.of(2026, 4, 10), LocalDate.of(2026, 4, 30),
+                        BigDecimal.valueOf(110_000), null, null, null, null, NOW)
+        );
+    }
+
+    /** 인접하지만 겹치지 않는 두 RateRule: 4/1~4/15, 4/16~4/30 */
+    public static List<RateRule> adjacentRateRules() {
+        return List.of(
+                RateRule.forNew(RATE_PLAN_ID,
+                        LocalDate.of(2026, 4, 1), LocalDate.of(2026, 4, 15),
+                        BigDecimal.valueOf(100_000), null, null, null, null, NOW),
+                RateRule.forNew(RATE_PLAN_ID,
+                        LocalDate.of(2026, 4, 16), LocalDate.of(2026, 4, 30),
+                        BigDecimal.valueOf(110_000), null, null, null, null, NOW)
+        );
+    }
+
     // --- Override 리스트 ---
 
     /** resolvePrice 테스트용: 4/5 오버라이드가 포함된 리스트 */
@@ -166,6 +216,25 @@ public final class PricingFixtures {
                 RateOverride.forNew(RATE_RULE_ID, RULE_START_DATE, RULE_END_DATE,
                         LocalDate.of(2026, 4, 15),
                         BigDecimal.valueOf(90_000), "비수기 할인", NOW)
+        );
+    }
+
+    // --- RateOverrides 중복 날짜 검증용 ---
+
+    /** 날짜가 겹치지 않는 오버라이드 리스트: 4/5, 4/15 */
+    public static List<RateOverride> nonDuplicateOverrides() {
+        return overrideListWithApril5();
+    }
+
+    /** 같은 날짜(4/5)가 중복된 오버라이드 리스트 */
+    public static List<RateOverride> duplicateDateOverrides() {
+        return List.of(
+                RateOverride.forNew(RATE_RULE_ID, RULE_START_DATE, RULE_END_DATE,
+                        LocalDate.of(2026, 4, 5),
+                        BigDecimal.valueOf(170_000), "공휴일", NOW),
+                RateOverride.forNew(RATE_RULE_ID, RULE_START_DATE, RULE_END_DATE,
+                        LocalDate.of(2026, 4, 5),
+                        BigDecimal.valueOf(150_000), "프로모션", NOW)
         );
     }
 }

@@ -99,22 +99,22 @@ public class RoomType {
 
     private static void validateOccupancy(int baseOccupancy, int maxOccupancy) {
         if (baseOccupancy <= 0) {
-            throw new IllegalArgumentException("기본 인원은 1명 이상이어야 합니다");
+            throw new InvalidRoomTypeException("기본 인원은 1명 이상이어야 합니다");
         }
         if (maxOccupancy < baseOccupancy) {
-            throw new IllegalArgumentException("최대 인원은 기본 인원 이상이어야 합니다");
+            throw new InvalidRoomTypeException("최대 인원은 기본 인원 이상이어야 합니다");
         }
     }
 
     private static void validateInventory(int baseInventory) {
         if (baseInventory < 0) {
-            throw new IllegalArgumentException("기본 재고는 0 이상이어야 합니다");
+            throw new InvalidRoomTypeException("기본 재고는 0 이상이어야 합니다");
         }
     }
 
     private static void validateArea(BigDecimal areaSqm) {
         if (areaSqm != null && areaSqm.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("객실 면적은 0보다 커야 합니다");
+            throw new InvalidRoomTypeException("객실 면적은 0보다 커야 합니다");
         }
     }
 

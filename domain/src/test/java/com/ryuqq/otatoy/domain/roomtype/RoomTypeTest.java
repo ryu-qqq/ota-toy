@@ -1,6 +1,7 @@
 package com.ryuqq.otatoy.domain.roomtype;
 
 import com.ryuqq.otatoy.domain.property.PropertyId;
+import com.ryuqq.otatoy.domain.roomtype.InvalidRoomTypeException;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -61,7 +62,7 @@ class RoomTypeTest {
                     LocalTime.of(15, 0), LocalTime.of(11, 0),
                     NOW
             ))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(InvalidRoomTypeException.class)
                     .hasMessageContaining("최대 인원은 기본 인원 이상이어야 합니다");
         }
 
@@ -75,7 +76,7 @@ class RoomTypeTest {
                     LocalTime.of(15, 0), LocalTime.of(11, 0),
                     NOW
             ))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(InvalidRoomTypeException.class)
                     .hasMessageContaining("객실 면적은 0보다 커야 합니다");
         }
 
@@ -89,7 +90,7 @@ class RoomTypeTest {
                     LocalTime.of(15, 0), LocalTime.of(11, 0),
                     NOW
             ))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(InvalidRoomTypeException.class)
                     .hasMessageContaining("객실 면적은 0보다 커야 합니다");
         }
 
@@ -119,7 +120,7 @@ class RoomTypeTest {
                     LocalTime.of(15, 0), LocalTime.of(11, 0),
                     NOW
             ))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(InvalidRoomTypeException.class)
                     .hasMessageContaining("기본 재고는 0 이상이어야 합니다");
         }
 

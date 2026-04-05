@@ -4,6 +4,9 @@ import com.ryuqq.otatoy.domain.accommodation.AmenityName;
 import com.ryuqq.otatoy.domain.accommodation.AmenityType;
 
 import com.ryuqq.otatoy.domain.common.vo.Money;
+
+import java.time.Instant;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -16,6 +19,7 @@ class PropertyAmenityTest {
     private static final PropertyId PROPERTY_ID = PropertyId.of(1L);
     private static final AmenityName POOL_NAME = AmenityName.of("수영장");
     private static final AmenityName WIFI_NAME = AmenityName.of("와이파이");
+    private static final Instant NOW = Instant.now();
 
     @Nested
     @DisplayName("생성 검증")
@@ -25,7 +29,7 @@ class PropertyAmenityTest {
         @DisplayName("PropertyAmenity 정상 생성")
         void shouldCreatePropertyAmenitySuccessfully() {
             // when
-            PropertyAmenity amenity = PropertyAmenity.forNew(PROPERTY_ID, AmenityType.POOL, POOL_NAME, Money.of(5000), 1);
+            PropertyAmenity amenity = PropertyAmenity.forNew(PROPERTY_ID, AmenityType.POOL, POOL_NAME, Money.of(5000), 1, NOW);
 
             // then
             assertThat(amenity).isNotNull();
@@ -39,7 +43,7 @@ class PropertyAmenityTest {
         @Test
         @DisplayName("amenityType이 null이면 생성 실패")
         void shouldFailWhenAmenityTypeIsNull() {
-            assertThatThrownBy(() -> PropertyAmenity.forNew(PROPERTY_ID, null, POOL_NAME, Money.of(0), 1))
+            assertThatThrownBy(() -> PropertyAmenity.forNew(PROPERTY_ID, null, POOL_NAME, Money.of(0), 1, NOW))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("편의시설 유형은 필수");
         }
@@ -69,7 +73,7 @@ class PropertyAmenityTest {
         @DisplayName("isFree() — additionalPrice가 null이면 무료")
         void shouldBeFreeWhenAdditionalPriceIsNull() {
             // given
-            PropertyAmenity amenity = PropertyAmenity.forNew(PROPERTY_ID, AmenityType.WIFI, WIFI_NAME, null, 1);
+            PropertyAmenity amenity = PropertyAmenity.forNew(PROPERTY_ID, AmenityType.WIFI, WIFI_NAME, null, 1, NOW);
 
             // when & then
             assertThat(amenity.isFree()).isTrue();
@@ -79,7 +83,7 @@ class PropertyAmenityTest {
         @DisplayName("isFree() — additionalPrice가 0이면 무료")
         void shouldBeFreeWhenAdditionalPriceIsZero() {
             // given
-            PropertyAmenity amenity = PropertyAmenity.forNew(PROPERTY_ID, AmenityType.WIFI, WIFI_NAME, Money.of(0), 1);
+            PropertyAmenity amenity = PropertyAmenity.forNew(PROPERTY_ID, AmenityType.WIFI, WIFI_NAME, Money.of(0), 1, NOW);
 
             // when & then
             assertThat(amenity.isFree()).isTrue();
@@ -89,7 +93,7 @@ class PropertyAmenityTest {
         @DisplayName("isFree() — additionalPrice가 1000이면 유료")
         void shouldNotBeFreeWhenAdditionalPriceIsPositive() {
             // given
-            PropertyAmenity amenity = PropertyAmenity.forNew(PROPERTY_ID, AmenityType.POOL, POOL_NAME, Money.of(1000), 1);
+            PropertyAmenity amenity = PropertyAmenity.forNew(PROPERTY_ID, AmenityType.POOL, POOL_NAME, Money.of(1000), 1, NOW);
 
             // when & then
             assertThat(amenity.isFree()).isFalse();

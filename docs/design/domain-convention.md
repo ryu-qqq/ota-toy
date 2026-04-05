@@ -234,31 +234,58 @@ public record PropertySliceCriteria(
 
 도메인별 ErrorCode enum은 공통 ErrorCode 인터페이스를 구현한다.
 **ErrorCode에 HTTP 상태코드를 포함하지 않는다** — HTTP는 API 레이어의 관심사이다.
+대신 **ErrorCategory**를 통해 에러의 의미론적 분류를 제공한다. API 레이어는 이 카테고리를 기반으로 HTTP 상태코드를 결정한다.
 
 ```java
+// 에러 카테고리 (domain 모듈)
+public enum ErrorCategory {
+    NOT_FOUND,    // 리소스 없음
+    VALIDATION,   // 입력값/비즈니스 규칙 위반
+    CONFLICT,     // 상태 충돌 (중복, 동시성 등)
+    FORBIDDEN     // 금지된 행위 (권한, 상태 전이 불가 등)
+}
+
 // 공통 인터페이스 (domain 모듈)
 public interface ErrorCode {
-    String getCode();       // "{DOMAIN}-{NUMBER}" 형식
-    String getMessage();    // 사용자 메시지
+    String getCode();              // "{DOMAIN}-{NUMBER}" 형식
+    String getMessage();           // 사용자 메시지
+    ErrorCategory getCategory();   // 에러 카테고리 — API 레이어의 HTTP 상태 매핑 근거
 }
 
 // 도메인별 구현 (domain 모듈)
 public enum AccommodationErrorCode implements ErrorCode {
-    PROPERTY_NOT_FOUND("ACC-001", "숙소를 찾을 수 없습니다"),
-    INVALID_STAR_RATING("ACC-002", "유효하지 않은 성급입니다"),
-    ROOM_TYPE_NOT_FOUND("ACC-003", "객실 유형을 찾을 수 없습니다");
+    PROPERTY_NOT_FOUND("ACC-001", "숙소를 찾을 수 없습니다", ErrorCategory.NOT_FOUND),
+    INVALID_STAR_RATING("ACC-002", "유효하지 않은 성급입니다", ErrorCategory.VALIDATION),
+    ROOM_TYPE_NOT_FOUND("ACC-003", "객실 유형을 찾을 수 없습니다", ErrorCategory.NOT_FOUND);
     
     private final String code;
     private final String message;
+    private final ErrorCategory category;
     
-    // constructor, getters...
+    AccommodationErrorCode(String code, String message, ErrorCategory category) {
+        this.code = code;
+        this.message = message;
+        this.category = category;
+    }
+    
+    @Override public String getCode() { return code; }
+    @Override public String getMessage() { return message; }
+    @Override public ErrorCategory getCategory() { return category; }
 }
 
 // HTTP 매핑은 API 레이어에서 처리 (adapter-in/rest-api)
-// ErrorCode → HttpStatus 변환은 GlobalExceptionHandler가 담당
+// ErrorCategory → HttpStatus 변환은 ErrorMapper/GlobalExceptionHandler가 담당
 ```
 
-**왜 HTTP를 분리하는가**: 도메인 레이어가 HTTP를 알면 안 된다. ErrorCode.getCode() 접두사("ACC", "PRC" 등)를 기반으로 API 레이어에서 HttpStatus를 결정한다.
+**왜 HTTP를 분리하는가**: 도메인 레이어가 HTTP를 알면 안 된다. 그러나 에러 메시지 문자열이나 코드 접두사에 의존하여 HTTP 상태를 결정하면 리팩토링에 취약하다. ErrorCategory는 도메인이 "이 에러의 성격이 무엇인지"를 선언적으로 표현하고, API 레이어는 그 카테고리에 따라 일관된 HTTP 상태코드를 결정한다. 이렇게 하면 에러 메시지를 변경해도 HTTP 매핑이 깨지지 않는다.
+
+**ErrorCategory 선택 가이드**:
+| 카테고리 | 용도 | 예시 |
+|----------|------|------|
+| NOT_FOUND | 요청한 리소스가 존재하지 않음 | 숙소 없음, 객실 없음, 예약 없음 |
+| VALIDATION | 입력값이 잘못되었거나 비즈니스 규칙 위반 | 유효하지 않은 성급, 잘못된 날짜 범위 |
+| CONFLICT | 현재 상태와 충돌하는 요청 | 재고 부족, 이미 취소된 예약 재취소 |
+| FORBIDDEN | 금지된 행위 (상태 전이 불가, 권한 부족 등) | 완료된 예약 취소 시도 |
 
 ---
 

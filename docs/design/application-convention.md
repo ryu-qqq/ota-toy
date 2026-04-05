@@ -22,9 +22,10 @@ Controller → UseCase(Port-In) → Service → Manager → Port(Port-Out) → A
 | 구성 요소 | 역할 | @Transactional |
 |-----------|------|:--------------:|
 | Service | 오케스트레이션. Manager 조합. UseCase 구현체 | ❌ 금지 |
-| {Domain}CommandManager | 쓰기 작업. persist, 상태 변경 | ✅ 필수 |
-| {Domain}ReadManager | 읽기 작업. 조회 전용 | ✅ readOnly=true |
+| {Domain}CommandManager | 쓰기 작업. persist, 상태 변경 | ✅ 메서드 단위 필수 |
+| {Domain}ReadManager | 읽기 작업. 조회 전용 | ✅ 메서드 단위 readOnly=true |
 | {Domain}ClientManager | 외부 API/Redis 호출 | ❌ 없음 |
+| {UseCase}Validator | UseCase별 검증 전용. ReadManager 주입 | ❌ 없음 |
 | {Domain}Factory | 도메인 객체 생성 (TimeProvider 주입) | ❌ 없음 |
 | {Domain}PersistenceFacade | 여러 Port를 하나의 트랜잭션에서 묶어 호출 | ✅ 필수 |
 
@@ -86,37 +87,48 @@ public class RegisterPropertyService implements RegisterPropertyUseCase {
 
 Manager는 트랜잭션 경계를 담당하는 중간 레이어다. 역할에 따라 3종류로 나뉜다.
 
+**@Transactional은 반드시 메서드 단위로 선언한다. 클래스 레벨 @Transactional은 금지한다.**
+
 ```java
-// CommandManager — 쓰기 작업, @Transactional 필수
+// CommandManager — 쓰기 작업, @Transactional 메서드 단위 필수
 @Component
-@Transactional
 @RequiredArgsConstructor
 public class ReservationCommandManager {
 
     private final ReservationCommandPort reservationCommandPort;
 
+    @Transactional
     public Long persist(Reservation reservation) {
         return reservationCommandPort.persist(reservation);
     }
 
+    @Transactional
     public void persistAll(List<Reservation> reservations) {
         reservationCommandPort.persistAll(reservations);
     }
 }
 
-// ReadManager — 읽기 작업, @Transactional(readOnly=true) 필수
+// ReadManager — 읽기 작업, @Transactional(readOnly=true) 메서드 단위 필수
 @Component
-@Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class PropertyReadManager {
 
     private final PropertyQueryPort propertyQueryPort;
 
+    @Transactional(readOnly = true)
     public Property getById(PropertyId id) {
         return propertyQueryPort.findById(id)
             .orElseThrow(PropertyNotFoundException::new);
     }
 
+    @Transactional(readOnly = true)
+    public void verifyExists(PropertyId id) {
+        if (!propertyQueryPort.existsById(id)) {
+            throw new PropertyNotFoundException();
+        }
+    }
+
+    @Transactional(readOnly = true)
     public SliceResult<Property> findByCondition(PropertySliceCriteria criteria) {
         return propertyQueryPort.findByCondition(criteria);
     }
@@ -140,6 +152,8 @@ public class InventoryClientManager {
 ```
 
 **왜 Manager를 분리하는가**: Port를 Service에서 직접 호출하면 트랜잭션 없이 DB에 접근하게 된다. Manager가 Port를 감싸면서 트랜잭션을 보장한다. 또한 ReadManager의 readOnly 트랜잭션은 JPA flush를 생략하고, DB 복제 라우팅(읽기 전용 DB)에 활용할 수 있다.
+
+**왜 메서드 단위인가**: 클래스 레벨 @Transactional을 걸면 트랜잭션이 필요 없는 메서드가 추가될 때 불필요한 트랜잭션이 열린다. 또한 메서드마다 전파 속성(REQUIRES_NEW 등)을 다르게 설정할 수 있어 유연성이 확보된다.
 
 ---
 
@@ -179,6 +193,7 @@ Bounded Context 간 호출에는 엄격한 규칙이 있다. 잘못된 의존은
 |------|:------:|:------:|
 | UseCase / Service | ❌ | ❌ |
 | ReadManager | ✅ | ✅ |
+| Validator | ✅ | ✅ (ReadManager는 다른 BC에서도 호출 가능하므로) |
 | CommandManager | ✅ | ❌ |
 | Factory + PersistenceFacade | ✅ | ✅ (쓰기 필요 시) |
 | ClientManager | ✅ | ✅ |
@@ -317,24 +332,24 @@ public class OutboxZombieScheduler {
 
 ---
 
-### APP-DTO-001: Command/Query DTO는 Record [BLOCKER]
+### APP-DTO-001: Command/Query DTO는 Record + Domain VO 필드 [BLOCKER]
 
 Application 레이어의 Command/Query DTO는 반드시 Java record로 선언한다. 인스턴스 메서드는 금지하며 정적 팩토리 메서드(of)만 허용한다.
 
+**필드 타입은 `Long`, `String` 같은 원시 타입 대신 Domain VO(`PartnerId`, `PropertyTypeId`, `PropertyName` 등)를 사용한다.** VO 변환은 Adapter-in(Controller)에서 ApiMapper가 한 번만 수행한다. Application 레이어 내부에서는 항상 VO로 다룬다.
+
 ```java
-// Command — 상태 변경 요청
+// Command — 상태 변경 요청 (필드에 Domain VO 사용)
 public record RegisterPropertyCommand(
-    Long partnerId,
-    String name,
-    String propertyTypeCode,
-    String address,
-    double latitude,
-    double longitude,
-    String neighborhood,
-    String region
+    PartnerId partnerId,
+    PropertyTypeId propertyTypeId,
+    PropertyName name,
+    PropertyDescription description,
+    Location location,
+    PromotionText promotionText
 ) {
-    public static RegisterPropertyCommand of(Long partnerId, String name, ...) {
-        return new RegisterPropertyCommand(partnerId, name, ...);
+    public static RegisterPropertyCommand of(PartnerId partnerId, PropertyTypeId propertyTypeId, ...) {
+        return new RegisterPropertyCommand(partnerId, propertyTypeId, ...);
     }
 }
 
@@ -349,7 +364,22 @@ public record SearchPropertyQuery(
 ) {}
 ```
 
+**Adapter-in에서의 변환:**
+```java
+// Controller에서 ApiMapper로 원시 타입 -> VO 변환
+public static RegisterPropertyCommand toCommand(RegisterPropertyApiRequest request) {
+    return RegisterPropertyCommand.of(
+        PartnerId.of(request.partnerId()),
+        PropertyTypeId.of(request.propertyTypeId()),
+        PropertyName.of(request.name()),
+        ...
+    );
+}
+```
+
 **왜**: Record는 불변성을 언어 수준에서 보장한다. Command/Query가 mutable이면 Service 실행 중 값이 바뀔 위험이 있다. 인스턴스 메서드를 금지하여 DTO가 순수 데이터 컨테이너 역할만 하도록 강제한다.
+
+**왜 Domain VO를 사용하는가**: Application 레이어 내부에서는 항상 VO로 다루는 것이 일관적이다. `Long partnerId`를 Service, Factory, Validator 곳곳에서 `PartnerId.of(command.partnerId())`로 변환하면 변환 코드가 산재한다. Command 시점에 이미 VO이면 변환은 Adapter-in에서 한 번만 일어나고, Application 레이어 전체에서 타입 안전성이 보장된다.
 
 ---
 
@@ -368,11 +398,13 @@ public interface PropertyCommandPort {
 // QueryPort — 조회 전용
 public interface PropertyQueryPort {
     Optional<Property> findById(PropertyId id);
+    boolean existsById(PropertyId id);  // Validator용 존재 확인 (엔티티 로딩 없음)
     SliceResult<Property> findByCondition(PropertySliceCriteria criteria);
 }
 ```
 
 **규칙**:
+- QueryPort에 `boolean existsById(ID id)` 메서드를 선언한다. ReadManager의 `verifyExists()` 내부에서 호출하며, 엔티티 전체를 로딩하지 않는다.
 - CommandPort: `persist` / `persistAll`만 허용. update/delete 메서드 금지.
 - hard delete 없음. 모든 삭제는 soft delete — Domain의 `DeletionStatus` VO를 활용하여 비즈니스 메서드(`delete(Instant)`)로 상태만 변경한 뒤 persist로 저장한다.
 - QueryPort: `findAll()` (전체 조회) 금지. 반드시 조건부/페이징 조회만 선언.
@@ -525,8 +557,9 @@ if (partner == null) {
 |-----------|------|------|
 | 단일 필드 검증 | Domain VO (Compact Constructor) | name이 blank인지 |
 | 비즈니스 불변 조건 | Domain Aggregate (forNew, 비즈니스 메서드) | baseOccupancy <= maxOccupancy |
-| 존재 여부 확인 | ReadManager | partnerId가 DB에 존재하는지 |
-| 크로스 도메인 검증 | Service (ReadManager 조합) | 해당 RoomType이 해당 Property 소속인지 |
+| 존재 여부 확인 (조회 불필요) | Validator (ReadManager.verifyExists) | partnerId가 DB에 존재하는지 (APP-VAL-002) |
+| 존재 여부 확인 (조회 필요) | ReadManager (getById) | 조회된 엔티티를 이후 로직에서 사용해야 할 때 |
+| 크로스 도메인 검증 | Service (Validator 또는 ReadManager 조합) | 해당 RoomType이 해당 Property 소속인지 |
 
 ```java
 @Override
@@ -546,7 +579,89 @@ public Long execute(RegisterRoomTypeCommand command) {
 }
 ```
 
-**왜**: 검증 책임을 명확히 분리해야 중복 검증이 없고, 검증 누락도 방지된다. "이 데이터가 유효한가"는 Domain, "이 데이터가 존재하는가"는 ReadManager.
+**왜**: 검증 책임을 명확히 분리해야 중복 검증이 없고, 검증 누락도 방지된다. "이 데이터가 유효한가"는 Domain, "이 데이터가 존재하는가"는 Validator(또는 ReadManager).
+
+---
+
+### APP-VAL-002: UseCase별 Validator — ReadManager 주입 [BLOCKER]
+
+UseCase별 검증이 필요할 때 `{UseCase명}Validator` 전용 컴포넌트를 만든다. Validator는 **ReadManager를 주입**하며, `verifyExists()` 메서드로 존재 여부만 확인한다. ReadManager 내부에서 QueryPort의 `existsById()`를 호출하고 트랜잭션을 관리한다.
+
+**Validator는 Port(QueryPort)를 직접 주입하지 않는다.** 모든 Application 컴포넌트(Service, Manager, Validator)가 Port 직접 사용 금지 규칙을 따른다. Port 접근은 반드시 Manager를 경유한다.
+
+**Validator에는 @Transactional을 선언하지 않는다.** ReadManager가 이미 메서드 단위로 트랜잭션을 관리하므로, Validator에서 추가 트랜잭션을 걸면 ReadManager와 역할이 중복된다.
+
+```java
+// ReadManager에 verifyExists() 추가 — 존재 확인 + 없으면 예외
+@Component
+@RequiredArgsConstructor
+public class PartnerReadManager {
+
+    private final PartnerQueryPort partnerQueryPort;
+
+    @Transactional(readOnly = true)
+    public Partner getById(PartnerId id) {
+        return partnerQueryPort.findById(id)
+            .orElseThrow(PartnerNotFoundException::new);
+    }
+
+    @Transactional(readOnly = true)
+    public void verifyExists(PartnerId id) {
+        if (!partnerQueryPort.existsById(id)) {
+            throw new PartnerNotFoundException();
+        }
+    }
+}
+
+// Validator — ReadManager 주입, @Transactional 없음
+@Component
+@RequiredArgsConstructor
+public class PropertyRegistrationValidator {
+
+    private final PartnerReadManager partnerReadManager;
+    private final PropertyTypeReadManager propertyTypeReadManager;
+
+    public void validate(RegisterPropertyCommand command) {
+        partnerReadManager.verifyExists(command.partnerId());
+        propertyTypeReadManager.verifyExists(command.propertyTypeId());
+    }
+}
+```
+
+**Service에서 Validator 사용:**
+```java
+@Service
+@RequiredArgsConstructor
+public class RegisterPropertyService implements RegisterPropertyUseCase {
+
+    private final PropertyRegistrationValidator validator;
+    private final PropertyFactory propertyFactory;
+    private final PropertyCommandManager propertyCommandManager;
+
+    @Override
+    public Long execute(RegisterPropertyCommand command) {
+        // 1. 검증 (Validator — ReadManager.verifyExists 경유)
+        validator.validate(command);
+
+        // 2. 도메인 생성 (Factory — TimeProvider)
+        Property property = propertyFactory.createProperty(command);
+
+        // 3. 저장 (CommandManager — @Transactional)
+        return propertyCommandManager.persist(property);
+    }
+}
+```
+
+**규칙:**
+- Validator 네이밍: `{UseCase명}Validator` (예: `PropertyRegistrationValidator`, `ReservationCreationValidator`)
+- Validator는 `@Component`로 선언하고, **@Transactional을 선언하지 않는다** (ReadManager가 트랜잭션 관리)
+- ReadManager의 `verifyExists()` 메서드를 사용하여 존재 여부를 확인한다. ReadManager 내부에서 QueryPort의 `existsById()`를 호출한다
+- Validator는 Port(QueryPort)를 직접 주입하지 않는다. 반드시 ReadManager를 경유한다
+- 검증 실패 시 도메인 구체 예외(PartnerNotFoundException 등)는 ReadManager의 `verifyExists()`가 던진다
+
+**왜 Validator가 QueryPort를 직접 주입하면 안 되는가**: QueryPort는 인터페이스이므로 트랜잭션이 없다. Validator가 직접 `@Transactional`을 걸면 ReadManager와 역할이 중복되고, 트랜잭션 관리 책임이 두 곳에 분산된다. ReadManager에 `verifyExists()` 메서드를 추가하면 트랜잭션 관리는 Manager가 일관되게 담당하고, Validator는 "어떤 검증을 어떤 순서로 조합할지"만 담당한다.
+
+**APP-VAL-001과의 관계**: ReadManager에 `getById()`(조회 필요 시)와 `verifyExists()`(존재 확인만)를 모두 두어, 용도에 따라 적절한 메서드를 선택한다. Validator는 `verifyExists()`를, Service에서 조회된 엔티티를 이후 로직에 사용해야 하면 `getById()`를 호출한다.
 
 ---
 
@@ -559,6 +674,7 @@ public Long execute(RegisterRoomTypeCommand command) {
 | `{Domain}CommandManager.java` | 쓰기 작업 | @Transactional 필수 |
 | `{Domain}ReadManager.java` | 읽기 작업 | @Transactional(readOnly=true) |
 | `{Domain}ClientManager.java` | 외부 호출 (Redis, API) | 트랜잭션 없음 |
+| `{UseCase명}Validator.java` | UseCase별 검증 전용 | ReadManager 주입, @Transactional 없음 |
 | `{Domain}Coordinator.java` | 여러 Manager를 조합하는 복합 흐름 조율 | 복잡한 오케스트레이션 |
 | `{Domain}Processor.java` | 단일 작업 단위 처리 | 배치, 변환 등 |
 | `{Domain}Executor.java` | 특정 실행 로직 캡슐화 | 명확한 단일 실행 |
@@ -612,98 +728,191 @@ public class CreateReservationService implements CreateReservationUseCase {
 
 ## 패키지 구조
 
+최상위를 **역할(port, service, manager, ...)**이 아닌 **BC(Bounded Context)**로 나눈다. Domain 패키지와 대칭을 이루며, BC 내부에서 역할별 하위 패키지를 둔다.
+
+### 핵심 원칙
+
+1. **최상위 = BC**: `property/`, `reservation/`, `inventory/`, `partner/`, `supplier/` 등
+2. **manager는 플랫**: `manager/` 하위에 `command/`, `read/` 서브패키지를 두지 않는다. `PropertyCommandManager`와 `PropertyReadManager`가 같은 `manager/` 디렉토리에 공존한다.
+3. **port/out은 플랫**: `port/out/` 하위에 `persistence/` 서브패키지를 두지 않는다. 향후 `redis/`, `client/` 어댑터가 추가되면 그때 서브패키지를 도입한다.
+4. **공통 컴포넌트**: `common/` 하위에 `TimeProvider` 등 BC에 속하지 않는 인프라성 컴포넌트를 둔다.
+
+### 왜 BC 단위인가
+
+플랫 구조(`application/service/`, `application/manager/command/`)에서는 서로 다른 BC의 컴포넌트가 한 디렉토리에 혼재한다. 파일이 늘어나면 특정 BC의 전체 구조를 파악하기 어렵고, BC 간 의존 방향을 패키지 레벨에서 제어할 수 없다. BC 단위로 나누면 "이 BC의 UseCase, Port, Manager, Factory가 무엇인지"를 디렉토리 하나에서 즉시 확인할 수 있다.
+
+### 왜 manager를 플랫하게 두는가
+
+`command/`, `read/` 서브패키지는 파일 수가 적을 때 오히려 네비게이션을 방해한다. 네이밍 컨벤션(`{Domain}CommandManager`, `{Domain}ReadManager`)으로 역할이 명확히 구분되므로, 서브패키지 없이도 혼동이 없다.
+
 ```
 application/
-├── dto/
-│   ├── command/
-│   │   ├── RegisterPropertyCommand.java      ← record
-│   │   ├── RegisterRoomTypeCommand.java
-│   │   ├── SetInventoryCommand.java
-│   │   ├── CreateReservationCommand.java
-│   │   └── SyncSupplierCommand.java
-│   ├── query/
-│   │   ├── SearchPropertyQuery.java           ← record
-│   │   └── FetchRateQuery.java
-│   └── response/
-│       ├── PropertySliceResult.java           ← record
-│       ├── RateDateResult.java
-│       └── SyncResult.java
-│
-├── port/
-│   ├── in/                                     ← UseCase 인터페이스
-│   │   ├── RegisterPropertyUseCase.java
-│   │   ├── RegisterRoomTypeUseCase.java
-│   │   ├── SetInventoryUseCase.java
-│   │   ├── SearchPropertyUseCase.java
-│   │   ├── FetchRateUseCase.java
-│   │   ├── CreateReservationUseCase.java
-│   │   ├── CancelReservationUseCase.java
-│   │   └── SyncSupplierUseCase.java
-│   └── out/                                    ← Adapter 인터페이스
-│       ├── persistence/
-│       │   ├── PropertyCommandPort.java
-│       │   ├── PropertyQueryPort.java
-│       │   ├── RoomTypeCommandPort.java
-│       │   ├── RoomTypeQueryPort.java
-│       │   ├── RatePlanCommandPort.java
-│       │   ├── RateCommandPort.java
-│       │   ├── RateQueryPort.java
-│       │   ├── InventoryCommandPort.java
-│       │   ├── InventoryQueryPort.java
-│       │   ├── ReservationCommandPort.java
-│       │   ├── ReservationQueryPort.java
-│       │   ├── PartnerQueryPort.java
-│       │   ├── SupplierCommandPort.java
-│       │   └── OutboxCommandPort.java
-│       ├── redis/
-│       │   ├── RateCachePort.java
-│       │   └── InventoryRedisPort.java
-│       └── client/
-│           └── SupplierClient.java
-│
-├── service/
-│   ├── RegisterPropertyService.java
-│   ├── RegisterRoomTypeService.java
-│   ├── SetInventoryService.java
-│   ├── SearchPropertyService.java
-│   ├── FetchRateService.java
-│   ├── CreateReservationService.java
-│   ├── CancelReservationService.java
-│   └── SyncSupplierService.java
-│
-├── manager/
-│   ├── command/
+├── property/                              ← Property BC
+│   ├── port/
+│   │   ├── in/                            ← UseCase 인터페이스
+│   │   │   ├── RegisterPropertyUseCase.java
+│   │   │   ├── AddPropertyPhotosUseCase.java
+│   │   │   ├── SetPropertyAmenitiesUseCase.java
+│   │   │   ├── SetPropertyAttributesUseCase.java
+│   │   │   └── SearchPropertyUseCase.java
+│   │   └── out/                           ← Adapter 인터페이스 (플랫)
+│   │       ├── PropertyCommandPort.java
+│   │       ├── PropertyQueryPort.java
+│   │       ├── PropertyAmenityCommandPort.java
+│   │       ├── PropertyPhotoCommandPort.java
+│   │       └── PropertyAttributeValueCommandPort.java
+│   ├── dto/
+│   │   ├── command/
+│   │   │   ├── RegisterPropertyCommand.java
+│   │   │   ├── AddPropertyPhotosCommand.java
+│   │   │   ├── SetPropertyAmenitiesCommand.java
+│   │   │   └── SetPropertyAttributesCommand.java
+│   │   ├── query/
+│   │   │   └── SearchPropertyQuery.java
+│   │   └── response/
+│   │       └── PropertySliceResult.java
+│   ├── service/
+│   │   ├── RegisterPropertyService.java
+│   │   ├── AddPropertyPhotosService.java
+│   │   ├── SetPropertyAmenitiesService.java
+│   │   ├── SetPropertyAttributesService.java
+│   │   └── SearchPropertyService.java
+│   ├── manager/                           ← 플랫 (command/read 나누지 않음)
 │   │   ├── PropertyCommandManager.java
-│   │   ├── RoomTypeCommandManager.java
-│   │   ├── InventoryCommandManager.java
-│   │   ├── ReservationCommandManager.java
-│   │   └── OutboxCommandManager.java
-│   ├── read/
 │   │   ├── PropertyReadManager.java
-│   │   ├── RoomTypeReadManager.java
-│   │   ├── PartnerReadManager.java
+│   │   ├── PropertyPhotoCommandManager.java
+│   │   ├── PropertyAmenityCommandManager.java
+│   │   └── PropertyAttributeValueCommandManager.java
+│   ├── validator/
+│   │   ├── PropertyRegistrationValidator.java
+│   │   └── PropertyExistenceValidator.java
+│   ├── factory/
+│   │   └── PropertyFactory.java
+│   └── facade/
+│       └── PropertyPersistenceFacade.java
+│
+├── roomtype/                              ← RoomType BC
+│   ├── port/
+│   │   ├── in/
+│   │   │   └── RegisterRoomTypeUseCase.java
+│   │   └── out/
+│   │       ├── RoomTypeCommandPort.java
+│   │       └── RoomTypeQueryPort.java
+│   ├── dto/command/
+│   │   └── RegisterRoomTypeCommand.java
+│   ├── service/
+│   │   └── RegisterRoomTypeService.java
+│   ├── manager/
+│   │   ├── RoomTypeCommandManager.java
+│   │   └── RoomTypeReadManager.java
+│   └── validator/
+│       └── RoomTypeRegistrationValidator.java
+│
+├── pricing/                               ← Pricing BC
+│   ├── port/
+│   │   ├── in/
+│   │   │   └── FetchRateUseCase.java
+│   │   └── out/
+│   │       ├── RatePlanCommandPort.java
+│   │       ├── RateCommandPort.java
+│   │       └── RateQueryPort.java
+│   ├── dto/
+│   │   ├── query/
+│   │   │   └── FetchRateQuery.java
+│   │   └── response/
+│   │       └── RateDateResult.java
+│   ├── service/
+│   │   └── FetchRateService.java
+│   └── manager/
+│       └── RateCacheClientManager.java
+│
+├── inventory/                             ← Inventory BC
+│   ├── port/
+│   │   ├── in/
+│   │   │   └── SetInventoryUseCase.java
+│   │   └── out/
+│   │       ├── InventoryCommandPort.java
+│   │       ├── InventoryQueryPort.java
+│   │       └── InventoryRedisPort.java
+│   ├── dto/command/
+│   │   └── SetInventoryCommand.java
+│   ├── service/
+│   │   └── SetInventoryService.java
+│   ├── manager/
+│   │   ├── InventoryCommandManager.java
 │   │   ├── InventoryReadManager.java
-│   │   ├── ReservationReadManager.java
-│   │   └── OutboxReadManager.java
-│   └── client/
-│       ├── InventoryClientManager.java
-│       ├── RateCacheClientManager.java
+│   │   └── InventoryClientManager.java
+│   └── facade/
+│       └── InventoryPersistenceFacade.java
+│
+├── reservation/                           ← Reservation BC
+│   ├── port/
+│   │   ├── in/
+│   │   │   ├── CreateReservationUseCase.java
+│   │   │   └── CancelReservationUseCase.java
+│   │   └── out/
+│   │       ├── ReservationCommandPort.java
+│   │       └── ReservationQueryPort.java
+│   ├── dto/command/
+│   │   └── CreateReservationCommand.java
+│   ├── service/
+│   │   ├── CreateReservationService.java
+│   │   └── CancelReservationService.java
+│   ├── manager/
+│   │   ├── ReservationCommandManager.java
+│   │   └── ReservationReadManager.java
+│   ├── validator/
+│   │   └── ReservationCreationValidator.java
+│   ├── factory/
+│   │   └── ReservationFactory.java
+│   └── facade/
+│       └── ReservationPersistenceFacade.java
+│
+├── partner/                               ← Partner BC
+│   ├── port/out/
+│   │   └── PartnerQueryPort.java
+│   └── manager/
+│       └── PartnerReadManager.java
+│
+├── propertytype/                          ← PropertyType BC
+│   ├── port/out/
+│   │   └── PropertyTypeQueryPort.java
+│   └── manager/
+│       └── PropertyTypeReadManager.java
+│
+├── supplier/                              ← Supplier BC
+│   ├── port/
+│   │   ├── in/
+│   │   │   └── SyncSupplierUseCase.java
+│   │   └── out/
+│   │       ├── SupplierCommandPort.java
+│   │       └── SupplierClient.java
+│   ├── dto/
+│   │   ├── command/
+│   │   │   └── SyncSupplierCommand.java
+│   │   └── response/
+│   │       └── SyncResult.java
+│   ├── service/
+│   │   └── SyncSupplierService.java
+│   └── manager/
 │       └── SupplierClientManager.java
 │
-├── facade/
-│   ├── PropertyPersistenceFacade.java
-│   ├── ReservationPersistenceFacade.java
-│   └── InventoryPersistenceFacade.java
+├── outbox/                                ← Outbox (공통 인프라)
+│   ├── port/out/
+│   │   └── OutboxCommandPort.java
+│   ├── manager/
+│   │   ├── OutboxCommandManager.java
+│   │   └── OutboxReadManager.java
+│   ├── factory/
+│   │   └── OutboxFactory.java
+│   └── scheduler/
+│       ├── OutboxMainScheduler.java
+│       ├── OutboxZombieScheduler.java
+│       └── OutboxProcessor.java
 │
-├── factory/
-│   ├── ReservationFactory.java
-│   ├── PropertyFactory.java
-│   └── OutboxFactory.java
-│
-└── scheduler/
-    ├── OutboxMainScheduler.java
-    ├── OutboxZombieScheduler.java
-    └── OutboxProcessor.java
+└── common/                                ← 공통 (BC에 속하지 않는 컴포넌트)
+    └── factory/
+        └── TimeProvider.java
 ```
 
 ---
@@ -716,11 +925,13 @@ application/
 | Port 정의 위치 | *Port, *UseCase 인터페이스는 application 패키지에만 존재 |
 | DTO는 Record | dto/ 패키지의 클래스는 record 타입 |
 | Service @Transactional 금지 | Service 클래스에 @Transactional 어노테이션 금지 |
-| CommandManager @Transactional 필수 | *CommandManager 클래스에 @Transactional 어노테이션 필수 |
-| ReadManager readOnly 필수 | *ReadManager 클래스에 @Transactional(readOnly=true) 필수 |
+| CommandManager @Transactional 메서드 단위 | *CommandManager 클래스에 클래스 레벨 @Transactional 금지, public 메서드에 @Transactional 필수 |
+| ReadManager readOnly 메서드 단위 | *ReadManager 클래스에 클래스 레벨 @Transactional 금지, public 메서드에 @Transactional(readOnly=true) 필수 |
 | ClientManager 트랜잭션 금지 | *ClientManager 클래스에 @Transactional 어노테이션 금지 |
-| Service 의존성 | Service는 UseCase, Manager, Factory, PersistenceFacade만 의존 (Port 직접 의존 금지) |
+| Validator @Transactional 금지 | *Validator 클래스에 @Transactional 어노테이션 금지 (ReadManager가 트랜잭션 관리) |
+| Validator Port 직접 주입 금지 | *Validator 클래스에서 *Port 직접 의존 금지, ReadManager만 의존 허용 |
+| Service 의존성 | Service는 UseCase, Manager, Factory, PersistenceFacade, Validator만 의존 (Port 직접 의존 금지) |
 | Instant.now() 금지 | application 패키지에서 Instant.now(), LocalDateTime.now(), LocalDate.now() 직접 호출 금지 |
 | TimeProvider Factory 전용 | TimeProvider는 *Factory 클래스에서만 의존 가능 |
 | ApplicationEventPublisher 금지 | application 패키지에서 ApplicationEventPublisher 사용 금지 |
-| Port 직접 호출 금지 | Service에서 *Port 인터페이스 직접 의존 금지 (Manager/Facade 경유) |
+| Port 직접 호출 금지 | Service에서 *Port 인터페이스 직접 의존 금지 (Manager/Facade/Validator 경유) |

@@ -1,5 +1,7 @@
 package com.ryuqq.otatoy.domain.reservation;
 
+import com.ryuqq.otatoy.domain.common.vo.Email;
+import com.ryuqq.otatoy.domain.common.vo.PhoneNumber;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -19,8 +21,8 @@ class GuestInfoTest {
             GuestInfo guestInfo = GuestInfo.of("홍길동", "010-1234-5678", "hong@test.com");
 
             assertThat(guestInfo.name()).isEqualTo("홍길동");
-            assertThat(guestInfo.phone()).isEqualTo("010-1234-5678");
-            assertThat(guestInfo.email()).isEqualTo("hong@test.com");
+            assertThat(guestInfo.phone()).isEqualTo(PhoneNumber.of("010-1234-5678"));
+            assertThat(guestInfo.email()).isEqualTo(Email.of("hong@test.com"));
         }
 
         @Test
@@ -63,6 +65,22 @@ class GuestInfoTest {
             assertThat(guestInfo.name()).isEqualTo("홍길동");
             assertThat(guestInfo.phone()).isNull();
             assertThat(guestInfo.email()).isNull();
+        }
+
+        @Test
+        @DisplayName("유효하지 않은 전화번호 포맷이면 생성 실패")
+        void shouldFailWhenPhoneFormatIsInvalid() {
+            assertThatThrownBy(() -> GuestInfo.of("홍길동", "abc-invalid!", "hong@test.com"))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("숫자와 하이픈만 포함");
+        }
+
+        @Test
+        @DisplayName("유효하지 않은 이메일 포맷이면 생성 실패")
+        void shouldFailWhenEmailFormatIsInvalid() {
+            assertThatThrownBy(() -> GuestInfo.of("홍길동", "010-1234-5678", "invalid-email"))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("유효하지 않은 이메일 형식");
         }
     }
 

@@ -271,14 +271,41 @@ public record RegisterPropertyApiRequest(
 
 ---
 
-### API-ERR-001: GlobalExceptionHandler + ErrorMapper [BLOCKER]
+### API-ERR-001: GlobalExceptionHandler + ErrorMapper (카테고리 기반 매핑) [BLOCKER]
 
 모든 예외는 `@RestControllerAdvice`에서 일괄 처리한다. Controller에서 `try-catch`를 사용하지 않는다. `ErrorMapper`가 DomainException을 userMessage + debugMessage로 변환한다.
 
+**HTTP 상태코드 결정은 `ErrorCategory` 기반으로만 한다.** 에러 메시지 문자열이나 코드 접두사 패턴에 의존하는 매핑은 금지한다. 메시지를 변경하면 HTTP 상태가 바뀌는 것은 심각한 결합이다.
+
+#### ErrorCategory → HttpStatus 매핑 규칙
+
+| ErrorCategory | HttpStatus | 설명 |
+|---------------|-----------|------|
+| NOT_FOUND | 404 Not Found | 리소스 없음 |
+| VALIDATION | 400 Bad Request | 입력값/비즈니스 규칙 위반 |
+| CONFLICT | 409 Conflict | 상태 충돌 (재고 부족, 중복 등) |
+| FORBIDDEN | 422 Unprocessable Entity | 금지된 행위 (상태 전이 불가 등) |
+
 ```java
-// ErrorMapper — DomainException → 에러 응답 변환
+// ErrorMapper — DomainException → 에러 응답 변환 (카테고리 기반)
 @Component
 public class ErrorMapper {
+
+    // ErrorCategory → HttpStatus 매핑 (유일한 매핑 규칙)
+    private static final Map<ErrorCategory, HttpStatus> CATEGORY_STATUS_MAP = Map.of(
+        ErrorCategory.NOT_FOUND,   HttpStatus.NOT_FOUND,       // 404
+        ErrorCategory.VALIDATION,  HttpStatus.BAD_REQUEST,     // 400
+        ErrorCategory.CONFLICT,    HttpStatus.CONFLICT,        // 409
+        ErrorCategory.FORBIDDEN,   HttpStatus.UNPROCESSABLE_ENTITY  // 422
+    );
+
+    // ErrorCategory로 HttpStatus 결정 — 메시지/코드 패턴 의존 금지
+    public HttpStatus resolveHttpStatus(ErrorCode errorCode) {
+        return CATEGORY_STATUS_MAP.getOrDefault(
+            errorCode.getCategory(),
+            HttpStatus.INTERNAL_SERVER_ERROR
+        );
+    }
 
     // userMessage: 사용자에게 노출하는 메시지
     // debugMessage: args Map에서 변환 — 내부 로깅용 상세 메시지
@@ -304,14 +331,15 @@ public class GlobalExceptionHandler {
 
     private final ErrorMapper errorMapper;
 
-    // DomainException — ErrorMapper로 변환
+    // DomainException — ErrorMapper로 변환 (카테고리 기반 HttpStatus 결정)
     @ExceptionHandler(DomainException.class)
     public ResponseEntity<ApiResponse<Void>> handleDomainException(DomainException e) {
         ApiResponse.ErrorDetail detail = errorMapper.toErrorDetail(e);
-        log.warn("도메인 예외 발생: {} - {}", detail.code(), detail.debugMessage());
+        HttpStatus status = errorMapper.resolveHttpStatus(e.getErrorCode());
+        log.warn("도메인 예외 발생: {} - {} (HTTP {})", detail.code(), detail.debugMessage(), status.value());
 
         return ResponseEntity
-            .status(e.getErrorCode().getHttpStatus())
+            .status(status)
             .body(new ApiResponse<>(false, null, detail));
     }
 
@@ -346,6 +374,23 @@ public class GlobalExceptionHandler {
             ));
     }
 }
+```
+
+**금지 사항 -- 메시지/접두사 기반 매핑**:
+```java
+// 금지 — 메시지 문자열에 의존하는 매핑
+if (errorCode.getMessage().contains("찾을 수 없습니다")) {
+    return HttpStatus.NOT_FOUND;  // 메시지 변경하면 매핑이 깨진다
+}
+
+// 금지 — 코드 접두사에 의존하는 매핑
+if (errorCode.getCode().startsWith("ACC-")) {
+    return HttpStatus.NOT_FOUND;  // 같은 BC에도 다양한 에러 유형이 있다
+}
+
+// 올바른 방식 — ErrorCategory 기반 매핑
+return CATEGORY_STATUS_MAP.get(errorCode.getCategory());
+```
 ```
 
 **DomainException에 args Map 추가**:
