@@ -8,7 +8,10 @@ public enum ReservationErrorCode implements ErrorCode {
     RESERVATION_NOT_FOUND("RSV-001", "예약을 찾을 수 없습니다", ErrorCategory.NOT_FOUND),
     INVALID_RESERVATION_STATE("RSV-002", "유효하지 않은 예약 상태 전이입니다", ErrorCategory.VALIDATION),
     RESERVATION_ALREADY_CANCELLED("RSV-003", "이미 취소된 예약입니다", ErrorCategory.CONFLICT),
-    RESERVATION_ALREADY_COMPLETED("RSV-004", "이미 완료된 예약입니다", ErrorCategory.CONFLICT);
+    RESERVATION_ALREADY_COMPLETED("RSV-004", "이미 완료된 예약입니다", ErrorCategory.CONFLICT),
+    RESERVATION_SESSION_NOT_FOUND("RSV-005", "예약 세션을 찾을 수 없습니다", ErrorCategory.NOT_FOUND),
+    RESERVATION_SESSION_EXPIRED("RSV-006", "예약 세션이 만료되었습니다", ErrorCategory.CONFLICT),
+    INVALID_SESSION_STATE("RSV-007", "유효하지 않은 세션 상태입니다", ErrorCategory.VALIDATION);
 
     private final String code;
     private final String message;

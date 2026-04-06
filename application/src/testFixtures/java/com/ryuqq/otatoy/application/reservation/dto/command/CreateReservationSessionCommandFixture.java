@@ -1,0 +1,44 @@
+package com.ryuqq.otatoy.application.reservation.dto.command;
+
+import com.ryuqq.otatoy.domain.common.vo.Money;
+import com.ryuqq.otatoy.domain.pricing.RatePlanId;
+import com.ryuqq.otatoy.domain.property.PropertyId;
+import com.ryuqq.otatoy.domain.roomtype.RoomTypeId;
+
+import java.time.LocalDate;
+
+/**
+ * CreateReservationSessionCommand 테스트용 Fixture.
+ *
+ * @author ryu-qqq
+ * @since 2026-04-06
+ */
+public final class CreateReservationSessionCommandFixture {
+
+    private CreateReservationSessionCommandFixture() {}
+
+    public static final PropertyId DEFAULT_PROPERTY_ID = PropertyId.of(1L);
+    public static final RoomTypeId DEFAULT_ROOM_TYPE_ID = RoomTypeId.of(1L);
+    public static final RatePlanId DEFAULT_RATE_PLAN_ID = RatePlanId.of(1L);
+    public static final LocalDate DEFAULT_CHECK_IN = LocalDate.of(2026, 4, 10);
+    public static final LocalDate DEFAULT_CHECK_OUT = LocalDate.of(2026, 4, 12);
+    public static final int DEFAULT_GUEST_COUNT = 2;
+    public static final Money DEFAULT_TOTAL_AMOUNT = Money.of(200_000);
+    public static final String DEFAULT_IDEMPOTENCY_KEY = "test-idempotency-key-001";
+
+    /**
+     * 기본 세션 생성 커맨드 (2박)
+     */
+    public static CreateReservationSessionCommand aCreateReservationSessionCommand() {
+        return new CreateReservationSessionCommand(
+            DEFAULT_IDEMPOTENCY_KEY,
+            DEFAULT_PROPERTY_ID,
+            DEFAULT_ROOM_TYPE_ID,
+            DEFAULT_RATE_PLAN_ID,
+            DEFAULT_CHECK_IN,
+            DEFAULT_CHECK_OUT,
+            DEFAULT_GUEST_COUNT,
+            DEFAULT_TOTAL_AMOUNT
+        );
+    }
+}

@@ -1,6 +1,7 @@
 package com.ryuqq.otatoy.application.reservation.factory;
 
 import com.ryuqq.otatoy.application.common.factory.TimeProvider;
+import com.ryuqq.otatoy.application.reservation.dto.command.ConfirmReservationCommand;
 import com.ryuqq.otatoy.application.reservation.dto.command.CreateReservationCommand;
 import com.ryuqq.otatoy.application.reservation.dto.command.CreateReservationItemCommand;
 import com.ryuqq.otatoy.application.reservation.dto.command.CreateReservationLineCommand;
@@ -9,6 +10,7 @@ import com.ryuqq.otatoy.domain.reservation.Reservation;
 import com.ryuqq.otatoy.domain.reservation.ReservationItem;
 import com.ryuqq.otatoy.domain.reservation.ReservationLine;
 import com.ryuqq.otatoy.domain.reservation.ReservationNo;
+import com.ryuqq.otatoy.domain.reservation.ReservationSession;
 
 import org.springframework.stereotype.Component;
 
@@ -83,6 +85,36 @@ public class ReservationFactory {
             itemCommand.inventoryId(),
             itemCommand.stayDate(),
             itemCommand.nightlyRate(),
+            now
+        );
+    }
+
+    /**
+     * ReservationSession + ConfirmReservationCommand로부터 Reservation Aggregate를 생성한다.
+     * 세션에 저장된 숙소/객실/요금/날짜 정보를 사용하고,
+     * 커맨드에서 고객/투숙객 정보를 가져온다.
+     */
+    public Reservation createFromSession(ReservationSession session, ConfirmReservationCommand command) {
+        Instant now = timeProvider.now();
+        LocalDate today = timeProvider.today();
+
+        ReservationNo reservationNo = ReservationNo.of(generateReservationNo());
+        DateRange stayPeriod = new DateRange(session.checkIn(), session.checkOut());
+
+        List<ReservationLine> lines = command.lines().stream()
+            .map(lineCommand -> createLine(lineCommand, now))
+            .toList();
+
+        return Reservation.forNew(
+            command.customerId(),
+            reservationNo,
+            command.guestInfo(),
+            stayPeriod,
+            session.guestCount(),
+            session.totalAmount(),
+            command.bookingSnapshot(),
+            lines,
+            today,
             now
         );
     }

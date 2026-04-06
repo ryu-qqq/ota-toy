@@ -5,15 +5,12 @@ spring:
   application:
     name: ota-customer
 
-  profiles:
-    active: ${SPRING_PROFILES_ACTIVE:local}
-
   config:
     import:
       - classpath:persistence.yml
-      - optional:classpath:persistence-${spring.profiles.active:local}.yml
+      - classpath:persistence-local.yml
       - classpath:redis.yml
-      - optional:classpath:redis-${spring.profiles.active:local}.yml
+      - classpath:redis-local.yml
 
 springdoc:
   api-docs:
