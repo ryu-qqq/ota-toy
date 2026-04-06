@@ -58,4 +58,15 @@ public class ReservationSessionQueryDslRepository {
                 )
                 .fetch();
     }
+
+    /**
+     * reservationId로 세션을 조회한다. 예약 취소 시 재고 복구를 위해 사용.
+     */
+    public Optional<ReservationSessionJpaEntity> findByReservationId(Long reservationId) {
+        ReservationSessionJpaEntity result = queryFactory
+                .selectFrom(session)
+                .where(session.reservationId.eq(reservationId))
+                .fetchOne();
+        return Optional.ofNullable(result);
+    }
 }

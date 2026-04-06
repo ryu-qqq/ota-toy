@@ -34,6 +34,16 @@ public class ReservationSessionReadManager {
     }
 
     /**
+     * 예약 ID로 예약 세션을 조회한다. 없으면 예외 발생.
+     * 예약 취소 시 roomTypeId를 추출하기 위해 사용한다.
+     */
+    @Transactional(readOnly = true)
+    public ReservationSession getByReservationId(Long reservationId) {
+        return sessionQueryPort.findByReservationId(reservationId)
+                .orElseThrow(ReservationSessionNotFoundException::new);
+    }
+
+    /**
      * 멱등키로 예약 세션을 조회한다. 없으면 empty.
      */
     @Transactional(readOnly = true)

@@ -47,4 +47,10 @@ public class ReservationSessionQueryAdapter implements ReservationSessionQueryPo
                 .map(mapper::toDomain)
                 .toList();
     }
+
+    @Override
+    public Optional<ReservationSession> findByReservationId(Long reservationId) {
+        return queryDslRepository.findByReservationId(reservationId)
+                .map(mapper::toDomain);
+    }
 }
