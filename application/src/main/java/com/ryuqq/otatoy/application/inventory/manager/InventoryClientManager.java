@@ -3,6 +3,7 @@ package com.ryuqq.otatoy.application.inventory.manager;
 import com.ryuqq.otatoy.application.inventory.port.out.redis.InventoryRedisPort;
 import com.ryuqq.otatoy.domain.roomtype.RoomTypeId;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
@@ -22,11 +23,14 @@ public class InventoryClientManager {
 
     private final InventoryRedisPort inventoryRedisPort;
     private final InventoryCommandManager inventoryCommandManager;
+    private final MeterRegistry meterRegistry;
 
     public InventoryClientManager(InventoryRedisPort inventoryRedisPort,
-                                   InventoryCommandManager inventoryCommandManager) {
+                                   InventoryCommandManager inventoryCommandManager,
+                                   MeterRegistry meterRegistry) {
         this.inventoryRedisPort = inventoryRedisPort;
         this.inventoryCommandManager = inventoryCommandManager;
+        this.meterRegistry = meterRegistry;
     }
 
     /**
@@ -35,7 +39,9 @@ public class InventoryClientManager {
     public void decrementStock(RoomTypeId roomTypeId, List<LocalDate> dates) {
         try {
             inventoryRedisPort.decrementStock(roomTypeId, dates);
+            meterRegistry.counter("inventory.decrement.success").increment();
         } catch (Exception e) {
+            meterRegistry.counter("inventory.decrement.failure").increment();
             if (isRedisConnectionFailure(e)) {
                 // Redis 장애 — DB 폴백
                 inventoryCommandManager.decrementAvailable(roomTypeId, dates);

@@ -33,6 +33,6 @@ public class InventoryReadManager {
     public Inventories findByRoomTypeIdsAndDateRange(List<RoomTypeId> roomTypeIds,
                                                       LocalDate startDate,
                                                       LocalDate endDate) {
-        return Inventories.of(inventoryQueryPort.findByRoomTypeIdsAndDateRange(roomTypeIds, startDate, endDate));
+        return Inventories.from(inventoryQueryPort.findByRoomTypeIdsAndDateRange(roomTypeIds, startDate, endDate));
     }
 }

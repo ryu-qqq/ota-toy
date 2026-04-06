@@ -27,4 +27,12 @@ public class SupplierRawDataReadManager {
     public List<SupplierRawData> findFetched(SupplierId supplierId) {
         return rawDataQueryPort.findBySupplierIdAndStatus(supplierId, SupplierRawDataStatus.FETCHED);
     }
+
+    public List<SupplierRawData> findAllFetched() {
+        return rawDataQueryPort.findByStatus(SupplierRawDataStatus.FETCHED);
+    }
+
+    public List<SupplierRawData> findFetchedBatch(int batchSize) {
+        return rawDataQueryPort.findByStatusWithLimit(SupplierRawDataStatus.FETCHED, batchSize);
+    }
 }

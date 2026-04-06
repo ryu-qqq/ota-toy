@@ -3,6 +3,7 @@ package com.ryuqq.otatoy.persistence.redis.adapter;
 import com.ryuqq.otatoy.application.pricing.port.out.RateCachePort;
 import com.ryuqq.otatoy.persistence.redis.config.RateCacheProperties;
 import com.ryuqq.otatoy.persistence.redis.support.RateCacheKeyResolver;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.redisson.api.RBatch;
 import org.redisson.api.BatchResult;
 import org.redisson.api.RedissonClient;
@@ -13,6 +14,7 @@ import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -29,13 +31,16 @@ public class RateCacheAdapter implements RateCachePort {
     private final RedissonClient redissonClient;
     private final RateCacheKeyResolver keyResolver;
     private final RateCacheProperties properties;
+    private final MeterRegistry meterRegistry;
 
     public RateCacheAdapter(RedissonClient redissonClient,
                              RateCacheKeyResolver keyResolver,
-                             RateCacheProperties properties) {
+                             RateCacheProperties properties,
+                             MeterRegistry meterRegistry) {
         this.redissonClient = redissonClient;
         this.keyResolver = keyResolver;
         this.properties = properties;
+        this.meterRegistry = meterRegistry;
     }
 
     @Override
@@ -64,6 +69,12 @@ public class RateCacheAdapter implements RateCachePort {
                 cached.put(resultKeys.get(i), new BigDecimal(value.toString()));
             }
         }
+
+        // 캐시 히트/미스 메트릭 기록
+        int hitCount = (int) cached.values().stream().filter(Objects::nonNull).count();
+        int missCount = resultKeys.size() - hitCount;
+        meterRegistry.counter("rate.cache.hit").increment(hitCount);
+        meterRegistry.counter("rate.cache.miss").increment(missCount);
 
         return cached;
     }

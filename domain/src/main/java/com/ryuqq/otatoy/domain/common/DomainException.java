@@ -29,6 +29,18 @@ public abstract class DomainException extends RuntimeException {
         return errorCode;
     }
 
+    public String code() {
+        return errorCode.getCode();
+    }
+
+    public String errorMessage() {
+        return errorCode.getMessage();
+    }
+
+    public ErrorCategory category() {
+        return errorCode.getCategory();
+    }
+
     public Map<String, Object> getArgs() {
         return args;
     }

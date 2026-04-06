@@ -1,6 +1,7 @@
 package com.ryuqq.otatoy.domain.pricing;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * 요금 규칙 일급 컬렉션.
@@ -46,6 +47,10 @@ public class RateRules {
                 }
             }
         }
+    }
+
+    public Stream<RateRule> stream() {
+        return items.stream();
     }
 
     public List<RateRule> items() {

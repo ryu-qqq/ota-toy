@@ -1,6 +1,7 @@
 package com.ryuqq.otatoy.domain.roomtype;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * 객실 사진 일급 컬렉션.
@@ -40,6 +41,10 @@ public class RoomPhotos {
         if (distinctCount != items.size()) {
             throw new IllegalArgumentException("객실 사진의 정렬 순서가 중복됩니다");
         }
+    }
+
+    public Stream<RoomPhoto> stream() {
+        return items.stream();
     }
 
     public List<RoomPhoto> items() {

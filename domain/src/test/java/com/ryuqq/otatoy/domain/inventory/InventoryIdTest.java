@@ -51,4 +51,13 @@ class InventoryIdTest {
 
         assertThat(a).isNotEqualTo(b);
     }
+
+    @Test
+    @DisplayName("forNew()로 생성하면 value가 null이고 isNew()가 true이다")
+    void shouldCreateNewIdWithForNew() {
+        InventoryId id = InventoryId.forNew();
+
+        assertThat(id.value()).isNull();
+        assertThat(id.isNew()).isTrue();
+    }
 }

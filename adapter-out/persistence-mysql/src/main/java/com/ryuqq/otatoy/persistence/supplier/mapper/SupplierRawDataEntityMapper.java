@@ -4,6 +4,8 @@ import com.ryuqq.otatoy.domain.supplier.SupplierRawData;
 import com.ryuqq.otatoy.domain.supplier.SupplierRawDataId;
 import com.ryuqq.otatoy.domain.supplier.SupplierRawDataStatus;
 import com.ryuqq.otatoy.domain.supplier.SupplierId;
+import com.ryuqq.otatoy.domain.supplier.SupplierApiType;
+import com.ryuqq.otatoy.domain.supplier.SupplierTaskType;
 import com.ryuqq.otatoy.persistence.supplier.entity.SupplierRawDataJpaEntity;
 import org.springframework.stereotype.Component;
 
@@ -23,6 +25,8 @@ public class SupplierRawDataEntityMapper {
         return SupplierRawDataJpaEntity.create(
                 domain.id() != null ? domain.id().value() : null,
                 domain.supplierId().value(),
+                domain.taskType().name(),
+                domain.apiType().name(),
                 domain.rawPayload(),
                 domain.status().name(),
                 domain.fetchedAt(),
@@ -39,6 +43,8 @@ public class SupplierRawDataEntityMapper {
         return SupplierRawData.reconstitute(
                 SupplierRawDataId.of(entity.getId()),
                 SupplierId.of(entity.getSupplierId()),
+                SupplierTaskType.valueOf(entity.getTaskType()),
+                SupplierApiType.valueOf(entity.getApiType()),
                 entity.getRawPayload(),
                 SupplierRawDataStatus.valueOf(entity.getStatus()),
                 entity.getFetchedAt(),

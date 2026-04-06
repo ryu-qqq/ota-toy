@@ -1,0 +1,125 @@
+= OTA Customer API 문서
+:doctype: book
+:icons: font
+:source-highlighter: highlightjs
+:toc: left
+:toc-title: 목차
+:toclevels: 3
+:sectlinks:
+:operation-http-request-title: HTTP Request
+:operation-http-response-title: HTTP Response
+
+== 개요
+OTA 숙박 플랫폼의 Customer(고객) API 문서입니다.
+고객이 숙소를 검색하고, 요금을 비교하고, 예약/취소할 수 있는 API를 제공합니다.
+
+include::{coreDocsDir}/common.adoc[leveloffset=+1]
+
+=== 기본 정보
+|===
+| 항목 | 내용
+| Content-Type | `application/json`
+| 인증 | (추후 적용)
+|===
+
+=== 엔드포인트 요약
+|===
+| 메서드 | 경로 | 설명
+| GET | `/api/v1/search/properties` | 숙소 검색
+| GET | `/api/v1/properties/{propertyId}/rates` | 요금 조회
+| POST | `/api/v1/reservation-sessions` | 예약 세션 생성 (재고 선점)
+| POST | `/api/v1/reservations` | 예약 확정
+| PATCH | `/api/v1/reservations/{reservationId}/cancel` | 예약 취소
+|===
+
+== 숙소 검색
+
+=== GET 숙소 검색
+조건에 맞는 숙소를 커서 기반 페이지네이션으로 검색합니다.
+
+==== 정상 응답 (200)
+include::{snippets}/customer-search-properties/http-request.adoc[]
+include::{snippets}/customer-search-properties/query-parameters.adoc[]
+include::{snippets}/customer-search-properties/http-response.adoc[]
+include::{snippets}/customer-search-properties/response-fields.adoc[]
+
+==== 에러: 검증 실패 (400)
+include::{snippets}/customer-search-properties-validation-error/http-request.adoc[]
+include::{snippets}/customer-search-properties-validation-error/http-response.adoc[]
+include::{snippets}/customer-search-properties-validation-error/response-fields.adoc[]
+
+== 요금 조회
+
+=== GET 숙소 요금 조회
+특정 숙소의 객실별 요금을 조회합니다. Redis 캐시로 대규모 동시 요청을 처리합니다.
+
+==== 정상 응답 (200)
+include::{snippets}/customer-get-rates/http-request.adoc[]
+include::{snippets}/customer-get-rates/path-parameters.adoc[]
+include::{snippets}/customer-get-rates/query-parameters.adoc[]
+include::{snippets}/customer-get-rates/http-response.adoc[]
+include::{snippets}/customer-get-rates/response-fields.adoc[]
+
+==== 에러: 검증 실패 (400)
+include::{snippets}/customer-get-rates-validation-error/http-request.adoc[]
+include::{snippets}/customer-get-rates-validation-error/http-response.adoc[]
+include::{snippets}/customer-get-rates-validation-error/response-fields.adoc[]
+
+== 예약
+
+=== POST 예약 세션 생성
+재고를 선점하고 예약 세션을 생성합니다 (2단계 예약 프로세스의 1단계).
+`Idempotency-Key` 헤더로 멱등성을 보장합니다. 세션은 10분간 유효합니다.
+
+==== 정상 응답 (201)
+include::{snippets}/customer-create-session/http-request.adoc[]
+include::{snippets}/customer-create-session/request-headers.adoc[]
+include::{snippets}/customer-create-session/request-fields.adoc[]
+include::{snippets}/customer-create-session/http-response.adoc[]
+include::{snippets}/customer-create-session/response-fields.adoc[]
+
+==== 에러: 검증 실패 (400)
+include::{snippets}/customer-create-session-validation-error/http-request.adoc[]
+include::{snippets}/customer-create-session-validation-error/http-response.adoc[]
+include::{snippets}/customer-create-session-validation-error/response-fields.adoc[]
+
+==== 에러: 재고 소진 (409)
+include::{snippets}/customer-create-session-inventory-exhausted/http-request.adoc[]
+include::{snippets}/customer-create-session-inventory-exhausted/http-response.adoc[]
+
+=== POST 예약 확정
+유효한 세션을 기반으로 예약을 확정합니다 (2단계 예약 프로세스의 2단계).
+Redis Lua + DB 2중 구조로 동시성을 제어합니다.
+
+==== 정상 응답 (201)
+include::{snippets}/customer-confirm-reservation/http-request.adoc[]
+include::{snippets}/customer-confirm-reservation/request-fields.adoc[]
+include::{snippets}/customer-confirm-reservation/http-response.adoc[]
+include::{snippets}/customer-confirm-reservation/response-fields.adoc[]
+
+==== 에러: 세션 없음 (404)
+include::{snippets}/customer-confirm-reservation-session-not-found/http-request.adoc[]
+include::{snippets}/customer-confirm-reservation-session-not-found/http-response.adoc[]
+
+==== 에러: 세션 만료 (409)
+include::{snippets}/customer-confirm-reservation-session-expired/http-request.adoc[]
+include::{snippets}/customer-confirm-reservation-session-expired/http-response.adoc[]
+
+=== PATCH 예약 취소
+예약을 취소합니다. 취소 시 Redis + DB 재고가 복구됩니다.
+취소 사유는 선택 필드이며, body 없이도 요청 가능합니다.
+
+==== 정상 응답 (200)
+include::{snippets}/customer-cancel-reservation/http-request.adoc[]
+include::{snippets}/customer-cancel-reservation/path-parameters.adoc[]
+include::{snippets}/customer-cancel-reservation/request-fields.adoc[]
+include::{snippets}/customer-cancel-reservation/http-response.adoc[]
+include::{snippets}/customer-cancel-reservation/response-fields.adoc[]
+
+==== 에러: 예약 없음 (404)
+include::{snippets}/customer-cancel-reservation-not-found/http-request.adoc[]
+include::{snippets}/customer-cancel-reservation-not-found/http-response.adoc[]
+
+==== 에러: 이미 취소된 예약 (409)
+include::{snippets}/customer-cancel-reservation-already-cancelled/http-request.adoc[]
+include::{snippets}/customer-cancel-reservation-already-cancelled/http-response.adoc[]

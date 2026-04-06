@@ -1,0 +1,15 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: ota-scheduler
+  main:
+    web-application-type: none
+
+  config:
+    import:
+      - classpath:persistence.yml
+      - classpath:persistence-local.yml
+      - classpath:redis.yml
+      - classpath:redis-local.yml

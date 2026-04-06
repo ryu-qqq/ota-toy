@@ -9,6 +9,7 @@ package com.ryuqq.otatoy.domain.supplier;
  */
 public enum SupplierSyncType {
 
+    FETCH("데이터 수집"),
     PROPERTY("숙소 동기화"),
     ROOM_TYPE("객실 동기화"),
     RATE("요금 동기화"),

@@ -28,6 +28,12 @@ public class SupplierRawDataJpaEntity extends BaseAuditEntity {
     @Column(nullable = false)
     private Long supplierId;
 
+    @Column(nullable = false, length = 30)
+    private String taskType;
+
+    @Column(nullable = false, length = 30)
+    private String apiType;
+
     @Column(nullable = false, columnDefinition = "LONGTEXT")
     private String rawPayload;
 
@@ -43,27 +49,32 @@ public class SupplierRawDataJpaEntity extends BaseAuditEntity {
         super();
     }
 
-    private SupplierRawDataJpaEntity(Long id, Long supplierId, String rawPayload, String status,
-                                      Instant fetchedAt, Instant processedAt,
-                                      Instant createdAt, Instant updatedAt) {
+    private SupplierRawDataJpaEntity(Long id, Long supplierId, String taskType, String apiType,
+                                      String rawPayload, String status, Instant fetchedAt,
+                                      Instant processedAt, Instant createdAt, Instant updatedAt) {
         super(createdAt, updatedAt);
         this.id = id;
         this.supplierId = supplierId;
+        this.taskType = taskType;
+        this.apiType = apiType;
         this.rawPayload = rawPayload;
         this.status = status;
         this.fetchedAt = fetchedAt;
         this.processedAt = processedAt;
     }
 
-    public static SupplierRawDataJpaEntity create(Long id, Long supplierId, String rawPayload, String status,
+    public static SupplierRawDataJpaEntity create(Long id, Long supplierId, String taskType,
+                                                    String apiType, String rawPayload, String status,
                                                     Instant fetchedAt, Instant processedAt,
                                                     Instant createdAt, Instant updatedAt) {
-        return new SupplierRawDataJpaEntity(id, supplierId, rawPayload, status,
+        return new SupplierRawDataJpaEntity(id, supplierId, taskType, apiType, rawPayload, status,
                 fetchedAt, processedAt, createdAt, updatedAt);
     }
 
     public Long getId() { return id; }
     public Long getSupplierId() { return supplierId; }
+    public String getTaskType() { return taskType; }
+    public String getApiType() { return apiType; }
     public String getRawPayload() { return rawPayload; }
     public String getStatus() { return status; }
     public Instant getFetchedAt() { return fetchedAt; }

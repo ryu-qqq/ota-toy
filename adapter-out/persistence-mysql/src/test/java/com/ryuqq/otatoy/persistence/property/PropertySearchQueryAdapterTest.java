@@ -27,6 +27,7 @@ import com.ryuqq.otatoy.persistence.config.JpaConfig;
 import com.ryuqq.otatoy.persistence.config.QueryDslConfig;
 import com.ryuqq.otatoy.persistence.inventory.adapter.InventoryCommandAdapter;
 import com.ryuqq.otatoy.persistence.inventory.mapper.InventoryEntityMapper;
+import com.ryuqq.otatoy.persistence.inventory.repository.InventoryCommandDslRepository;
 import com.ryuqq.otatoy.persistence.pricing.adapter.RateCommandAdapter;
 import com.ryuqq.otatoy.persistence.pricing.adapter.RatePlanCommandAdapter;
 import com.ryuqq.otatoy.persistence.pricing.mapper.RateEntityMapper;
@@ -80,6 +81,7 @@ import static org.assertj.core.api.Assertions.assertThat;
         RoomTypeEntityMapper.class,
         InventoryCommandAdapter.class,
         InventoryEntityMapper.class,
+        InventoryCommandDslRepository.class,
         RatePlanCommandAdapter.class,
         RatePlanEntityMapper.class,
         RateCommandAdapter.class,

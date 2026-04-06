@@ -347,6 +347,18 @@ class InventoryTest {
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("0 이상");
         }
+
+        @Test
+        @DisplayName("totalInventory와 정확히 같은 값으로 설정하면 성공한다")
+        void shouldAllowExactTotalInventory() {
+            Inventory inventory = Inventory.reconstitute(
+                    InventoryId.of(1L), ROOM_TYPE_ID, INVENTORY_DATE, 10, 5, false, 1, NOW, NOW
+            );
+            inventory.updateAvailableCount(10);
+
+            assertThat(inventory.availableCount()).isEqualTo(10);
+            assertThat(inventory.totalReserved()).isZero();
+        }
     }
 
     // ========================================
@@ -401,6 +413,31 @@ class InventoryTest {
             Inventory inventory = Inventory.forNew(ROOM_TYPE_ID, INVENTORY_DATE, 10, NOW);
 
             assertThatThrownBy(() -> inventory.updateTotalInventory(0))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("1 이상");
+        }
+
+        @Test
+        @DisplayName("예약된 수량과 정확히 같게 설정하면 성공한다 (가용 0)")
+        void shouldAllowExactReservedCount() {
+            Inventory inventory = Inventory.reconstitute(
+                    InventoryId.of(1L), ROOM_TYPE_ID, INVENTORY_DATE, 10, 3, false, 1, NOW, NOW
+            );
+            // 예약된 수량 = 10 - 3 = 7
+            inventory.updateTotalInventory(7);
+
+            assertThat(inventory.totalInventory()).isEqualTo(7);
+            assertThat(inventory.availableCount()).isZero();
+            assertThat(inventory.totalReserved()).isEqualTo(7);
+            assertThat(inventory.isAvailable()).isFalse();
+        }
+
+        @Test
+        @DisplayName("전체 수량이 음수이면 예외 발생")
+        void shouldThrowWhenNegative() {
+            Inventory inventory = Inventory.forNew(ROOM_TYPE_ID, INVENTORY_DATE, 10, NOW);
+
+            assertThatThrownBy(() -> inventory.updateTotalInventory(-1))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("1 이상");
         }

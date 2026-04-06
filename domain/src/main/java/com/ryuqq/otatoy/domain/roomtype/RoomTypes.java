@@ -3,6 +3,7 @@ package com.ryuqq.otatoy.domain.roomtype;
 import com.ryuqq.otatoy.domain.property.PropertyId;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * 객실 유형 일급 컬렉션.
@@ -19,7 +20,7 @@ public class RoomTypes {
         this.items = items;
     }
 
-    public static RoomTypes of(List<RoomType> items) {
+    public static RoomTypes from(List<RoomType> items) {
         if (items == null || items.isEmpty()) {
             return new RoomTypes(List.of());
         }
@@ -30,6 +31,10 @@ public class RoomTypes {
         return items.stream()
                 .map(RoomType::id)
                 .toList();
+    }
+
+    public Stream<RoomType> stream() {
+        return items.stream();
     }
 
     public List<RoomType> items() {

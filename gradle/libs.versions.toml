@@ -25,6 +25,9 @@ archunit = "1.2.1"
 # API Documentation
 springdoc = "2.8.6"
 
+# Resilience
+resilience4j = "2.2.0"
+
 # Monitoring
 micrometer = "1.12.4"
 
@@ -71,9 +74,16 @@ testcontainers-bom = { module = "org.testcontainers:testcontainers-bom", version
 testcontainers-junit-jupiter = { module = "org.testcontainers:junit-jupiter" }
 testcontainers-mysql = { module = "org.testcontainers:mysql" }
 
+# Testcontainers (non-BOM managed)
+testcontainers-redis = { module = "com.redis:testcontainers-redis", version = "2.2.4" }
+
 
 # API Documentation
 springdoc-openapi-starter-webmvc-ui = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc" }
+
+# Resilience4j
+resilience4j-circuitbreaker = { module = "io.github.resilience4j:resilience4j-circuitbreaker", version.ref = "resilience4j" }
+resilience4j-retry = { module = "io.github.resilience4j:resilience4j-retry", version.ref = "resilience4j" }
 
 # Jackson
 jackson-databind = { module = "com.fasterxml.jackson.core:jackson-databind", version.ref = "jackson" }
@@ -81,6 +91,10 @@ jackson-datatype-jsr310 = { module = "com.fasterxml.jackson.datatype:jackson-dat
 
 # Micrometer
 micrometer-core = { module = "io.micrometer:micrometer-core", version.ref = "micrometer" }
+micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-prometheus" }
+
+# Actuator
+spring-boot-starter-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator" }
 
 [bundles]
 testing-basic = ["junit-jupiter", "assertj-core", "mockito-core", "mockito-junit-jupiter"]

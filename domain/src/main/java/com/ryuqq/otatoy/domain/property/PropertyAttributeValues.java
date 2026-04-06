@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * 숙소 속성값 일급 컬렉션.
@@ -71,7 +72,7 @@ public class PropertyAttributeValues {
         Map<Long, PropertyAttributeValue> existingByKey = items.stream()
                 .collect(Collectors.toMap(PropertyAttributeValue::attributeKey, v -> v));
 
-        Set<Long> newKeys = newValues.items().stream()
+        Set<Long> newKeys = newValues.stream()
                 .map(PropertyAttributeValue::attributeKey)
                 .collect(Collectors.toSet());
 
@@ -96,6 +97,10 @@ public class PropertyAttributeValues {
         }
 
         return new PropertyAttributeValueDiff(added, removed, retained, now);
+    }
+
+    public Stream<PropertyAttributeValue> stream() {
+        return items.stream();
     }
 
     public List<PropertyAttributeValue> items() {

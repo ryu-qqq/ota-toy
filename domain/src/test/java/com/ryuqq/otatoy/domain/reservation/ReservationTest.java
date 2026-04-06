@@ -391,7 +391,7 @@ class ReservationTest {
                         .isInstanceOf(ReservationAlreadyCancelledException.class)
                         .satisfies(ex -> {
                             ReservationAlreadyCancelledException e = (ReservationAlreadyCancelledException) ex;
-                            assertThat(e.getErrorCode().getCode()).isEqualTo("RSV-003");
+                            assertThat(e.code()).isEqualTo("RSV-003");
                         });
             }
 
@@ -404,7 +404,7 @@ class ReservationTest {
                         .isInstanceOf(ReservationAlreadyCompletedException.class)
                         .satisfies(ex -> {
                             ReservationAlreadyCompletedException e = (ReservationAlreadyCompletedException) ex;
-                            assertThat(e.getErrorCode().getCode()).isEqualTo("RSV-004");
+                            assertThat(e.code()).isEqualTo("RSV-004");
                         });
             }
 
@@ -417,7 +417,7 @@ class ReservationTest {
                         .isInstanceOf(InvalidReservationStateException.class)
                         .satisfies(ex -> {
                             InvalidReservationStateException e = (InvalidReservationStateException) ex;
-                            assertThat(e.getErrorCode().getCode()).isEqualTo("RSV-002");
+                            assertThat(e.code()).isEqualTo("RSV-002");
                         });
             }
         }

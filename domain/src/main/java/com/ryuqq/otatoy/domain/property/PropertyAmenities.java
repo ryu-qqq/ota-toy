@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * 숙소 편의시설 일급 컬렉션.
@@ -71,7 +72,7 @@ public class PropertyAmenities {
         Map<String, PropertyAmenity> existingByKey = items.stream()
                 .collect(Collectors.toMap(PropertyAmenity::amenityKey, a -> a));
 
-        Set<String> newKeys = newAmenities.items().stream()
+        Set<String> newKeys = newAmenities.stream()
                 .map(PropertyAmenity::amenityKey)
                 .collect(Collectors.toSet());
 
@@ -96,6 +97,10 @@ public class PropertyAmenities {
         }
 
         return new PropertyAmenityDiff(added, removed, retained, now);
+    }
+
+    public Stream<PropertyAmenity> stream() {
+        return items.stream();
     }
 
     public List<PropertyAmenity> items() {

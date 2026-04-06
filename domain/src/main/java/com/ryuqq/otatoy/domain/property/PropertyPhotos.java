@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * 숙소 사진 일급 컬렉션.
@@ -63,7 +64,7 @@ public class PropertyPhotos {
         Map<String, PropertyPhoto> existingByKey = items.stream()
                 .collect(Collectors.toMap(PropertyPhoto::photoKey, p -> p));
 
-        Set<String> newKeys = newPhotos.items().stream()
+        Set<String> newKeys = newPhotos.stream()
                 .map(PropertyPhoto::photoKey)
                 .collect(Collectors.toSet());
 
@@ -88,6 +89,10 @@ public class PropertyPhotos {
         }
 
         return new PropertyPhotoDiff(added, removed, retained, now);
+    }
+
+    public Stream<PropertyPhoto> stream() {
+        return items.stream();
     }
 
     public List<PropertyPhoto> items() {

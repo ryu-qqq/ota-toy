@@ -26,7 +26,7 @@ allowed-tools:
 
 ```
 Phase 0: 전제조건 확인
-  → docs/design/domain-convention.md 존재 확인
+  → docs/design/convention-01-domain.md 존재 확인
   → docs/erDiagram.md 존재 확인
   → DomainLayerArchTest.java 존재 확인
 

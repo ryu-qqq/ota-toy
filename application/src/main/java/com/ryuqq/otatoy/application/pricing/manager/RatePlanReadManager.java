@@ -52,6 +52,6 @@ public class RatePlanReadManager {
      */
     @Transactional(readOnly = true)
     public RatePlans findByRoomTypeIds(List<RoomTypeId> roomTypeIds) {
-        return RatePlans.of(ratePlanQueryPort.findByRoomTypeIds(roomTypeIds));
+        return RatePlans.from(ratePlanQueryPort.findByRoomTypeIds(roomTypeIds));
     }
 }

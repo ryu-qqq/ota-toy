@@ -1,7 +1,13 @@
 package com.ryuqq.otatoy.application.property.factory;
 
 import com.ryuqq.otatoy.application.property.dto.command.RegisterPropertyCommand;
+import com.ryuqq.otatoy.application.supplier.dto.SupplierPropertyData;
+import com.ryuqq.otatoy.domain.partner.PartnerId;
+import com.ryuqq.otatoy.domain.property.Location;
 import com.ryuqq.otatoy.domain.property.Property;
+import com.ryuqq.otatoy.domain.property.PropertyDescription;
+import com.ryuqq.otatoy.domain.property.PropertyName;
+import com.ryuqq.otatoy.domain.propertytype.PropertyTypeId;
 import com.ryuqq.otatoy.application.common.factory.TimeProvider;
 
 import org.springframework.stereotype.Component;
@@ -29,6 +35,24 @@ public class PropertyFactory {
      * Property 기본정보 도메인 객체를 생성한다.
      * 편의시설/사진/속성값은 별도 UseCase에서 처리하므로 여기서 생성하지 않는다.
      */
+    /**
+     * 외부 공급자 데이터로부터 Property를 생성한다.
+     * 공급자 연동 Property는 partnerId 없이 생성되므로 시스템 PartnerId(0)을 사용한다.
+     */
+    public Property createFromSupplier(SupplierPropertyData data) {
+        Instant now = timeProvider.now();
+        return Property.forNew(
+                PartnerId.of(0L),
+                null,
+                PropertyTypeId.of(1L),
+                PropertyName.of(data.name()),
+                PropertyDescription.of(data.description()),
+                Location.of(data.address(), data.latitude(), data.longitude(), null, null),
+                null,
+                now
+        );
+    }
+
     public Property createProperty(RegisterPropertyCommand command) {
         Instant now = timeProvider.now();
 

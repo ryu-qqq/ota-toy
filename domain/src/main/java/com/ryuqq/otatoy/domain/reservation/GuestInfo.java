@@ -21,6 +21,14 @@ public record GuestInfo(
         }
     }
 
+    public String phoneValue() {
+        return phone != null ? phone.value() : null;
+    }
+
+    public String emailValue() {
+        return email != null ? email.value() : null;
+    }
+
     public static GuestInfo of(String name, String phone, String email) {
         return new GuestInfo(
                 name,

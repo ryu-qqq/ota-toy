@@ -6,6 +6,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * 재고 일급 컬렉션.
@@ -22,7 +23,7 @@ public class Inventories {
         this.items = items;
     }
 
-    public static Inventories of(List<Inventory> items) {
+    public static Inventories from(List<Inventory> items) {
         if (items == null || items.isEmpty()) {
             return new Inventories(List.of());
         }
@@ -35,6 +36,10 @@ public class Inventories {
                         Inventory::roomTypeId,
                         Collectors.toMap(Inventory::inventoryDate, inv -> inv, (a, b) -> a)
                 ));
+    }
+
+    public Stream<Inventory> stream() {
+        return items.stream();
     }
 
     public List<Inventory> items() {

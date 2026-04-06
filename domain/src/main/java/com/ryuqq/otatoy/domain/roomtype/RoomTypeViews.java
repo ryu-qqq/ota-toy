@@ -1,6 +1,7 @@
 package com.ryuqq.otatoy.domain.roomtype;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * 객실 전망 매핑 일급 컬렉션.
@@ -40,6 +41,10 @@ public class RoomTypeViews {
         if (distinctCount != items.size()) {
             throw new IllegalArgumentException("객실 전망 유형이 중복됩니다");
         }
+    }
+
+    public Stream<RoomTypeView> stream() {
+        return items.stream();
     }
 
     public List<RoomTypeView> items() {

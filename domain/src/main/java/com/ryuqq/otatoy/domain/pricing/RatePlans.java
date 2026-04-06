@@ -5,6 +5,7 @@ import com.ryuqq.otatoy.domain.roomtype.RoomTypeId;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * 요금 정책 일급 컬렉션.
@@ -21,7 +22,7 @@ public class RatePlans {
         this.items = items;
     }
 
-    public static RatePlans of(List<RatePlan> items) {
+    public static RatePlans from(List<RatePlan> items) {
         if (items == null || items.isEmpty()) {
             return new RatePlans(List.of());
         }
@@ -37,6 +38,10 @@ public class RatePlans {
     public Map<RoomTypeId, List<RatePlan>> groupByRoomTypeId() {
         return items.stream()
                 .collect(Collectors.groupingBy(RatePlan::roomTypeId));
+    }
+
+    public Stream<RatePlan> stream() {
+        return items.stream();
     }
 
     public List<RatePlan> items() {

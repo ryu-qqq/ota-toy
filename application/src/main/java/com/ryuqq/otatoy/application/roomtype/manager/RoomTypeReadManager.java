@@ -55,6 +55,6 @@ public class RoomTypeReadManager {
      */
     @Transactional(readOnly = true)
     public RoomTypes findActiveByPropertyIdAndMinOccupancy(PropertyId propertyId, int minOccupancy) {
-        return RoomTypes.of(roomTypeQueryPort.findActiveByPropertyIdAndMinOccupancy(propertyId, minOccupancy));
+        return RoomTypes.from(roomTypeQueryPort.findActiveByPropertyIdAndMinOccupancy(propertyId, minOccupancy));
     }
 }

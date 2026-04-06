@@ -14,6 +14,8 @@ import com.ryuqq.otatoy.domain.pricing.RatePlans;
 import com.ryuqq.otatoy.domain.property.RateFetchCriteria;
 import com.ryuqq.otatoy.domain.roomtype.RoomTypes;
 
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -44,23 +46,28 @@ public class CustomerGetRateService implements CustomerGetRateUseCase {
     private final RateCacheManager rateCacheManager;
     private final InventoryReadManager inventoryReadManager;
     private final PropertyRateAssembler assembler;
+    private final MeterRegistry meterRegistry;
 
     public CustomerGetRateService(RateCriteriaFactory criteriaFactory,
                                    RoomTypeReadManager roomTypeReadManager,
                                    RatePlanReadManager ratePlanReadManager,
                                    RateCacheManager rateCacheManager,
                                    InventoryReadManager inventoryReadManager,
-                                   PropertyRateAssembler assembler) {
+                                   PropertyRateAssembler assembler,
+                                   MeterRegistry meterRegistry) {
         this.criteriaFactory = criteriaFactory;
         this.roomTypeReadManager = roomTypeReadManager;
         this.ratePlanReadManager = ratePlanReadManager;
         this.rateCacheManager = rateCacheManager;
         this.inventoryReadManager = inventoryReadManager;
         this.assembler = assembler;
+        this.meterRegistry = meterRegistry;
     }
 
     @Override
     public CustomerPropertyRateResult execute(CustomerGetRateQuery query) {
+        Timer.Sample sample = Timer.start(meterRegistry);
+
         RateFetchCriteria criteria = criteriaFactory.create(query);
 
         // 1. 수용 가능한 객실 유형 조회
@@ -68,6 +75,7 @@ public class CustomerGetRateService implements CustomerGetRateUseCase {
                 criteria.propertyId(), criteria.guests());
 
         if (roomTypes.isEmpty()) {
+            sample.stop(meterRegistry.timer("rate.query.duration"));
             return CustomerPropertyRateResult.empty(criteria.propertyId());
         }
 
@@ -75,6 +83,7 @@ public class CustomerGetRateService implements CustomerGetRateUseCase {
         RatePlans ratePlans = ratePlanReadManager.findByRoomTypeIds(roomTypes.roomTypeIds());
 
         if (ratePlans.isEmpty()) {
+            sample.stop(meterRegistry.timer("rate.query.duration"));
             return CustomerPropertyRateResult.empty(criteria.propertyId());
         }
 
@@ -87,6 +96,8 @@ public class CustomerGetRateService implements CustomerGetRateUseCase {
                 roomTypes.roomTypeIds(), criteria.checkIn(), criteria.checkOut());
 
         // 5. 결과 조립
-        return assembler.toResult(criteria, roomTypes, ratePlans, rateCache, inventories);
+        CustomerPropertyRateResult result = assembler.toResult(criteria, roomTypes, ratePlans, rateCache, inventories);
+        sample.stop(meterRegistry.timer("rate.query.duration"));
+        return result;
     }
 }

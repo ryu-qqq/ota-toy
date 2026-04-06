@@ -13,6 +13,7 @@ import com.ryuqq.otatoy.persistence.config.QueryDslConfig;
 import com.ryuqq.otatoy.persistence.inventory.adapter.InventoryCommandAdapter;
 import com.ryuqq.otatoy.persistence.inventory.adapter.InventoryQueryAdapter;
 import com.ryuqq.otatoy.persistence.inventory.mapper.InventoryEntityMapper;
+import com.ryuqq.otatoy.persistence.inventory.repository.InventoryCommandDslRepository;
 import com.ryuqq.otatoy.persistence.inventory.repository.InventoryQueryDslRepository;
 import com.ryuqq.otatoy.persistence.property.adapter.PropertyCommandAdapter;
 import com.ryuqq.otatoy.persistence.property.mapper.PropertyEntityMapper;
@@ -48,6 +49,7 @@ import static org.assertj.core.api.Assertions.assertThat;
         InventoryQueryAdapter.class,
         InventoryEntityMapper.class,
         InventoryQueryDslRepository.class,
+        InventoryCommandDslRepository.class,
         PropertyCommandAdapter.class,
         PropertyEntityMapper.class,
         RoomTypeCommandAdapter.class,

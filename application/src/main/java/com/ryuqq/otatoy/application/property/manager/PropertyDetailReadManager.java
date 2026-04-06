@@ -58,7 +58,7 @@ public class PropertyDetailReadManager {
 
         PropertyAttributeValues attributeValues = attributeValueQueryPort.findByPropertyId(propertyId);
 
-        RoomTypes roomTypes = RoomTypes.of(roomTypeQueryPort.findByPropertyId(propertyId));
+        RoomTypes roomTypes = RoomTypes.from(roomTypeQueryPort.findByPropertyId(propertyId));
 
         return new PropertyDetailBundle(property, photos, amenities, attributeValues, roomTypes);
     }

@@ -14,6 +14,8 @@ public class SupplierRawData {
 
     private final SupplierRawDataId id;
     private final SupplierId supplierId;
+    private final SupplierTaskType taskType;
+    private final SupplierApiType apiType;
     private final String rawPayload;
     private SupplierRawDataStatus status;
     private final Instant fetchedAt;
@@ -21,11 +23,14 @@ public class SupplierRawData {
     private final Instant createdAt;
     private Instant updatedAt;
 
-    private SupplierRawData(SupplierRawDataId id, SupplierId supplierId, String rawPayload,
-                            SupplierRawDataStatus status, Instant fetchedAt, Instant processedAt,
-                            Instant createdAt, Instant updatedAt) {
+    private SupplierRawData(SupplierRawDataId id, SupplierId supplierId, SupplierTaskType taskType,
+                            SupplierApiType apiType, String rawPayload,
+                            SupplierRawDataStatus status, Instant fetchedAt,
+                            Instant processedAt, Instant createdAt, Instant updatedAt) {
         this.id = id;
         this.supplierId = supplierId;
+        this.taskType = taskType;
+        this.apiType = apiType;
         this.rawPayload = rawPayload;
         this.status = status;
         this.fetchedAt = fetchedAt;
@@ -34,18 +39,28 @@ public class SupplierRawData {
         this.updatedAt = updatedAt;
     }
 
-    public static SupplierRawData forNew(SupplierId supplierId, String rawPayload, Instant now) {
+    public static SupplierRawData forNew(SupplierId supplierId, SupplierTaskType taskType,
+                                          SupplierApiType apiType, String rawPayload, Instant now) {
         validate(rawPayload);
+        if (taskType == null) {
+            throw new IllegalArgumentException("작업 유형은 필수입니다");
+        }
+        if (apiType == null) {
+            throw new IllegalArgumentException("API 유형은 필수입니다");
+        }
         return new SupplierRawData(
-                SupplierRawDataId.forNew(), supplierId, rawPayload,
+                SupplierRawDataId.forNew(), supplierId, taskType, apiType, rawPayload,
                 SupplierRawDataStatus.FETCHED, now, null, now, now
         );
     }
 
-    public static SupplierRawData reconstitute(SupplierRawDataId id, SupplierId supplierId, String rawPayload,
-                                                SupplierRawDataStatus status, Instant fetchedAt,
-                                                Instant processedAt, Instant createdAt, Instant updatedAt) {
-        return new SupplierRawData(id, supplierId, rawPayload, status, fetchedAt, processedAt, createdAt, updatedAt);
+    public static SupplierRawData reconstitute(SupplierRawDataId id, SupplierId supplierId,
+                                                SupplierTaskType taskType, SupplierApiType apiType,
+                                                String rawPayload, SupplierRawDataStatus status,
+                                                Instant fetchedAt, Instant processedAt,
+                                                Instant createdAt, Instant updatedAt) {
+        return new SupplierRawData(id, supplierId, taskType, apiType, rawPayload, status,
+                fetchedAt, processedAt, createdAt, updatedAt);
     }
 
     private static void validate(String rawPayload) {
@@ -78,6 +93,8 @@ public class SupplierRawData {
 
     public SupplierRawDataId id() { return id; }
     public SupplierId supplierId() { return supplierId; }
+    public SupplierTaskType taskType() { return taskType; }
+    public SupplierApiType apiType() { return apiType; }
     public String rawPayload() { return rawPayload; }
     public SupplierRawDataStatus status() { return status; }
     public Instant fetchedAt() { return fetchedAt; }

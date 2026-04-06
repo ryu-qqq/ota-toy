@@ -1,0 +1,154 @@
+# OTA-TOY 로컬 개발 환경
+# 사용법:
+#   전체 실행: docker compose -f infra/local-dev/docker-compose.yml up -d
+#   인프라만:  docker compose -f infra/local-dev/docker-compose.yml up -d mysql redis
+#   특정 앱:   docker compose -f infra/local-dev/docker-compose.yml up -d extranet
+#   로그 확인: docker compose -f infra/local-dev/docker-compose.yml logs -f extranet
+#   전체 종료: docker compose -f infra/local-dev/docker-compose.yml down
+
+services:
+
+  # ==============================
+  # 인프라
+  # ==============================
+
+  mysql:
+    image: mysql:8.4
+    container_name: otatoy-mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: ota
+      MYSQL_CHARACTER_SET_SERVER: utf8mb4
+      MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
+      TZ: Asia/Seoul
+    volumes:
+      - mysql-data:/var/lib/mysql
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-time-zone=+09:00
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: otatoy-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ==============================
+  # 모니터링
+  # ==============================
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: otatoy-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    depends_on:
+      - extranet
+      - customer
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: otatoy-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    depends_on:
+      - prometheus
+
+  # ==============================
+  # 애플리케이션
+  # ==============================
+
+  extranet:
+    build:
+      context: ../..
+      dockerfile: infra/local-dev/Dockerfile
+      args:
+        MODULE: bootstrap-extranet
+    container_name: otatoy-extranet
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: ota
+      DB_USER: root
+      DB_PASSWORD: root
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  customer:
+    build:
+      context: ../..
+      dockerfile: infra/local-dev/Dockerfile
+      args:
+        MODULE: bootstrap-customer
+    container_name: otatoy-customer
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: ota
+      DB_USER: root
+      DB_PASSWORD: root
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  scheduler:
+    build:
+      context: ../..
+      dockerfile: infra/local-dev/Dockerfile
+      args:
+        MODULE: bootstrap-scheduler
+    container_name: otatoy-scheduler
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: ota
+      DB_USER: root
+      DB_PASSWORD: root
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  mysql-data:
+  redis-data:

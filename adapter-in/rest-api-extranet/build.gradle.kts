@@ -21,6 +21,8 @@ tasks.test {
     outputs.dir(snippetsDir)
 }
 
+val coreDocsDir = project(":adapter-in:rest-api-core").file("src/docs/asciidocs")
+
 tasks.asciidoctor {
     inputs.dir(snippetsDir)
     dependsOn(tasks.test)
@@ -29,6 +31,8 @@ tasks.asciidoctor {
     setOutputDir(file("build/docs/asciidoc"))
     attributes(mapOf(
         "snippets" to snippetsDir.absolutePath,
-        "stylesheet" to "custom-style.css"
+        "stylesheet" to "custom-style.css",
+        "stylesdir" to coreDocsDir.absolutePath,
+        "coreDocsDir" to coreDocsDir.absolutePath
     ))
 }

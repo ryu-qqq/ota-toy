@@ -2,6 +2,7 @@ package com.ryuqq.otatoy.domain.pricing;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * 요금 오버라이드 일급 컬렉션.
@@ -49,6 +50,10 @@ public class RateOverrides {
                     .toList();
             throw new IllegalArgumentException("오버라이드 날짜가 중복됩니다: " + duplicates);
         }
+    }
+
+    public Stream<RateOverride> stream() {
+        return items.stream();
     }
 
     public List<RateOverride> items() {

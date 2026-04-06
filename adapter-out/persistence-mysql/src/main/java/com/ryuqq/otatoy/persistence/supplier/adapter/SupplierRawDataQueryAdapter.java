@@ -8,6 +8,8 @@ import com.ryuqq.otatoy.persistence.supplier.mapper.SupplierRawDataEntityMapper;
 import com.ryuqq.otatoy.persistence.supplier.repository.SupplierRawDataJpaRepository;
 import org.springframework.stereotype.Component;
 
+import org.springframework.data.domain.PageRequest;
+
 import java.util.List;
 
 /**
@@ -32,6 +34,22 @@ public class SupplierRawDataQueryAdapter implements SupplierRawDataQueryPort {
     @Override
     public List<SupplierRawData> findBySupplierIdAndStatus(SupplierId supplierId, SupplierRawDataStatus status) {
         return jpaRepository.findBySupplierIdAndStatus(supplierId.value(), status.name())
+                .stream()
+                .map(mapper::toDomain)
+                .toList();
+    }
+
+    @Override
+    public List<SupplierRawData> findByStatus(SupplierRawDataStatus status) {
+        return jpaRepository.findByStatus(status.name())
+                .stream()
+                .map(mapper::toDomain)
+                .toList();
+    }
+
+    @Override
+    public List<SupplierRawData> findByStatusWithLimit(SupplierRawDataStatus status, int limit) {
+        return jpaRepository.findByStatus(status.name(), PageRequest.of(0, limit))
                 .stream()
                 .map(mapper::toDomain)
                 .toList();

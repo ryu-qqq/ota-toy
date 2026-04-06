@@ -34,6 +34,10 @@ public record Money(BigDecimal amount) {
                 .setScale(2, RoundingMode.HALF_UP));
     }
 
+    public String toPlainString() {
+        return amount.toPlainString();
+    }
+
     public boolean isZero() {
         return amount.compareTo(BigDecimal.ZERO) == 0;
     }

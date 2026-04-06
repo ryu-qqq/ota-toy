@@ -45,13 +45,13 @@ class GetPropertyDetailServiceTest {
                 null, PropertyPhotos.reconstitute(List.of()),
                 PropertyAmenities.reconstitute(List.of()),
                 PropertyAttributeValues.reconstitute(List.of()),
-                RoomTypes.of(List.of())
+                RoomTypes.from(List.of())
             );
             var detail = PropertyDetail.of(null,
                 PropertyPhotos.reconstitute(List.of()),
                 PropertyAmenities.reconstitute(List.of()),
                 PropertyAttributeValues.reconstitute(List.of()),
-                RoomTypes.of(List.of())
+                RoomTypes.from(List.of())
             );
 
             given(detailReadManager.getById(propertyId)).willReturn(bundle);
@@ -93,7 +93,7 @@ class GetPropertyDetailServiceTest {
                 null, PropertyPhotos.reconstitute(List.of()),
                 PropertyAmenities.reconstitute(List.of()),
                 PropertyAttributeValues.reconstitute(List.of()),
-                RoomTypes.of(List.of())
+                RoomTypes.from(List.of())
             );
 
             given(detailReadManager.getById(propertyId)).willReturn(bundle);

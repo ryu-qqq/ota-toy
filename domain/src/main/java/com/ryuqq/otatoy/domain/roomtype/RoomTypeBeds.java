@@ -1,6 +1,7 @@
 package com.ryuqq.otatoy.domain.roomtype;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * 객실 침대 구성 일급 컬렉션.
@@ -46,6 +47,10 @@ public class RoomTypeBeds {
         return items.stream()
                 .mapToInt(RoomTypeBed::quantity)
                 .sum();
+    }
+
+    public Stream<RoomTypeBed> stream() {
+        return items.stream();
     }
 
     public List<RoomTypeBed> items() {

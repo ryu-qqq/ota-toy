@@ -22,7 +22,8 @@ public abstract class MySqlTestContainerConfig {
         .withCommand(
             "--character-set-server=utf8mb4",
             "--collation-server=utf8mb4_unicode_ci",
-            "--lower-case-table-names=1"
+            "--lower-case-table-names=1",
+            "--max-connections=300"
         )
         .withReuse(true);
 
@@ -36,6 +37,8 @@ public abstract class MySqlTestContainerConfig {
         registry.add("spring.datasource.username", mysql::getUsername);
         registry.add("spring.datasource.password", mysql::getPassword);
         registry.add("spring.datasource.driver-class-name", () -> "com.mysql.cj.jdbc.Driver");
+        registry.add("spring.datasource.hikari.maximum-pool-size", () -> "5");
+        registry.add("spring.datasource.hikari.minimum-idle", () -> "1");
         registry.add("spring.jpa.hibernate.ddl-auto", () -> "none");
         registry.add("spring.jpa.properties.hibernate.dialect", () -> "org.hibernate.dialect.MySQLDialect");
         registry.add("spring.jpa.show-sql", () -> "true");

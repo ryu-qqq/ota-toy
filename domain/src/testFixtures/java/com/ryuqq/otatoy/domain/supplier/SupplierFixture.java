@@ -161,4 +161,94 @@ public final class SupplierFixture {
                 DEFAULT_NOW, DEFAULT_NOW
         );
     }
+
+    // === SupplierApiConfig Fixture ===
+
+    /**
+     * 기본 SupplierApiConfig (supplierId=1, 30분 간격)
+     */
+    public static SupplierApiConfig activeApiConfig() {
+        return SupplierApiConfig.reconstitute(
+                1L, SupplierId.of(1L), SupplierApiType.MOCK,
+                "https://api.test.com", "test-api-key", "BEARER",
+                30, DEFAULT_NOW, DEFAULT_NOW
+        );
+    }
+
+    /**
+     * 지정 supplierId의 SupplierApiConfig
+     */
+    public static SupplierApiConfig apiConfigForSupplier(Long supplierId) {
+        return SupplierApiConfig.reconstitute(
+                supplierId, SupplierId.of(supplierId), SupplierApiType.MOCK,
+                "https://api.test.com", "test-api-key", "BEARER",
+                30, DEFAULT_NOW, DEFAULT_NOW
+        );
+    }
+
+    // === SupplierTask Fixture ===
+
+    /**
+     * PENDING 상태의 PROPERTY_CONTENT Task
+     */
+    public static SupplierTask pendingPropertyContentTask() {
+        return SupplierTask.forNew(
+                SupplierId.of(1L), 1L,
+                SupplierTaskType.PROPERTY_CONTENT, null, 3, DEFAULT_NOW
+        );
+    }
+
+    /**
+     * PENDING 상태의 RATE_AVAILABILITY Task
+     */
+    public static SupplierTask pendingRateAvailabilityTask() {
+        return SupplierTask.forNew(
+                SupplierId.of(1L), 1L,
+                SupplierTaskType.RATE_AVAILABILITY, null, 3, DEFAULT_NOW
+        );
+    }
+
+    /**
+     * COMPLETED 상태의 PROPERTY_CONTENT Task (DB 복원)
+     */
+    public static SupplierTask completedPropertyContentTask() {
+        return SupplierTask.reconstitute(
+                SupplierTaskId.of(1L), SupplierId.of(1L), 1L,
+                SupplierTaskType.PROPERTY_CONTENT, SupplierTaskStatus.COMPLETED, null,
+                0, 3, null, DEFAULT_NOW, DEFAULT_NOW
+        );
+    }
+
+    /**
+     * COMPLETED 상태의 RATE_AVAILABILITY Task (DB 복원)
+     */
+    public static SupplierTask completedRateAvailabilityTask() {
+        return SupplierTask.reconstitute(
+                SupplierTaskId.of(2L), SupplierId.of(1L), 1L,
+                SupplierTaskType.RATE_AVAILABILITY, SupplierTaskStatus.COMPLETED, null,
+                0, 3, null, DEFAULT_NOW, DEFAULT_NOW
+        );
+    }
+
+    /**
+     * FAILED 상태의 Task (재시도 가능, DB 복원)
+     */
+    public static SupplierTask failedRetryableTask() {
+        return SupplierTask.reconstitute(
+                SupplierTaskId.of(3L), SupplierId.of(1L), 1L,
+                SupplierTaskType.PROPERTY_CONTENT, SupplierTaskStatus.FAILED, null,
+                1, 3, "Connection timeout", DEFAULT_NOW, DEFAULT_NOW
+        );
+    }
+
+    // === SupplierRawData Fixture ===
+
+    /**
+     * FETCHED 상태의 RawData
+     */
+    public static SupplierRawData fetchedRawData() {
+        return SupplierRawData.forNew(
+                SupplierId.of(1L), SupplierTaskType.PROPERTY_CONTENT, SupplierApiType.MOCK, "{\"properties\":[]}", DEFAULT_NOW
+        );
+    }
 }
