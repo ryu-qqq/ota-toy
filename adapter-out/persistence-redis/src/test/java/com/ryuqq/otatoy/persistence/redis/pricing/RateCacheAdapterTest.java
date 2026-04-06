@@ -18,6 +18,9 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -57,7 +60,8 @@ class RateCacheAdapterTest extends RedisTestContainerConfig {
         properties.setKeyPrefix("test-rate:");
         properties.setTtl(Duration.ofHours(1));
         keyResolver = new RateCacheKeyResolver(properties);
-        adapter = new RateCacheAdapter(redissonClient, keyResolver, properties);
+        MeterRegistry meterRegistry = new SimpleMeterRegistry();
+        adapter = new RateCacheAdapter(redissonClient, keyResolver, properties, meterRegistry);
 
         // 테스트 격리: 기존 키 정리
         List<String> keys = keyResolver.resolveAll(List.of(ratePlanId1, ratePlanId2), List.of(date1, date2));

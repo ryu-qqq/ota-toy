@@ -125,6 +125,9 @@ public class SupplierTask {
      * 재시도 횟수가 소진되었으면 예외를 발생시킨다.
      */
     public void resetToPending() {
+        if (this.status != SupplierTaskStatus.FAILED) {
+            throw new InvalidSupplierTaskStateTransitionException(this.status, SupplierTaskStatus.PENDING);
+        }
         if (!canRetry()) {
             throw new SupplierTaskRetryExhaustedException();
         }

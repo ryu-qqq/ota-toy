@@ -23,6 +23,9 @@ import static org.mockito.BDDMockito.willDoNothing;
 import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.never;
 
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Counter;
+
 /**
  * isRedisConnectionFailure()가 클래스명으로 판별하므로,
  * 테스트용 예외 클래스를 정의하여 시뮬레이션한다.
@@ -52,8 +55,19 @@ class InventoryClientManagerTest {
     @Mock
     InventoryCommandManager inventoryCommandManager;
 
+    @Mock
+    MeterRegistry meterRegistry;
+
+    @Mock
+    Counter counter;
+
     @InjectMocks
     InventoryClientManager clientManager;
+
+    @org.junit.jupiter.api.BeforeEach
+    void setUpMeter() {
+        org.mockito.Mockito.lenient().when(meterRegistry.counter(org.mockito.ArgumentMatchers.anyString())).thenReturn(counter);
+    }
 
     private static final RoomTypeId ROOM_TYPE_ID = RoomTypeId.of(1L);
     private static final List<LocalDate> DATES = List.of(

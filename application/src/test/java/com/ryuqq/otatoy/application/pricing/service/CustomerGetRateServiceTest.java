@@ -39,9 +39,14 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 
 /**
  * CustomerGetRateService 단위 테스트.
@@ -62,7 +67,14 @@ class CustomerGetRateServiceTest {
     @Mock InventoryReadManager inventoryReadManager;
     @Mock PropertyRateAssembler assembler;
 
-    @InjectMocks CustomerGetRateService service;
+    private CustomerGetRateService service;
+
+    @org.junit.jupiter.api.BeforeEach
+    void setUp() {
+        MeterRegistry meterRegistry = new SimpleMeterRegistry();
+        service = new CustomerGetRateService(criteriaFactory, roomTypeReadManager,
+                ratePlanReadManager, rateCacheManager, inventoryReadManager, assembler, meterRegistry);
+    }
 
     // -- 헬퍼 --
 
