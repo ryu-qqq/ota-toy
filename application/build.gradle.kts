@@ -10,6 +10,8 @@ dependencies {
 
     implementation(rootProject.libs.spring.context)
     implementation(rootProject.libs.spring.tx)
+    implementation(rootProject.libs.jackson.databind)
+    implementation(rootProject.libs.jackson.datatype.jsr310)
 
     // domain 테스트 픽스처 재사용
     testImplementation(testFixtures(project(":domain")))
