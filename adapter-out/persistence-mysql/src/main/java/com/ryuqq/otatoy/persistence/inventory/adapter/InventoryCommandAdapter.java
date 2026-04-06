@@ -4,9 +4,11 @@ import com.ryuqq.otatoy.application.inventory.port.out.InventoryCommandPort;
 import com.ryuqq.otatoy.domain.inventory.Inventory;
 import com.ryuqq.otatoy.persistence.inventory.entity.InventoryJpaEntity;
 import com.ryuqq.otatoy.persistence.inventory.mapper.InventoryEntityMapper;
+import com.ryuqq.otatoy.persistence.inventory.repository.InventoryCommandDslRepository;
 import com.ryuqq.otatoy.persistence.inventory.repository.InventoryJpaRepository;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -20,10 +22,14 @@ import java.util.List;
 public class InventoryCommandAdapter implements InventoryCommandPort {
 
     private final InventoryJpaRepository jpaRepository;
+    private final InventoryCommandDslRepository commandDslRepository;
     private final InventoryEntityMapper mapper;
 
-    public InventoryCommandAdapter(InventoryJpaRepository jpaRepository, InventoryEntityMapper mapper) {
+    public InventoryCommandAdapter(InventoryJpaRepository jpaRepository,
+                                    InventoryCommandDslRepository commandDslRepository,
+                                    InventoryEntityMapper mapper) {
         this.jpaRepository = jpaRepository;
+        this.commandDslRepository = commandDslRepository;
         this.mapper = mapper;
     }
 
@@ -33,5 +39,15 @@ public class InventoryCommandAdapter implements InventoryCommandPort {
                 .map(mapper::toEntity)
                 .toList();
         jpaRepository.saveAll(entities);
+    }
+
+    @Override
+    public boolean decrementAvailable(Long roomTypeId, LocalDate date) {
+        return commandDslRepository.decrementAvailable(roomTypeId, date) > 0;
+    }
+
+    @Override
+    public void incrementAvailable(Long roomTypeId, LocalDate date) {
+        commandDslRepository.incrementAvailable(roomTypeId, date);
     }
 }

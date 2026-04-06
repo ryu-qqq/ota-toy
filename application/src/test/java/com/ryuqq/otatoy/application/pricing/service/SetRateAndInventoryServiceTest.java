@@ -1,5 +1,6 @@
 package com.ryuqq.otatoy.application.pricing.service;
 
+import com.ryuqq.otatoy.application.inventory.manager.InventoryClientManager;
 import com.ryuqq.otatoy.application.pricing.dto.RateAndInventoryBundle;
 import com.ryuqq.otatoy.application.pricing.dto.command.SetRateAndInventoryCommand;
 import com.ryuqq.otatoy.application.pricing.facade.RateAndInventoryPersistenceFacade;
@@ -56,6 +57,9 @@ class SetRateAndInventoryServiceTest {
 
     @Mock
     RateAndInventoryPersistenceFacade persistenceFacade;
+
+    @Mock
+    InventoryClientManager inventoryClientManager;
 
     @InjectMocks
     SetRateAndInventoryService service;

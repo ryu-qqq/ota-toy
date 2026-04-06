@@ -1,0 +1,9 @@
+spring:
+  data:
+    redis:
+      timeout: 3000ms
+      connect-timeout: 3000ms
+
+rate-cache:
+  key-prefix: "rate:"
+  ttl: PT24H

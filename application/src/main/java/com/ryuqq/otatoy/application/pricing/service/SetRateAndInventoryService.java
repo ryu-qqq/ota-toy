@@ -1,5 +1,6 @@
 package com.ryuqq.otatoy.application.pricing.service;
 
+import com.ryuqq.otatoy.application.inventory.manager.InventoryClientManager;
 import com.ryuqq.otatoy.application.pricing.dto.RateAndInventoryBundle;
 import com.ryuqq.otatoy.application.pricing.dto.command.SetRateAndInventoryCommand;
 import com.ryuqq.otatoy.application.pricing.facade.RateAndInventoryPersistenceFacade;
@@ -7,9 +8,14 @@ import com.ryuqq.otatoy.application.pricing.factory.RateAndInventoryFactory;
 import com.ryuqq.otatoy.application.pricing.manager.RatePlanReadManager;
 import com.ryuqq.otatoy.application.pricing.port.in.SetRateAndInventoryUseCase;
 import com.ryuqq.otatoy.application.pricing.validator.SetRateAndInventoryValidator;
+import com.ryuqq.otatoy.domain.inventory.Inventory;
 import com.ryuqq.otatoy.domain.pricing.RatePlan;
 
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDate;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 요금/재고 설정 Service.
@@ -27,30 +33,37 @@ public class SetRateAndInventoryService implements SetRateAndInventoryUseCase {
     private final RatePlanReadManager ratePlanReadManager;
     private final RateAndInventoryFactory factory;
     private final RateAndInventoryPersistenceFacade persistenceFacade;
+    private final InventoryClientManager inventoryClientManager;
 
     public SetRateAndInventoryService(SetRateAndInventoryValidator validator,
                                        RatePlanReadManager ratePlanReadManager,
                                        RateAndInventoryFactory factory,
-                                       RateAndInventoryPersistenceFacade persistenceFacade) {
+                                       RateAndInventoryPersistenceFacade persistenceFacade,
+                                       InventoryClientManager inventoryClientManager) {
         this.validator = validator;
         this.ratePlanReadManager = ratePlanReadManager;
         this.factory = factory;
         this.persistenceFacade = persistenceFacade;
+        this.inventoryClientManager = inventoryClientManager;
     }
 
     @Override
     public void execute(SetRateAndInventoryCommand command) {
-        // 1. RatePlan 존재 확인 (AC-2)
+        // 1. RatePlan 존재 확인
         validator.validate(command);
 
-        // 2. RatePlan 조회 -- roomTypeId 획득용
+        // 2. RatePlan 조회 — roomTypeId 획득용
         RatePlan ratePlan = ratePlanReadManager.getById(command.ratePlanId());
 
-        // 3. 도메인 객체 번들 생성 (Factory -- RateRule + RateOverride + Rate + Inventory)
-        //    Rate 생성은 RateRule.generateRates()가 담당 (AC-4, AC-8)
+        // 3. 도메인 객체 번들 생성
         RateAndInventoryBundle bundle = factory.createBundle(command, ratePlan);
 
-        // 4. 원자적 저장 (PersistenceFacade -- AC-9)
+        // 4. DB 원자적 저장
         persistenceFacade.persist(bundle);
+
+        // 5. Redis 재고 카운터 초기화
+        Map<LocalDate, Integer> dateStockMap = bundle.inventories().stream()
+            .collect(Collectors.toMap(Inventory::inventoryDate, Inventory::totalInventory));
+        inventoryClientManager.initializeStock(ratePlan.roomTypeId(), dateStockMap);
     }
 }
