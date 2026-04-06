@@ -186,7 +186,7 @@
 **16. 동시성 제어 — Redis Lua + DB 원자적 UPDATE 2중 구조 (ADR-001)**
 - 선택: Redis가 1차 게이트키퍼, DB가 최종 정합성 보장
 - 대안: (A) DB 비관적 락 — 데드락 위험, 10박 예약 시 10행 잠금 필요 (B) DB 낙관적 락 — 동시 요청 많으면 재시도 폭발 (C) Redis만 — SPOF, Redis-DB 정합성 관리 필요 (D) DB 원자적 UPDATE만 — 중규모까지 충분하지만 동시 부하 시 병목
-- 이유: "가상 면접 사례로 배우는 대규모 시스템 설계" 호텔 예약 시스템 챕터(p.232~262)에서 3가지 방식을 비교 분석하고 있으며, 이를 기반으로 프로젝트 상황에 맞게 Redis + DB 2중 구조를 선택했습니다. Redis가 대부분의 동시 요청을 밀리초 단위로 걸러내고, DB는 최종 방어선 역할만 수행합니다. Redis 장애 시 DB 폴백 경로도 구현했습니다
+- 이유: Redis가 대부분의 동시 요청을 밀리초 단위로 걸러내고, DB는 최종 방어선 역할만 수행하여 부하를 최소화합니다. Redis 장애 시 DB 폴백 경로도 구현했습니다
 
 **17. 예약 프로세스 — 2단계 (세션 → 확정)**
 - 선택: OTA 업계 표준인 2단계 프로세스 채택
@@ -206,7 +206,7 @@
 - **Lua 스크립트 부분 차감 방지**: 다중 날짜 재고를 하나의 Lua 호출로 DECRBY 후, 하나라도 음수면 전체 INCRBY로 롤백합니다. 10박 예약 시 10개 키를 원자적으로 처리하여 "5일치만 차감되고 나머지는 실패"하는 부분 차감 문제를 원천 차단했습니다
 - **보상 트랜잭션 순서**: 예약 세션 생성에서 Redis 차감 후 DB 저장이 실패하면, catch 블록에서 `inventoryClientManager.incrementStock()`으로 재고를 복구합니다. 보상이 실패하는 경우는 좀비 세션 복구 스케줄러가 주기적으로 정리합니다
 - **Supplier Service 직접 호출 → Outbox 전환**: 처음에 `DispatchSupplierFetchService`에서 외부 API를 직접 호출하는 구조로 만들었는데, 외부 호출 실패 시 내부 트랜잭션까지 롤백되는 문제가 있었습니다. Outbox + 스케줄러 구조로 전환하여 외부 호출을 트랜잭션 밖으로 분리했습니다
-- **검색 5개 BC JOIN 성능**: Property + RoomType + Inventory + Rate + RatePlan을 JOIN하는 검색 쿼리에서, QueryDSL의 `leftJoin` + `fetchJoin`을 사용하되 페이지네이션은 커서 기반으로 구현하여 offset 성능 문제를 회피했습니다
+- **검색 크로스 BC 쿼리**: Property + RoomType + Inventory + Rate + RatePlan + Amenity 6개 테이블을 조회하는 검색 쿼리에서, 메인 쿼리는 `select(property.id).from(property)`로 단순하게 두고 나머지 조건은 `JPAExpressions.exists()` 서브쿼리로 처리했습니다. 페이지네이션은 커서 기반(`property.id.gt(cursor)`)으로 구현하여 offset 성능 문제를 회피했습니다
 
 ---
 
@@ -232,10 +232,10 @@
 ### 테스트 현황
 | 레이어 | 유형 | 테스트 수 |
 |--------|------|:--------:|
-| Domain | 단위 (순수 Java) | 1,019 |
-| Application | 단위 (Mockito) | - |
-| Persistence MySQL | 통합 (Testcontainers) | 190 |
+| Domain | 단위 (순수 Java) | 1,000 |
+| Application | 단위 (Mockito) | 277 |
+| Persistence MySQL | 통합 (Testcontainers) | 191 |
 | Persistence Redis | 통합 (Testcontainers) | 23 |
 | REST API | 슬라이스 (MockMvc) | 202 |
-| E2E 통합 | 전체 흐름 | 11 |
-| ArchUnit | 아키텍처 | 14 |
+| E2E + 성능 | 전체 흐름 + 동시성 부하 | 17 |
+| **합계** | | **1,710** |
