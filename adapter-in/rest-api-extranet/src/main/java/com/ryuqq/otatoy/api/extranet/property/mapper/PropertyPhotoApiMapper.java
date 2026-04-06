@@ -1,6 +1,6 @@
 package com.ryuqq.otatoy.api.extranet.property.mapper;
 
-import com.ryuqq.otatoy.api.extranet.property.dto.SetPropertyPhotosApiRequest;
+import com.ryuqq.otatoy.api.extranet.property.dto.request.SetPropertyPhotosApiRequest;
 import com.ryuqq.otatoy.application.property.dto.command.SetPropertyPhotosCommand;
 import com.ryuqq.otatoy.domain.accommodation.PhotoType;
 import com.ryuqq.otatoy.domain.common.vo.CdnUrl;

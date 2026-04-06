@@ -10,7 +10,7 @@ import java.util.List;
 /**
  * 등록된 ErrorMapper 구현체를 순회하며 DomainException에 적합한 매퍼를 찾아 변환한다.
  * <p>
- * 매칭되는 매퍼가 없으면 에러 메시지 패턴 기반의 기본 매핑을 적용한다.
+ * 매칭되는 매퍼가 없으면 에러 카테고리 기반의 기본 매핑을 적용한다.
  *
  * @author ryu-qqq
  * @since 2026-04-05
@@ -37,9 +37,9 @@ public class ErrorMapperRegistry {
     }
 
     private ErrorMapper.MappedError defaultMapping(DomainException ex) {
-        String code = ex.getErrorCode().getCode();
-        String message = ex.getErrorCode().getMessage();
-        HttpStatus status = resolveStatusByCategory(ex.getErrorCode().getCategory());
+        String code = ex.code();
+        String message = ex.errorMessage();
+        HttpStatus status = resolveStatusByCategory(ex.category());
         return new ErrorMapper.MappedError(status, code, message, message);
     }
 

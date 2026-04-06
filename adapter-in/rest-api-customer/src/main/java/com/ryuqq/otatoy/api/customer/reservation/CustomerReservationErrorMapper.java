@@ -28,24 +28,24 @@ public class CustomerReservationErrorMapper implements ErrorMapper {
 
     @Override
     public boolean supports(DomainException ex) {
-        String code = ex.getErrorCode().getCode();
+        String code = ex.code();
         return code.startsWith("RSV-") || code.startsWith("INV-");
     }
 
     @Override
     public MappedError map(DomainException ex) {
-        ErrorCategory category = ex.getErrorCode().getCategory();
+        ErrorCategory category = ex.category();
         HttpStatus status = CATEGORY_STATUS_MAP.getOrDefault(category, HttpStatus.INTERNAL_SERVER_ERROR);
 
-        String debugMessage = ex.getArgs().isEmpty()
-            ? ex.getErrorCode().getMessage()
+        String detail = ex.getArgs().isEmpty()
+            ? ex.errorMessage()
             : ex.getArgs().toString();
 
         return new MappedError(
             status,
-            ex.getErrorCode().getCode(),
-            ex.getErrorCode().getMessage(),
-            debugMessage
+            ex.code(),
+            ex.errorMessage(),
+            detail
         );
     }
 }

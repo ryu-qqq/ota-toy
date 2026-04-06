@@ -1,6 +1,6 @@
 package com.ryuqq.otatoy.api.extranet.pricing.mapper;
 
-import com.ryuqq.otatoy.api.extranet.pricing.dto.SetRateAndInventoryApiRequest;
+import com.ryuqq.otatoy.api.extranet.pricing.dto.request.SetRateAndInventoryApiRequest;
 import com.ryuqq.otatoy.application.pricing.dto.command.SetRateAndInventoryCommand;
 import com.ryuqq.otatoy.domain.pricing.RatePlanId;
 

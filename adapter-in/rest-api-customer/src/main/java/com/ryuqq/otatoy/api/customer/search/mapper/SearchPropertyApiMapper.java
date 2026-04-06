@@ -1,7 +1,7 @@
 package com.ryuqq.otatoy.api.customer.search.mapper;
 
-import com.ryuqq.otatoy.api.customer.search.dto.PropertySummaryApiResponse;
-import com.ryuqq.otatoy.api.customer.search.dto.SearchPropertyApiRequest;
+import com.ryuqq.otatoy.api.customer.search.dto.response.PropertySummaryApiResponse;
+import com.ryuqq.otatoy.api.customer.search.dto.request.SearchPropertyApiRequest;
 import com.ryuqq.otatoy.application.property.dto.query.CustomerSearchPropertyQuery;
 import com.ryuqq.otatoy.application.property.dto.result.PropertySummary;
 import com.ryuqq.otatoy.domain.accommodation.AmenityType;

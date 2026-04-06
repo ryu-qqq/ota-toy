@@ -1,0 +1,389 @@
+= API 공통 규격
+:doctype: book
+
+== 공통 응답 구조
+
+=== 성공 응답
+모든 API의 성공 응답은 다음 구조를 따릅니다.
+
+[source,json]
+----
+{
+  "data": { ... },
+  "timestamp": "2026-04-06 15:30:00",
+  "requestId": "550e8400-e29b-41d4-a716-446655440000"
+}
+----
+
+|===
+| 필드 | 타입 | 설명
+| `data` | Object / null | 응답 데이터. 반환할 데이터가 없으면 `null`
+| `timestamp` | String | 응답 시각 (`yyyy-MM-dd HH:mm:ss`, KST)
+| `requestId` | String | 요청 추적 ID (분산 추적 traceId 또는 UUID)
+|===
+
+=== 에러 응답 (RFC 7807)
+에러 발생 시 https://datatracker.ietf.org/doc/html/rfc7807[RFC 7807 Problem Details] 형식으로 응답합니다.
+
+Content-Type: `application/problem+json`
+
+[source,json]
+----
+{
+  "type": "about:blank",
+  "title": "Accommodation Error",
+  "status": 404,
+  "detail": "숙소를 찾을 수 없습니다",
+  "instance": "/api/v1/extranet/properties/999",
+  "timestamp": "2026-04-06T06:30:00.000Z",
+  "code": "ACC-001",
+  "traceId": "550e8400-e29b-41d4-a716-446655440000"
+}
+----
+
+|===
+| 필드 | 타입 | 설명
+| `type` | String | 에러 유형 문서 URI (현재 `about:blank`)
+| `title` | String | 에러 유형 요약
+| `status` | int | HTTP 상태 코드
+| `detail` | String | 에러 상세 메시지
+| `instance` | String | 요청 URI
+| `timestamp` | String | 에러 발생 시각 (ISO 8601)
+| `code` | String | 도메인 에러 코드 (예: `ACC-001`, `INV-001`)
+| `traceId` | String | 분산 추적 ID
+| `errors` | Map | Validation 실패 시 필드별 에러 메시지 (선택)
+|===
+
+=== 에러 응답 헤더
+|===
+| 헤더 | 설명
+| `x-error-code` | 도메인 에러 코드 (클라이언트에서 프로그래밍적 에러 분기에 사용)
+|===
+
+=== HTTP 상태 코드
+|===
+| 코드 | 의미 | 사용 상황
+| 200 | OK | 조회/수정 성공
+| 201 | Created | 등록 성공
+| 400 | Bad Request | Validation 실패, 잘못된 요청 형식
+| 404 | Not Found | 리소스 없음
+| 405 | Method Not Allowed | 지원하지 않는 HTTP 메서드
+| 409 | Conflict | 상태 충돌 (재고 소진, 이미 취소 등)
+| 422 | Unprocessable Entity | 비즈니스 규칙 위반
+| 500 | Internal Server Error | 예상치 못한 서버 오류
+|===
+
+=== 페이지네이션 (커서 기반)
+목록 조회 API는 커서 기반 페이지네이션을 사용합니다.
+
+[source,json]
+----
+{
+  "data": {
+    "content": [ ... ],
+    "hasNext": true,
+    "nextCursor": 42
+  },
+  "timestamp": "...",
+  "requestId": "..."
+}
+----
+
+|===
+| 필드 | 타입 | 설명
+| `content` | Array | 결과 목록
+| `hasNext` | boolean | 다음 페이지 존재 여부
+| `nextCursor` | Long / null | 다음 페이지 조회 시 `cursor` 파라미터로 전달
+|===
+
+== Enum 타입 레퍼런스
+
+API의 Request/Response에서 문자열로 전달되는 Enum 타입들입니다.
+요청 시 대문자 문자열로 전달하고, 응답도 대문자 문자열로 반환됩니다.
+
+=== PhotoType (사진 유형)
+|===
+| 값 | 설명
+| `EXTERIOR` | 외관
+| `LOBBY` | 로비
+| `ROOM` | 객실
+| `BATHROOM` | 욕실
+| `VIEW` | 전망
+| `FACILITY` | 시설
+| `RESTAURANT` | 레스토랑
+| `POOL` | 수영장
+| `OTHER` | 기타
+|===
+
+=== AmenityType (편의시설 유형)
+|===
+| 값 | 설명
+| `PARKING` | 주차장
+| `POOL` | 수영장
+| `FITNESS` | 피트니스
+| `RESTAURANT` | 레스토랑
+| `FRONT_DESK_24H` | 24시간 프런트
+| `ROOM_SERVICE` | 룸서비스
+| `AIR_CONDITIONING` | 에어컨
+| `TV` | TV
+| `WIFI` | 와이파이
+| `PRIVATE_BATHROOM` | 전용 욕실
+| `BALCONY` | 발코니
+| `KITCHEN` | 주방
+| `REFRIGERATOR` | 냉장고
+| `ELECTRIC_KETTLE` | 전기 주전자
+| `HAIR_DRYER` | 헤어드라이어
+| `BATHTUB` | 욕조
+| `SHOWER` | 샤워실
+| `TOWELS` | 타월
+| `TOILETRIES` | 세면도구
+| `DESK` | 책상
+| `SOFA` | 소파
+| `MINI_BAR` | 미니바
+| `SAFE_BOX` | 객실 내 안전 금고
+| `SLIPPERS` | 슬리퍼
+| `FREE_WATER` | 무료 생수
+| `NON_SMOKING` | 금연
+| `HEATING` | 난방
+| `OTHER` | 기타
+|===
+
+=== PaymentPolicy (결제 정책)
+|===
+| 값 | 설명
+| `PREPAY` | 선결제
+| `PAY_AT_PROPERTY` | 현장결제
+| `PAY_BEFORE_CHECKIN` | 체크인 전 결제
+|===
+
+=== PropertyStatus (숙소 상태)
+|===
+| 값 | 설명
+| `ACTIVE` | 운영중
+| `INACTIVE` | 비활성
+|===
+
+=== RoomTypeStatus (객실 상태)
+|===
+| 값 | 설명
+| `ACTIVE` | 운영중
+| `INACTIVE` | 비활성
+|===
+
+=== ReservationStatus (예약 상태)
+|===
+| 값 | 설명
+| `PENDING` | 대기
+| `CONFIRMED` | 확정
+| `CANCELLED` | 취소
+| `COMPLETED` | 완료
+| `NO_SHOW` | 노쇼
+|===
+
+=== LandmarkType (랜드마크 유형)
+|===
+| 값 | 설명
+| `STATION` | 역
+| `TOURIST` | 관광지
+| `AIRPORT` | 공항
+| `SHOPPING` | 쇼핑
+| `PARK` | 공원
+|===
+
+=== PropertySortKey (검색 정렬 기준)
+|===
+| 값 | 설명
+| `PRICE_LOW` | 가격 낮은순
+| `PRICE_HIGH` | 가격 높은순
+|===
+
+=== SortDirection (정렬 방향)
+|===
+| 값 | 설명
+| `ASC` | 오름차순
+| `DESC` | 내림차순
+|===
+
+== Validation 규칙
+
+Request DTO에 적용된 Jakarta Validation 어노테이션 규칙입니다.
+Validation 실패 시 `400 Bad Request` + `VALIDATION_FAILED` 코드로 응답하며,
+`errors` 필드에 필드별 에러 메시지가 포함됩니다.
+
+=== 공통 어노테이션
+|===
+| 어노테이션 | 의미 | 실패 시 메시지 예시
+| `@NotNull` | null 불가 (필수) | "must not be null"
+| `@NotBlank` | null, 빈 문자열, 공백만 불가 | "must not be blank"
+| `@NotEmpty` | null, 빈 컬렉션 불가 | "must not be empty"
+| `@Size(max=N)` | 최대 N자 | "size must be between 0 and N"
+| `@Min(N)` | 최소값 N | "must be greater than or equal to N"
+| `@Positive` | 양수만 (0 제외) | "must be greater than 0"
+| `@PositiveOrZero` | 0 이상 | "must be greater than or equal to 0"
+| `@Future` | 미래 날짜만 | "must be a future date"
+| `@Valid` | 중첩 객체 검증 전파 | (내부 필드별 메시지)
+|===
+
+=== Extranet API Validation 상세
+
+==== POST 숙소 등록
+|===
+| 필드 | 타입 | 필수 | 제약조건
+| `partnerId` | Long | O | @NotNull
+| `propertyTypeId` | Long | O | @NotNull
+| `name` | String | O | @NotBlank @Size(max=100)
+| `address` | String | O | @NotBlank
+| `latitude` | double | O | -
+| `longitude` | double | O | -
+| `brandId` | Long | - | 선택 (모텔/펜션은 브랜드 없음)
+| `description` | String | - | @Size(max=2000)
+| `neighborhood` | String | - | 선택
+| `region` | String | - | 선택
+| `promotionText` | String | - | @Size(max=500)
+|===
+
+==== PUT 숙소 사진 설정
+|===
+| 필드 | 타입 | 필수 | 제약조건
+| `photos` | List | O | @NotEmpty @Valid
+| `photos[].photoType` | String | O | @NotBlank, PhotoType enum 값
+| `photos[].originUrl` | String | O | @NotBlank
+| `photos[].cdnUrl` | String | - | 선택
+| `photos[].sortOrder` | int | - | @PositiveOrZero
+|===
+
+==== PUT 숙소 편의시설 설정
+|===
+| 필드 | 타입 | 필수 | 제약조건
+| `amenities` | List | O | @NotNull @Valid
+| `amenities[].amenityType` | String | O | @NotBlank, AmenityType enum 값
+| `amenities[].name` | String | O | @NotBlank
+| `amenities[].additionalPrice` | BigDecimal | O | @NotNull @PositiveOrZero
+| `amenities[].sortOrder` | int | - | @PositiveOrZero
+|===
+
+==== PUT 숙소 속성값 설정
+|===
+| 필드 | 타입 | 필수 | 제약조건
+| `attributes` | List | O | @NotEmpty @Valid
+| `attributes[].propertyTypeAttributeId` | Long | O | @NotNull
+| `attributes[].value` | String | O | @NotBlank
+|===
+
+==== POST 객실 유형 등록
+|===
+| 필드 | 타입 | 필수 | 제약조건
+| `name` | String | O | @NotBlank @Size(max=100)
+| `areaSqm` | BigDecimal | O | @NotNull @PositiveOrZero
+| `baseOccupancy` | int | O | @Positive
+| `maxOccupancy` | int | O | @Positive (Domain에서 base <= max 검증)
+| `checkInTime` | String | O | @NotBlank (HH:mm 형식)
+| `checkOutTime` | String | O | @NotBlank (HH:mm 형식)
+| `description` | String | - | @Size(max=2000)
+| `areaPyeong` | String | - | 선택
+| `baseInventory` | int | - | @PositiveOrZero
+| `beds` | List | - | @Valid, 침대 구성
+| `beds[].bedTypeId` | Long | O | @NotNull
+| `beds[].quantity` | int | O | @Positive
+| `views` | List | - | @Valid, 전망 유형
+| `views[].viewTypeId` | Long | O | @NotNull
+|===
+
+==== POST 요금 정책 등록
+|===
+| 필드 | 타입 | 필수 | 제약조건
+| `name` | String | O | @NotBlank @Size(max=200)
+| `paymentPolicy` | String | O | @NotNull, PaymentPolicy enum 값
+| `freeCancellation` | Boolean | - | 선택 (무료 취소 여부)
+| `nonRefundable` | Boolean | - | 선택 (환불 불가 여부)
+| `freeCancellationDeadlineDays` | Integer | - | 선택 (무료 취소 마감일)
+| `cancellationPolicyText` | String | - | @Size(max=2000)
+|===
+
+NOTE: `freeCancellation=true`와 `nonRefundable=true`를 동시에 설정하면 Domain에서 검증 에러가 발생합니다.
+
+==== PUT 요금/재고 설정
+|===
+| 필드 | 타입 | 필수 | 제약조건
+| `startDate` | LocalDate | O | @NotNull (yyyy-MM-dd)
+| `endDate` | LocalDate | O | @NotNull (yyyy-MM-dd, startDate 이후)
+| `basePrice` | BigDecimal | O | @NotNull
+| `weekdayPrice` | BigDecimal | - | 선택 (평일 가격)
+| `fridayPrice` | BigDecimal | - | 선택
+| `saturdayPrice` | BigDecimal | - | 선택
+| `sundayPrice` | BigDecimal | - | 선택
+| `baseInventory` | int | O | @Min(0)
+| `overrides` | List | - | @Valid, 날짜별 오버라이드
+| `overrides[].date` | LocalDate | O | @NotNull
+| `overrides[].price` | BigDecimal | O | @NotNull
+| `overrides[].reason` | String | - | 선택
+|===
+
+=== Customer API Validation 상세
+
+==== GET 숙소 검색
+|===
+| 파라미터 | 타입 | 필수 | 제약조건
+| `checkIn` | LocalDate | O | @NotNull (yyyy-MM-dd)
+| `checkOut` | LocalDate | O | @NotNull (yyyy-MM-dd)
+| `guests` | int | - | @Min(1), 기본값 1
+| `size` | int | - | @Min(1), 기본값 20
+| `keyword` | String | - | 선택
+| `region` | String | - | 선택
+| `propertyTypeId` | Long | - | 선택
+| `minPrice` | BigDecimal | - | 선택
+| `maxPrice` | BigDecimal | - | 선택
+| `amenityTypes` | List<String> | - | AmenityType enum 값 목록
+| `freeCancellationOnly` | Boolean | - | 선택
+| `starRating` | Integer | - | 선택
+| `sortKey` | String | - | PropertySortKey enum 값
+| `direction` | String | - | SortDirection enum 값
+| `cursor` | Long | - | 선택 (페이지네이션)
+|===
+
+==== GET 숙소 요금 조회
+|===
+| 파라미터 | 타입 | 필수 | 제약조건
+| `checkIn` | LocalDate | O | @NotNull (yyyy-MM-dd)
+| `checkOut` | LocalDate | O | @NotNull (yyyy-MM-dd)
+| `guests` | int | - | @Min(1), 기본값 1
+|===
+
+==== POST 예약 세션 생성
+|===
+| 필드 | 타입 | 필수 | 제약조건
+| `Idempotency-Key` (헤더) | String | O | 멱등성 키 (중복 요청 방지)
+| `propertyId` | Long | O | @NotNull
+| `roomTypeId` | Long | O | @NotNull
+| `ratePlanId` | Long | O | @NotNull
+| `checkIn` | LocalDate | O | @NotNull @Future
+| `checkOut` | LocalDate | O | @NotNull @Future
+| `guestCount` | int | O | @Min(1)
+| `totalAmount` | BigDecimal | O | @NotNull
+|===
+
+==== POST 예약 확정
+|===
+| 필드 | 타입 | 필수 | 제약조건
+| `sessionId` | Long | O | @NotNull
+| `customerId` | Long | O | @NotNull
+| `guestInfo` | Object | O | @NotNull @Valid
+| `guestInfo.name` | String | O | @NotBlank
+| `guestInfo.phone` | String | - | 선택
+| `guestInfo.email` | String | - | 선택
+| `bookingSnapshot` | String | - | 선택
+| `lines` | List | O | @NotEmpty @Valid
+| `lines[].ratePlanId` | Long | O | @NotNull
+| `lines[].roomCount` | int | O | @NotNull
+| `lines[].subtotalAmount` | BigDecimal | O | @NotNull
+| `lines[].items` | List | O | @NotEmpty @Valid
+| `lines[].items[].inventoryId` | Long | O | @NotNull
+| `lines[].items[].stayDate` | LocalDate | O | @NotNull
+| `lines[].items[].nightlyRate` | BigDecimal | O | @NotNull
+|===
+
+==== PATCH 예약 취소
+|===
+| 필드 | 타입 | 필수 | 제약조건
+| `cancelReason` | String | - | 선택 (body 자체가 선택)
+|===

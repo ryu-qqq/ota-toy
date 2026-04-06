@@ -4,7 +4,7 @@ import com.ryuqq.otatoy.domain.common.DomainException;
 import org.springframework.http.HttpStatus;
 
 /**
- * DomainException을 API 에러 응답으로 변환하는 매퍼 인터페이스.
+ * DomainException을 RFC 7807 ProblemDetail 기반 API 에러 응답으로 변환하는 매퍼 인터페이스.
  * <p>
  * 각 API 모듈(extranet, customer, admin)에서 도메인별 매핑 구현체를 제공한다.
  * ErrorMapperRegistry가 등록된 매퍼를 순회하며 적절한 매퍼를 선택한다.
@@ -27,10 +27,10 @@ public interface ErrorMapper {
     /**
      * 매핑 결과를 담는 레코드.
      *
-     * @param status       HTTP 상태 코드
-     * @param code         도메인 에러 코드 (예: "INV-001")
-     * @param userMessage  사용자에게 노출하는 메시지
-     * @param debugMessage 내부 로깅용 상세 메시지
+     * @param status HTTP 상태 코드
+     * @param code   도메인 에러 코드 (예: "INV-001")
+     * @param title  에러 제목 (ProblemDetail title)
+     * @param detail 에러 상세 설명 (ProblemDetail detail)
      */
-    record MappedError(HttpStatus status, String code, String userMessage, String debugMessage) {}
+    record MappedError(HttpStatus status, String code, String title, String detail) {}
 }

@@ -1,51 +1,50 @@
 package com.ryuqq.otatoy.api.core;
 
+import org.slf4j.MDC;
+
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.UUID;
+
 /**
- * 모든 API의 공통 응답 래퍼.
- * 성공/실패 여부를 {@code success} 필드로 구분하고,
- * 에러 시에는 {@link ErrorDetail}로 코드/메시지를 전달한다.
+ * 모든 API의 공통 성공 응답 래퍼.
+ * 에러 응답은 RFC 7807 ProblemDetail로 별도 처리한다.
  *
  * @param <T> 응답 데이터 타입
  * @author ryu-qqq
  * @since 2026-04-05
  */
 public record ApiResponse<T>(
-    boolean success,
     T data,
-    ErrorDetail error
+    String timestamp,
+    String requestId
 ) {
 
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter
+        .ofPattern("yyyy-MM-dd HH:mm:ss")
+        .withZone(ZoneId.of("Asia/Seoul"));
+
     /**
-     * 성공 응답을 생성한다.
+     * 데이터를 포함한 성공 응답을 생성한다.
      */
-    public static <T> ApiResponse<T> success(T data) {
-        return new ApiResponse<>(true, data, null);
+    public static <T> ApiResponse<T> of(T data) {
+        return new ApiResponse<>(data, formatNow(), resolveRequestId());
     }
 
     /**
-     * 에러 응답을 생성한다.
+     * 데이터 없이 성공 응답을 생성한다.
      */
-    public static ApiResponse<Void> error(String code, String userMessage, String debugMessage) {
-        return new ApiResponse<>(false, null, new ErrorDetail(code, userMessage, debugMessage));
+    public static ApiResponse<Void> of() {
+        return new ApiResponse<>(null, formatNow(), resolveRequestId());
     }
 
-    /**
-     * {@link ErrorDetail}을 직접 받아 에러 응답을 생성한다.
-     */
-    public static ApiResponse<Void> error(ErrorDetail errorDetail) {
-        return new ApiResponse<>(false, null, errorDetail);
+    private static String formatNow() {
+        return FORMATTER.format(Instant.now());
     }
 
-    /**
-     * 에러 상세 정보.
-     *
-     * @param code         도메인 에러 코드 (예: "INV-001")
-     * @param userMessage  사용자에게 노출하는 메시지
-     * @param debugMessage 내부 로깅용 상세 메시지
-     */
-    public record ErrorDetail(
-        String code,
-        String userMessage,
-        String debugMessage
-    ) {}
+    private static String resolveRequestId() {
+        String traceId = MDC.get("traceId");
+        return traceId != null ? traceId : UUID.randomUUID().toString();
+    }
 }

@@ -1,6 +1,6 @@
 package com.ryuqq.otatoy.api.extranet.roomtype.mapper;
 
-import com.ryuqq.otatoy.api.extranet.roomtype.dto.RegisterRoomTypeApiRequest;
+import com.ryuqq.otatoy.api.extranet.roomtype.dto.request.RegisterRoomTypeApiRequest;
 import com.ryuqq.otatoy.application.roomtype.dto.command.RegisterRoomTypeCommand;
 import com.ryuqq.otatoy.domain.property.PropertyId;
 import com.ryuqq.otatoy.domain.roomattribute.BedTypeId;

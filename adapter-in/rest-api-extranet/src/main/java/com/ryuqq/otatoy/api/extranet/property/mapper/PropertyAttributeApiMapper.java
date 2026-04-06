@@ -1,6 +1,6 @@
 package com.ryuqq.otatoy.api.extranet.property.mapper;
 
-import com.ryuqq.otatoy.api.extranet.property.dto.SetPropertyAttributesApiRequest;
+import com.ryuqq.otatoy.api.extranet.property.dto.request.SetPropertyAttributesApiRequest;
 import com.ryuqq.otatoy.application.property.dto.command.SetPropertyAttributesCommand;
 import com.ryuqq.otatoy.domain.property.PropertyId;
 import com.ryuqq.otatoy.domain.propertytype.PropertyTypeAttributeId;

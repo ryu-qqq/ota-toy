@@ -1,6 +1,6 @@
 package com.ryuqq.otatoy.api.extranet.pricing.mapper;
 
-import com.ryuqq.otatoy.api.extranet.pricing.dto.RegisterRatePlanApiRequest;
+import com.ryuqq.otatoy.api.extranet.pricing.dto.request.RegisterRatePlanApiRequest;
 import com.ryuqq.otatoy.application.pricing.dto.command.RegisterRatePlanCommand;
 import com.ryuqq.otatoy.domain.pricing.CancellationPolicy;
 import com.ryuqq.otatoy.domain.pricing.PaymentPolicy;

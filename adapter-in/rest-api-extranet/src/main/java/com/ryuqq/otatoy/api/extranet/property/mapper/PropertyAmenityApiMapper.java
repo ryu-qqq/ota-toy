@@ -1,6 +1,6 @@
 package com.ryuqq.otatoy.api.extranet.property.mapper;
 
-import com.ryuqq.otatoy.api.extranet.property.dto.SetPropertyAmenitiesApiRequest;
+import com.ryuqq.otatoy.api.extranet.property.dto.request.SetPropertyAmenitiesApiRequest;
 import com.ryuqq.otatoy.application.property.dto.command.SetPropertyAmenitiesCommand;
 import com.ryuqq.otatoy.domain.accommodation.AmenityName;
 import com.ryuqq.otatoy.domain.accommodation.AmenityType;

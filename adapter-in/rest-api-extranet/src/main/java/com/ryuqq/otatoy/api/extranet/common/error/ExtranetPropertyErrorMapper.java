@@ -19,16 +19,16 @@ public class ExtranetPropertyErrorMapper implements ErrorMapper {
 
     @Override
     public boolean supports(DomainException ex) {
-        String code = ex.getErrorCode().getCode();
+        String code = ex.code();
         return code.startsWith("ACC-") || code.startsWith("PTN-") || code.startsWith("PT-")
-            || code.startsWith("PRC-");
+            || code.startsWith("PRC-") || code.startsWith("INV-") || code.startsWith("RT-");
     }
 
     @Override
     public MappedError map(DomainException ex) {
-        String code = ex.getErrorCode().getCode();
-        String message = ex.getErrorCode().getMessage();
-        ErrorCategory category = ex.getErrorCode().getCategory();
+        String code = ex.code();
+        String message = ex.errorMessage();
+        ErrorCategory category = ex.category();
         HttpStatus status = resolveStatus(category);
         return new MappedError(status, code, message, message);
     }

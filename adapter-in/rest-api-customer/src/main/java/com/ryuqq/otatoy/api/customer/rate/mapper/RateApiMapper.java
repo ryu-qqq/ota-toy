@@ -1,7 +1,7 @@
 package com.ryuqq.otatoy.api.customer.rate.mapper;
 
-import com.ryuqq.otatoy.api.customer.rate.dto.DailyRateApiResponse;
-import com.ryuqq.otatoy.api.customer.rate.dto.RoomRateApiResponse;
+import com.ryuqq.otatoy.api.customer.rate.dto.response.DailyRateApiResponse;
+import com.ryuqq.otatoy.api.customer.rate.dto.response.RoomRateApiResponse;
 import com.ryuqq.otatoy.application.pricing.dto.query.CustomerGetRateQuery;
 import com.ryuqq.otatoy.application.pricing.dto.result.DailyRate;
 import com.ryuqq.otatoy.application.pricing.dto.result.RoomRateSummary;

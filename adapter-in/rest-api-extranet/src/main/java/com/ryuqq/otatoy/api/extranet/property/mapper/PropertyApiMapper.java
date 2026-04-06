@@ -1,6 +1,6 @@
 package com.ryuqq.otatoy.api.extranet.property.mapper;
 
-import com.ryuqq.otatoy.api.extranet.property.dto.RegisterPropertyApiRequest;
+import com.ryuqq.otatoy.api.extranet.property.dto.request.RegisterPropertyApiRequest;
 import com.ryuqq.otatoy.application.property.dto.command.RegisterPropertyCommand;
 import com.ryuqq.otatoy.domain.brand.BrandId;
 import com.ryuqq.otatoy.domain.partner.PartnerId;
